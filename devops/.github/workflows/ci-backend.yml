@@ -1,0 +1,28 @@
+name: CI - Backend
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ['backend/**']
+  pull_request:
+    paths: ['backend/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: vietmoney_test
+        options: --health-cmd="mysqladmin ping" --health-interval=10s
+        ports: ["3306:3306"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { java-version: '21', distribution: 'temurin', cache: 'maven' }
+      - run: mvn clean test
+        working-directory: backend
+      - name: Build Docker image
+        run: docker build -t vietmoney-backend:${{ github.sha }} backend/

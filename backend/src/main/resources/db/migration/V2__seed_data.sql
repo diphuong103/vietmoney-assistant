@@ -1,0 +1,17 @@
+INSERT INTO city_price_wikis (city, category, item, min_price, max_price, unit, note) VALUES
+('Ha Noi', 'food', 'Pho bo', '35000', '80000', 'VND/to', 'Tuy quan'),
+('Ha Noi', 'food', 'Bun cha', '40000', '70000', 'VND/suat', NULL),
+('Ha Noi', 'food', 'Com binh dan', '30000', '60000', 'VND/suat', NULL),
+('Ha Noi', 'beer', 'Bia Hanoi', '8000', '15000', 'VND/lon', 'Tai quan bia hoi'),
+('Ha Noi', 'taxi', 'Grab Car', '5000', '8000', 'VND/km', NULL),
+('Ha Noi', 'massage', 'Massage thu gian 60 phut', '150000', '300000', 'VND', NULL),
+('Ha Noi', 'ticket', 'Van Mieu', '30000', '30000', 'VND', 'Nguoi lon'),
+('TP.HCM', 'food', 'Hu tieu', '35000', '75000', 'VND/to', NULL),
+('TP.HCM', 'food', 'Com tam suon', '40000', '80000', 'VND/suat', NULL),
+('TP.HCM', 'taxi', 'Grab Car', '5500', '9000', 'VND/km', NULL),
+('Da Nang', 'food', 'Mi Quang', '30000', '60000', 'VND/to', NULL),
+('Da Nang', 'ticket', 'Ba Na Hills', '750000', '900000', 'VND', 'Ve nguoi lon'),
+('Hoi An', 'food', 'Cao lau', '35000', '60000', 'VND/to', NULL),
+('Hoi An', 'ticket', 'Pho co Hoi An', '120000', '120000', 'VND', 'Ve 5 diem'),
+('Nha Trang', 'ticket', 'Vinpearl Land', '550000', '700000', 'VND', 'Ve combo'),
+('Phu Quoc', 'taxi', 'Xe om/Grab', '20000', '50000', 'VND', 'Tuy diem den');

@@ -1,0 +1,30 @@
+{
+  "common": {
+    "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",
+    "loading": "Loading...", "error": "Error", "success": "Success",
+    "confirm": "Confirm", "back": "Back", "search": "Search"
+  },
+  "auth": {
+    "login": "Login", "register": "Register", "logout": "Logout",
+    "forgotPassword": "Forgot Password", "username": "Username",
+    "password": "Password", "email": "Email", "fullName": "Full Name",
+    "nationality": "Nationality", "travelDestination": "Travel Destination"
+  },
+  "nav": {
+    "dashboard": "Dashboard", "budget": "Budget", "scan": "Scan Money",
+    "exchange": "Exchange Rate", "atm": "Find ATM", "news": "News",
+    "tourist": "Tourism", "priceWiki": "Price Guide", "profile": "Profile"
+  },
+  "budget": {
+    "title": "Budget Management", "create": "Create New Budget",
+    "totalAmount": "Total Budget", "spentAmount": "Spent",
+    "remaining": "Remaining", "currency": "Currency"
+  },
+  "scan": {
+    "title": "Vietnamese Currency Recognition", "capture": "Take Photo",
+    "upload": "Upload Image", "result": "Recognition Result",
+    "denomination": "Denomination", "confidence": "Confidence",
+    "addToExpense": "Add to Expenses", "convert": "Convert",
+    "priceRef": "Price Reference"
+  }
+}

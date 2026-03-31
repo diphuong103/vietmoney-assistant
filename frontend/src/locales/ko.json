@@ -1,0 +1,5 @@
+{
+  "common": { "save": "저장", "cancel": "취소", "loading": "로딩 중...", "search": "검색" },
+  "auth": { "login": "로그인", "register": "회원가입", "logout": "로그아웃" },
+  "nav": { "dashboard": "대시보드", "budget": "예산", "scan": "돈 스캔", "exchange": "환율", "atm": "ATM 찾기" }
+}

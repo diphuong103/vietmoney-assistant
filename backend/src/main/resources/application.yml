@@ -1,0 +1,14 @@
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  application:
+    name: vietmoney-assistant
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:vietmoney-secret-key-change-in-production-min-256-bits}
+    expiration: 86400000  # 24 hours
+  exchange-rate:
+    api-url: ${EXCHANGE_RATE_API_URL:https://open.er-api.com/v6/latest/VND}
+  ai-service:
+    url: ${AI_SERVICE_URL:http://ai-service:8001}
