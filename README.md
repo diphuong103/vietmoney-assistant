@@ -148,3 +148,9 @@ vietmoney-assistant/
 └── workflows/           # Tự động hóa CI/CD
 ├── ci-backend.yml
 └── ci-frontend.yml
+
+PS D:\Project_x\vietmoney-assistant> cd frontend
+PS D:\Project_x\vietmoney-assistant\frontend> npm install
+
+cd frontend
+npm run dev

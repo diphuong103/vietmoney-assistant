@@ -1,11 +1,28 @@
+import Navbar from '../../components/layout/Navbar';
+import { useNavigate } from 'react-router-dom';
+
 export default function ProfilePage() {
+  const navigate = useNavigate();
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Profile</h1>
-      <div className="bg-white rounded-2xl shadow-sm p-8 text-center text-gray-400">
-        <div className="text-5xl mb-3">🚧</div>
-        <p>Tính năng đang phát triển</p>
+    <div className="page active" id="page-profile">
+      <Navbar
+        title={<>Viet<span style={{ color: 'var(--accent)' }}>Money</span></>}
+        subtitle="Profile"
+      />
+      <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center' }}>
+        <img src="https://i.pravatar.cc/80" alt="Avatar"
+          style={{ width: 80, height: 80, borderRadius: '50%', border: '3px solid var(--accent)' }} />
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 700 }}>Traveler</div>
+          <div style={{ color: 'var(--muted)', fontSize: 13 }}>traveler@email.com</div>
+        </div>
+        <button
+          className="submit-form-btn"
+          style={{ maxWidth: 300 }}
+          onClick={() => navigate('/login')}
+        >Log Out</button>
       </div>
     </div>
-  )
+  );
 }

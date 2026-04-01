@@ -6,13 +6,13 @@ import './assets/styles/global.css'
 import './utils/i18n'
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 5 * 60 * 1000 } }
+    defaultOptions: { queries: { retry: 1, staleTime: 5 * 60 * 1000 } }
 })
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </React.StrictMode>,
+    <React.StrictMode>
+        <QueryClientProvider client={queryClient}>
+            <App />
+        </QueryClientProvider>
+    </React.StrictMode>,
 )

@@ -1,24 +1,37 @@
-export const CURRENCIES = ['VND','USD','EUR','GBP','JPY','KRW','CNY','AUD','SGD','THB']
+export const SUPPORTED_CURRENCIES = ['VND', 'USD', 'EUR', 'KRW', 'JPY', 'GBP', 'CNY'];
 
-export const TRANSACTION_CATEGORIES = [
-  'Ăn uống', 'Di chuyển', 'Mua sắm', 'Giải trí', 'Lưu trú',
-  'Y tế', 'Giáo dục', 'Dịch vụ', 'Du lịch', 'Khác'
-]
+export const CURRENCY_SYMBOLS = {
+  VND: '₫', USD: '$', EUR: '€', KRW: '₩', JPY: '¥', GBP: '£', CNY: '¥',
+};
 
-export const TOURIST_CATEGORIES = [
-  'Di tích lịch sử', 'Thiên nhiên', 'Bãi biển', 'Ẩm thực',
-  'Văn hóa', 'Vui chơi giải trí', 'Tâm linh'
-]
+export const CURRENCY_FLAGS = {
+  USD: '🇺🇸', EUR: '🇪🇺', KRW: '🇰🇷', JPY: '🇯🇵', GBP: '🇬🇧', CNY: '🇨🇳', VND: '🇻🇳',
+};
 
-export const PRICE_WIKI_CATEGORIES = [
-  { key: 'food', label: 'Ăn uống', icon: '🍜' },
-  { key: 'taxi', label: 'Di chuyển', icon: '🚕' },
-  { key: 'beer', label: 'Bia/Nước uống', icon: '🍺' },
-  { key: 'massage', label: 'Massage/Spa', icon: '💆' },
-  { key: 'ticket', label: 'Vé tham quan', icon: '🎫' },
-]
+export const VND_DENOMINATIONS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000];
 
-export const CITIES = [
-  'Hà Nội', 'TP.HCM', 'Đà Nẵng', 'Hội An', 'Nha Trang',
-  'Phú Quốc', 'Huế', 'Hạ Long', 'Sa Pa', 'Đà Lạt'
-]
+export const DEFAULT_DAILY_BUDGET_VND = 2_000_000;
+
+export const APP_NAME = 'VietMoney';
+
+export const ROUTES = {
+  HOME:           '/',
+  NEWS:           '/news',
+  SCAN:           '/scan',
+  SCAN_HISTORY:   '/scan/history',
+  BUDGET:         '/budget',
+  EXCHANGE:       '/exchange',
+  WIKI:           '/wiki',
+  GUIDE:          '/wiki/guide',
+  PLANS:          '/plans',
+  ATM_MAP:        '/atm-map',
+  SPOTS:          '/spots',
+  PROFILE:        '/profile',
+  LOGIN:          '/login',
+  REGISTER:       '/register',
+  FORGOT_PW:      '/forgot-password',
+  VERIFY_OTP:     '/verify-otp',
+  ADMIN:          '/admin',
+  ADMIN_ARTICLES: '/admin/articles',
+  ADMIN_USERS:    '/admin/users',
+};

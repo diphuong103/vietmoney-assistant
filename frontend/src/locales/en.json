@@ -1,30 +1,22 @@
 {
-  "common": {
-    "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit",
-    "loading": "Loading...", "error": "Error", "success": "Success",
-    "confirm": "Confirm", "back": "Back", "search": "Search"
-  },
-  "auth": {
-    "login": "Login", "register": "Register", "logout": "Logout",
-    "forgotPassword": "Forgot Password", "username": "Username",
-    "password": "Password", "email": "Email", "fullName": "Full Name",
-    "nationality": "Nationality", "travelDestination": "Travel Destination"
-  },
-  "nav": {
-    "dashboard": "Dashboard", "budget": "Budget", "scan": "Scan Money",
-    "exchange": "Exchange Rate", "atm": "Find ATM", "news": "News",
-    "tourist": "Tourism", "priceWiki": "Price Guide", "profile": "Profile"
-  },
-  "budget": {
-    "title": "Budget Management", "create": "Create New Budget",
-    "totalAmount": "Total Budget", "spentAmount": "Spent",
-    "remaining": "Remaining", "currency": "Currency"
-  },
-  "scan": {
-    "title": "Vietnamese Currency Recognition", "capture": "Take Photo",
-    "upload": "Upload Image", "result": "Recognition Result",
-    "denomination": "Denomination", "confidence": "Confidence",
-    "addToExpense": "Add to Expenses", "convert": "Convert",
-    "priceRef": "Price Reference"
-  }
+  "greeting_label": "Welcome back",
+  "greeting_hello": "Good evening, Traveler 👋",
+  "trip_day": "Day 3",
+  "of_trip": " of your trip",
+  "remaining": " remaining",
+  "quick_actions": "Quick Actions",
+  "scan_money": "Scan Money",
+  "scan_sub": "AI Recognition",
+  "exchange_rate": "Exchange Rate",
+  "budget": "Budget",
+  "price_wiki": "Price Wiki",
+  "wiki_sub": "Reference prices",
+  "currency_guide": "Currency Guide",
+  "guide_sub": "Learn Vietnamese Dong — flip cards & security features",
+  "latest_news": "Latest News",
+  "nav_home": "Home",
+  "nav_news": "News",
+  "nav_scan": "Scan",
+  "nav_budget": "Budget",
+  "nav_rates": "Rates"
 }

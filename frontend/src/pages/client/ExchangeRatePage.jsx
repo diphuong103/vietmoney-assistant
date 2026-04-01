@@ -1,71 +1,101 @@
-import { useState } from 'react'
-import { useExchangeRate } from '../../hooks/useExchangeRate'
-import { CURRENCIES } from '../../utils/constants'
-import { formatDate } from '../../utils/formatDate'
+import { useState } from 'react';
+import Navbar from '../../components/layout/Navbar';
+
+const RATES = {
+  VND: 1,
+  USD: 25420,
+  EUR: 27810,
+  KRW: 18.9,
+  JPY: 165.4,
+  GBP: 32150,
+  CNY: 3497,
+};
+
+const RATE_CARDS = [
+  { flag: '🇺🇸', pair: 'VND / USD', name: 'Vietnamese Dong', rate: '25,420', change: '+0.12%', up: true },
+  { flag: '🇰🇷', pair: 'VND / KRW', name: 'Korean Won',      rate: '18.79',  change: '−0.05%', up: false },
+  { flag: '🇪🇺', pair: 'VND / EUR', name: 'Euro',            rate: '27,810', change: '+0.23%', up: true  },
+  { flag: '🇯🇵', pair: 'VND / JPY', name: 'Japanese Yen',    rate: '165.4',  change: '+0.08%', up: true  },
+  { flag: '🇬🇧', pair: 'VND / GBP', name: 'British Pound',   rate: '32,150', change: '−0.14%', up: false },
+  { flag: '🇨🇳', pair: 'VND / CNY', name: 'Chinese Yuan',    rate: '3,497',  change: '+0.03%', up: true  },
+];
+
+const CURRENCIES = ['VND', 'USD', 'EUR', 'KRW', 'JPY', 'GBP', 'CNY'];
 
 export default function ExchangeRatePage() {
-  const { rates, updatedAt, isConnected, convert } = useExchangeRate()
-  const [amount, setAmount] = useState(1000000)
-  const [fromCurrency, setFromCurrency] = useState('VND')
+  const [fromAmt, setFromAmt] = useState('1000000');
+  const [fromCur, setFromCur] = useState('VND');
+  const [toCur,   setToCur]   = useState('USD');
+
+  const convert = (amount, from, to) => {
+    const vnd = parseFloat(amount) * RATES[from];
+    const result = vnd / RATES[to];
+    return isNaN(result) ? '0' : result.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  };
+
+  const swap = () => {
+    setFromCur(toCur);
+    setToCur(fromCur);
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Tỷ giá hối đoái</h1>
-          <p className="text-gray-500 text-sm">Cập nhật: {updatedAt ? formatDate(updatedAt, 'HH:mm DD/MM/YYYY') : '--'}</p>
-        </div>
-        <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full ${isConnected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
-          {isConnected ? 'Live' : 'Offline'}
-        </div>
-      </div>
+    <div className="page active" id="page-exchange">
+      <Navbar
+        title={<>Viet<span style={{ color: 'var(--accent)' }}>Money</span></>}
+        subtitle="Exchange"
+        actions={<button className="icon-btn" title="Refresh">🔄</button>}
+      />
+      <div style={{ height: 8 }} />
 
-      {/* Converter */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
-        <h2 className="font-semibold">Quy đổi nhanh</h2>
-        <div className="flex gap-3">
-          <input type="number" value={amount} onChange={e => setAmount(+e.target.value)}
-            className="flex-1 px-4 py-2.5 border rounded-lg text-sm outline-none focus:border-red-500" />
-          <select value={fromCurrency} onChange={e => setFromCurrency(e.target.value)}
-            className="px-3 py-2.5 border rounded-lg text-sm outline-none">
-            {CURRENCIES.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          {CURRENCIES.filter(c => c !== fromCurrency).slice(0, 8).map(to => {
-            const converted = convert(amount, fromCurrency, to)
-            return (
-              <div key={to} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-600">{to}</span>
-                <span className="text-sm font-semibold">{converted ? converted.toLocaleString('vi-VN', { maximumFractionDigits: 2 }) : '--'}</span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      <div className="exchange-hero">
+        {/* Converter */}
+        <div className="converter-card">
+          <div className="converter-title">⚡ Quick Converter</div>
 
-      {/* Rate Table */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-            <tr>
-              <th className="px-6 py-3 text-left">Tiền tệ</th>
-              <th className="px-6 py-3 text-right">1 VND =</th>
-              <th className="px-6 py-3 text-right">1 tệ = VND</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {Object.entries(rates).map(([currency, rate]) => (
-              <tr key={currency} className="hover:bg-gray-50">
-                <td className="px-6 py-3 font-medium">{currency}</td>
-                <td className="px-6 py-3 text-right text-gray-600">{rate?.toFixed(6)}</td>
-                <td className="px-6 py-3 text-right font-semibold">{(1/rate)?.toLocaleString('vi-VN', { maximumFractionDigits: 0 })}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          <div className="converter-row">
+            <input
+              type="number"
+              className="converter-input"
+              value={fromAmt}
+              onChange={e => setFromAmt(e.target.value)}
+            />
+            <select className="converter-select" value={fromCur} onChange={e => setFromCur(e.target.value)}>
+              {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+
+          <button className="swap-btn" onClick={swap}>⇅</button>
+
+          <div className="converter-row">
+            <input
+              type="text"
+              className="converter-input"
+              value={convert(fromAmt, fromCur, toCur)}
+              readOnly
+              style={{ opacity: 0.8 }}
+            />
+            <select className="converter-select" value={toCur} onChange={e => setToCur(e.target.value)}>
+              {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Rate Cards */}
+        {RATE_CARDS.map((r, i) => (
+          <div className="rate-card" key={i}>
+            <div className="rate-flag">{r.flag}</div>
+            <div className="rate-info">
+              <div className="rate-pair">{r.pair}</div>
+              <div className="rate-name">{r.name}</div>
+            </div>
+            <div className="rate-val">
+              <div className="rate">{r.rate}</div>
+              <div className={`change ${r.up ? 'up' : 'down'}`}>{r.change}</div>
+            </div>
+          </div>
+        ))}
       </div>
+      <div style={{ height: 16 }} />
     </div>
-  )
+  );
 }

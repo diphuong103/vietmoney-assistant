@@ -1,22 +1,9 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { create } from 'zustand';
 
-export const useAuthStore = create(
-  persist(
-    (set, get) => ({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-      setAuth: (user, token) => set({ user, token, isAuthenticated: true }),
-      logout: () => {
-        localStorage.removeItem('vm_token')
-        set({ user: null, token: null, isAuthenticated: false })
-      },
-      updateUser: (user) => set({ user }),
-    }),
-    {
-      name: 'vietmoney-auth',
-      partialize: (state) => ({ user: state.user, token: state.token }),
-    }
-  )
-)
+export const useAuthStore = create((set) => ({
+  user: null, // { name, email, role }
+  token: null,
+  setUser:  (user)  => set({ user }),
+  setToken: (token) => set({ token }),
+  logout:   ()      => set({ user: null, token: null }),
+}));

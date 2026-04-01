@@ -1,5 +1,22 @@
 {
-  "common": { "save": "저장", "cancel": "취소", "loading": "로딩 중...", "search": "검색" },
-  "auth": { "login": "로그인", "register": "회원가입", "logout": "로그아웃" },
-  "nav": { "dashboard": "대시보드", "budget": "예산", "scan": "돈 스캔", "exchange": "환율", "atm": "ATM 찾기" }
+  "greeting_label": "다시 오신 것을 환영합니다",
+  "greeting_hello": "좋은 저녁이에요, 여행자님 👋",
+  "trip_day": "3일째",
+  "of_trip": " 여행 중",
+  "remaining": " 남음",
+  "quick_actions": "빠른 실행",
+  "scan_money": "돈 스캔",
+  "scan_sub": "AI 인식",
+  "exchange_rate": "환율",
+  "budget": "예산",
+  "price_wiki": "가격 위키",
+  "wiki_sub": "참고 가격",
+  "currency_guide": "통화 가이드",
+  "guide_sub": "베트남 동 알아보기 — 카드 뒤집기 & 보안 기능",
+  "latest_news": "최신 뉴스",
+  "nav_home": "홈",
+  "nav_news": "뉴스",
+  "nav_scan": "스캔",
+  "nav_budget": "예산",
+  "nav_rates": "환율"
 }

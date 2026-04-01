@@ -1,16 +1,19 @@
-import i18n from 'i18next'
-import { initReactI18next } from 'react-i18next'
-import vi from '../locales/vi.json'
-import en from '../locales/en.json'
+import en from '../locales/en.json';
+import ko from '../locales/ko.json';
+import vi from '../locales/vi.json';
 
-i18n.use(initReactI18next).init({
-  resources: {
-    vi: { translation: vi },
-    en: { translation: en },
-  },
-  lng: localStorage.getItem('vm_lang') || 'vi',
-  fallbackLng: 'en',
-  interpolation: { escapeValue: false },
-})
+const LOCALES = { en, ko, vi };
 
-export default i18n
+let currentLang = 'en';
+
+export function setLanguage(lang) {
+  if (LOCALES[lang]) currentLang = lang;
+}
+
+export function getLanguage() {
+  return currentLang;
+}
+
+export function t(key) {
+  return LOCALES[currentLang]?.[key] ?? LOCALES['en']?.[key] ?? key;
+}

@@ -1,8 +1,16 @@
-import axiosClient from './axiosClient'
+import axiosClient from './axiosClient';
+
 const scanApi = {
-  scanImage: (formData) => axiosClient.post('/scan', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  getHistory: (params) => axiosClient.get('/scan/history', { params }),
-}
-export default scanApi
+  scanImage: (formData) =>
+    axiosClient.post('/scan', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  getHistory: (params) =>
+    axiosClient.get('/scan/history', { params }),
+
+  deleteHistory: (id) =>
+    axiosClient.delete(`/scan/history/${id}`),
+};
+
+export default scanApi;

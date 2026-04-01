@@ -1,41 +1,35 @@
-import { useAuthStore } from '../store/authStore'
-import { useNavigate } from 'react-router-dom'
-import authApi from '../api/authApi'
-import toast from 'react-hot-toast'
+import { useEffect } from 'react';
+import { useAuthStore } from '../store/authStore';
+import authApi from '../api/authApi';
 
 export function useAuth() {
-  const { user, token, isAuthenticated, setAuth, logout } = useAuthStore()
-  const navigate = useNavigate()
+  const { user, token, setUser, setToken, logout } = useAuthStore();
 
-  const login = async (data) => {
-    try {
-      const res = await authApi.login(data)
-      localStorage.setItem('vm_token', res.data.accessToken)
-      setAuth(res.data.user, res.data.accessToken)
-      toast.success('Đăng nhập thành công!')
-      navigate(res.data.user?.role === 'ADMIN' ? '/admin' : '/dashboard')
-    } catch (err) {
-      toast.error(err?.message || 'Đăng nhập thất bại')
+  useEffect(() => {
+    // Rehydrate user on mount if token exists in localStorage
+    const savedToken = localStorage.getItem('token');
+    if (savedToken && !user) {
+      setToken(savedToken);
+      authApi.getMe()
+        .then((res) => setUser(res.data))
+        .catch(() => { localStorage.removeItem('token'); logout(); });
     }
-  }
+  }, []);
 
-  const register = async (data) => {
-    try {
-      const res = await authApi.register(data)
-      localStorage.setItem('vm_token', res.data.accessToken)
-      setAuth(res.data.user, res.data.accessToken)
-      toast.success('Đăng ký thành công!')
-      navigate('/dashboard')
-    } catch (err) {
-      toast.error(err?.message || 'Đăng ký thất bại')
-    }
-  }
+  const login = async (email, password) => {
+    const res = await authApi.login(email, password);
+    const { token: t, user: u } = res.data;
+    localStorage.setItem('token', t);
+    setToken(t);
+    setUser(u);
+    return u;
+  };
 
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-    toast.success('Đã đăng xuất')
-  }
+  const logoutUser = async () => {
+    try { await authApi.logout(); } catch (_) {}
+    localStorage.removeItem('token');
+    logout();
+  };
 
-  return { user, token, isAuthenticated, login, register, logout: handleLogout }
+  return { user, token, login, logout: logoutUser, isAuthenticated: !!user };
 }

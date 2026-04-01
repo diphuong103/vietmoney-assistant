@@ -1,6 +1,11 @@
-import axiosClient from './axiosClient'
+import axiosClient from './axiosClient';
+
 const atmApi = {
-  findNearby: (lat, lng, radius = 2000) =>
+  getNearby: (lat, lng, radius = 2000) =>
     axiosClient.get('/atm/nearby', { params: { lat, lng, radius } }),
-}
-export default atmApi
+
+  getById: (id) =>
+    axiosClient.get(`/atm/${id}`),
+};
+
+export default atmApi;

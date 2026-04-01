@@ -1,41 +1,74 @@
-import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import authApi from '../../api/authApi'
-import Input from '../../components/common/Input'
-import Button from '../../components/common/Button'
-import toast from 'react-hot-toast'
+import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function VerifyOtpPage() {
-  const navigate = useNavigate()
-  const { state } = useLocation()
-  const [form, setForm] = useState({ email: state?.email || '', otp: '', newPassword: '' })
-  const [loading, setLoading] = useState(false)
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const inputs = useRef([]);
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    try {
-      await authApi.resetPassword(form)
-      toast.success('Đặt lại mật khẩu thành công!')
-      navigate('/login')
-    } catch (err) {
-      toast.error(err?.message || 'OTP không hợp lệ')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const handleChange = (val, i) => {
+    if (!/^\d?$/.test(val)) return;
+    const next = [...otp];
+    next[i] = val;
+    setOtp(next);
+    if (val && i < 5) inputs.current[i + 1]?.focus();
+  };
+
+  const handleKeyDown = (e, i) => {
+    if (e.key === 'Backspace' && !otp[i] && i > 0) inputs.current[i - 1]?.focus();
+  };
+
+  const handleVerify = (e) => {
+    e.preventDefault();
+    // TODO: call authApi.verifyOtp(otp.join(''))
+    navigate('/');
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-50 to-orange-50">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-lg">
-        <h2 className="text-xl font-bold mb-6">Xác thực OTP</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input label="Email" type="email" value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))} required />
-          <Input label="Mã OTP" value={form.otp} onChange={e => setForm(f => ({...f, otp: e.target.value}))} placeholder="Nhập 6 chữ số" maxLength={6} required />
-          <Input label="Mật khẩu mới" type="password" value={form.newPassword} onChange={e => setForm(f => ({...f, newPassword: e.target.value}))} required />
-          <Button type="submit" loading={loading} className="w-full">Đặt lại mật khẩu</Button>
-        </form>
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', padding: 20, background: 'var(--bg)',
+    }}>
+      <div style={{ width: '100%', maxWidth: 380 }}>
+        <div className="topbar-logo" style={{ marginBottom: 32, fontSize: 24, display: 'block' }}>
+          Viet<span style={{ color: 'var(--accent)' }}>Money</span>
+        </div>
+
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 24, padding: 28 }}>
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, marginBottom: 8 }}>Enter OTP</h2>
+          <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 28 }}>
+            We sent a 6-digit code to your email.
+          </p>
+
+          <form onSubmit={handleVerify}>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 24 }}>
+              {otp.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={el => inputs.current[i] = el}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  className="form-input"
+                  value={digit}
+                  onChange={e => handleChange(e.target.value, i)}
+                  onKeyDown={e => handleKeyDown(e, i)}
+                  style={{
+                    width: 48, height: 52, textAlign: 'center',
+                    fontSize: 22, fontFamily: 'DM Mono, monospace', padding: 0,
+                  }}
+                />
+              ))}
+            </div>
+            <button type="submit" className="submit-form-btn">Verify</button>
+          </form>
+
+          <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--muted)' }}>
+            Didn't receive it?{' '}
+            <span style={{ color: 'var(--accent)', cursor: 'pointer' }}>Resend</span>
+          </p>
+        </div>
       </div>
     </div>
-  )
+  );
 }

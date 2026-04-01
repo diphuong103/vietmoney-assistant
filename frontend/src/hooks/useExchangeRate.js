@@ -1,39 +1,28 @@
-import { useEffect } from 'react'
-import { Client } from '@stomp/stompjs'
-import SockJS from 'sockjs-client'
-import { useExchangeRateStore } from '../store/exchangeRateStore'
-import exchangeRateApi from '../api/exchangeRateApi'
+import { useEffect } from 'react';
+import { useExchangeRateStore } from '../store/exchangeRateStore';
+import exchangeRateApi from '../api/exchangeRateApi';
 
 export function useExchangeRate() {
-  const { rates, updatedAt, isConnected, setRates, setConnected } = useExchangeRateStore()
+  const { rates, loading, error, lastUpdated, setRates, setLoading, setError, convert } =
+    useExchangeRateStore();
+
+  const fetchRates = async () => {
+    setLoading(true);
+    try {
+      const res = await exchangeRateApi.getRates();
+      setRates(res.data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Initial fetch
-    exchangeRateApi.getRates().then(res => {
-      if (res?.data) setRates(res.data.rates, res.data.updatedAt)
-    })
+    // Only refetch if data is older than 5 minutes
+    const stale = !lastUpdated || Date.now() - new Date(lastUpdated).getTime() > 5 * 60 * 1000;
+    if (stale) fetchRates();
+  }, []);
 
-    // WebSocket connection
-    const client = new Client({
-      webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL),
-      onConnect: () => {
-        setConnected(true)
-        client.subscribe('/topic/exchange-rates', (msg) => {
-          const data = JSON.parse(msg.body)
-          setRates(data.rates, data.updatedAt)
-        })
-      },
-      onDisconnect: () => setConnected(false),
-      reconnectDelay: 5000,
-    })
-    client.activate()
-    return () => client.deactivate()
-  }, [])
-
-  const convert = (amount, from, to) => {
-    if (!rates[from] || !rates[to]) return null
-    return (amount / rates[from]) * rates[to]
-  }
-
-  return { rates, updatedAt, isConnected, convert }
+  return { rates, loading, error, lastUpdated, convert, refresh: fetchRates };
 }

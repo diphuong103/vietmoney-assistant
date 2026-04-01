@@ -1,43 +1,56 @@
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Link } from 'react-router-dom'
-import { registerSchema } from '../../utils/validators'
-import { useAuth } from '../../hooks/useAuth'
-import Input from '../../components/common/Input'
-import Button from '../../components/common/Button'
-import { CITIES } from '../../utils/constants'
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function RegisterPage() {
-  const { register: authRegister } = useAuth()
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
-    resolver: zodResolver(registerSchema)
-  })
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleRegister = (e) => {
+    e.preventDefault();
+    if (form.password !== form.confirm) return alert('Passwords do not match');
+    // TODO: call authApi.register(form)
+    navigate('/verify-otp');
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-        <div className="text-center mb-6">
-          <div className="text-4xl mb-2">🇻🇳</div>
-          <h1 className="text-xl font-bold text-gray-900">Tạo tài khoản mới</h1>
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', padding: 20, background: 'var(--bg)',
+    }}>
+      <div style={{ width: '100%', maxWidth: 380 }}>
+        <div className="topbar-logo" style={{ marginBottom: 32, fontSize: 24, display: 'block' }}>
+          Viet<span style={{ color: 'var(--accent)' }}>Money</span>
         </div>
-        <form onSubmit={handleSubmit(authRegister)} className="space-y-4">
-          <Input label="Tên đăng nhập *" {...register('username')} error={errors.username?.message} />
-          <Input label="Mật khẩu *" type="password" {...register('password')} error={errors.password?.message} />
-          <Input label="Email *" type="email" {...register('email')} error={errors.email?.message} />
-          <Input label="Họ và tên" {...register('fullName')} />
-          <Input label="Quốc tịch" {...register('nationality')} placeholder="Việt Nam, USA, Korea..." />
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">Điểm đến du lịch</label>
-            <select {...register('travelDestination')} className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm">
-              <option value="">-- Chọn thành phố --</option>
-              {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <Button type="submit" loading={isSubmitting} className="w-full">Đăng ký</Button>
-        </form>
-        <p className="mt-4 text-center text-sm text-gray-500">
-          Đã có tài khoản? <Link to="/login" className="text-red-600 hover:underline font-medium">Đăng nhập</Link>
-        </p>
+
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 24, padding: 28 }}>
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, marginBottom: 24 }}>Create Account</h2>
+
+          <form onSubmit={handleRegister}>
+            {[
+              { key: 'name',     label: 'Full Name',       type: 'text',     placeholder: 'Your name'       },
+              { key: 'email',    label: 'Email',            type: 'email',    placeholder: 'you@email.com'   },
+              { key: 'password', label: 'Password',         type: 'password', placeholder: '••••••••'        },
+              { key: 'confirm',  label: 'Confirm Password', type: 'password', placeholder: '••••••••'        },
+            ].map(({ key, label, type, placeholder }) => (
+              <div className="form-field" key={key}>
+                <label className="form-label">{label}</label>
+                <input
+                  type={type} className="form-input" placeholder={placeholder}
+                  value={form[key]} onChange={set(key)} required
+                />
+              </div>
+            ))}
+            <button type="submit" className="submit-form-btn">Register</button>
+          </form>
+
+          <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--muted)' }}>
+            Already have an account?{' '}
+            <Link to="/login" style={{ color: 'var(--accent)' }}>Sign in</Link>
+          </p>
+        </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,47 +1,60 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import articleApi from '../../api/articleApi'
-import Button from '../../components/common/Button'
-import Badge from '../../components/common/Badge'
-import { fromNow } from '../../utils/formatDate'
-import toast from 'react-hot-toast'
+import { useState } from 'react';
+
+const MOCK_ARTICLES = [
+  { id: 1, title: 'Top 5 Hidden Gems in Da Nang', author: 'Lan', time: '2h ago', status: 'pending' },
+  { id: 2, title: 'Budget Travel Tips for Hội An', author: 'Mai', time: '5h ago', status: 'pending' },
+  { id: 3, title: 'VND Exchange Rate Forecast',    author: 'Tuan', time: '1d ago', status: 'pending' },
+];
 
 export default function ArticleApprovalPage() {
-  const qc = useQueryClient()
-  const { data, isLoading } = useQuery({ queryKey: ['pending-articles'], queryFn: () => articleApi.admin.getPending() })
-  const approveMut = useMutation({
-    mutationFn: articleApi.admin.approve,
-    onSuccess: () => { qc.invalidateQueries(['pending-articles']); toast.success('Đã phê duyệt!') }
-  })
-  const rejectMut = useMutation({
-    mutationFn: ({ id, reason }) => articleApi.admin.reject(id, reason),
-    onSuccess: () => { qc.invalidateQueries(['pending-articles']); toast.success('Đã từ chối!') }
-  })
+  const [articles, setArticles] = useState(MOCK_ARTICLES);
 
-  const articles = data?.data?.content || []
+  const update = (id, status) =>
+    setArticles(prev => prev.map(a => a.id === id ? { ...a, status } : a));
+
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Phê duyệt bài viết</h1>
-      <div className="space-y-4">
-        {isLoading ? <div className="text-center py-8 text-gray-400">Đang tải...</div> :
-          articles.length === 0 ? <div className="bg-white rounded-xl p-8 text-center text-gray-400">Không có bài viết nào chờ duyệt</div> :
-          articles.map(a => (
-            <div key={a.id} className="bg-white rounded-xl shadow-sm p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="font-semibold">{a.title}</h3>
-                  <p className="text-sm text-gray-500 mt-1">bởi {a.author?.username} · {fromNow(a.createdAt)}</p>
-                  <p className="text-sm text-gray-600 mt-2 line-clamp-2">{a.content?.substring(0, 150)}...</p>
-                </div>
-                <Badge variant="warning">Chờ duyệt</Badge>
-              </div>
-              <div className="flex gap-2 mt-4">
-                <Button size="sm" onClick={() => approveMut.mutate(a.id)}>✓ Phê duyệt</Button>
-                <Button variant="danger" size="sm" onClick={() => rejectMut.mutate({ id: a.id, reason: 'Vi phạm quy định' })}>✕ Từ chối</Button>
-              </div>
+    <div style={{ padding: 32 }}>
+      <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 24, marginBottom: 28 }}>
+        Article Approval
+      </h1>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {articles.map(a => (
+          <div key={a.id} style={{
+            background: 'var(--bg2)', border: '1px solid var(--border)',
+            borderRadius: 16, padding: '16px 20px',
+            display: 'flex', alignItems: 'center', gap: 16,
+          }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>{a.title}</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)' }}>By {a.author} · {a.time}</div>
             </div>
-          ))
-        }
+            {a.status === 'pending' ? (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  className="submit-form-btn"
+                  style={{ padding: '8px 16px', fontSize: 13, width: 'auto', marginTop: 0 }}
+                  onClick={() => update(a.id, 'approved')}
+                >✓ Approve</button>
+                <button
+                  onClick={() => update(a.id, 'rejected')}
+                  style={{
+                    padding: '8px 16px', fontSize: 13, borderRadius: 10, cursor: 'pointer',
+                    background: 'rgba(242,61,110,0.12)', color: 'var(--accent3)',
+                    border: '1px solid rgba(242,61,110,0.3)', fontWeight: 600,
+                  }}
+                >✕ Reject</button>
+              </div>
+            ) : (
+              <span style={{
+                fontSize: 12, padding: '4px 12px', borderRadius: 20, fontWeight: 600,
+                background: a.status === 'approved' ? 'rgba(200,242,61,0.1)' : 'rgba(242,61,110,0.1)',
+                color: a.status === 'approved' ? 'var(--accent)' : 'var(--accent3)',
+              }}>{a.status}</span>
+            )}
+          </div>
+        ))}
       </div>
     </div>
-  )
+  );
 }

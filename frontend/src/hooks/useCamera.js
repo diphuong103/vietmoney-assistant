@@ -1,39 +1,45 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback } from 'react';
 
 export function useCamera() {
-  const videoRef = useRef(null)
-  const [stream, setStream] = useState(null)
-  const [isActive, setIsActive] = useState(false)
-  const [error, setError] = useState(null)
+  const videoRef    = useRef(null);
+  const streamRef   = useRef(null);
+  const [active, setActive]   = useState(false);
+  const [error,  setError]    = useState(null);
+  const [facing, setFacing]   = useState('environment'); // 'environment' | 'user'
 
-  const startCamera = useCallback(async () => {
+  const start = useCallback(async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: 1280, height: 720 }
-      })
-      if (videoRef.current) videoRef.current.srcObject = mediaStream
-      setStream(mediaStream)
-      setIsActive(true)
-      setError(null)
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facing },
+      });
+      streamRef.current = stream;
+      if (videoRef.current) videoRef.current.srcObject = stream;
+      setActive(true);
+      setError(null);
     } catch (err) {
-      setError('Không thể truy cập camera: ' + err.message)
+      setError(err.message);
     }
-  }, [])
+  }, [facing]);
 
-  const stopCamera = useCallback(() => {
-    stream?.getTracks().forEach(track => track.stop())
-    setStream(null)
-    setIsActive(false)
-  }, [stream])
+  const stop = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setActive(false);
+  }, []);
 
-  const capturePhoto = useCallback(() => {
-    if (!videoRef.current) return null
-    const canvas = document.createElement('canvas')
-    canvas.width = videoRef.current.videoWidth
-    canvas.height = videoRef.current.videoHeight
-    canvas.getContext('2d').drawImage(videoRef.current, 0, 0)
-    return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9))
-  }, [])
+  const capture = useCallback(() => {
+    if (!videoRef.current) return null;
+    const canvas = document.createElement('canvas');
+    canvas.width  = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.9);
+  }, []);
 
-  return { videoRef, isActive, error, startCamera, stopCamera, capturePhoto }
+  const flipCamera = useCallback(() => {
+    stop();
+    setFacing((f) => (f === 'environment' ? 'user' : 'environment'));
+  }, [stop]);
+
+  return { videoRef, active, error, facing, start, stop, capture, flipCamera };
 }

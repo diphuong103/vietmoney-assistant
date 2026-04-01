@@ -1,74 +1,74 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useAuthStore } from '../store/authStore'
-import ClientLayout from '../components/layout/ClientLayout'
-import AdminLayout from '../components/layout/AdminLayout'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+
+// Layouts
+import ClientLayout from '../components/layout/ClientLayout';
+import AdminLayout  from '../components/layout/AdminLayout';
+import ProtectedRoute from '../components/common/ProtectedRoute';
 
 // Auth pages
-import LoginPage from '../pages/auth/LoginPage'
-import RegisterPage from '../pages/auth/RegisterPage'
-import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage'
-import VerifyOtpPage from '../pages/auth/VerifyOtpPage'
+import LoginPage          from '../pages/auth/LoginPage';
+import RegisterPage       from '../pages/auth/RegisterPage';
+import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
+import VerifyOtpPage      from '../pages/auth/VerifyOtpPage';
 
 // Client pages
-import DashboardPage from '../pages/client/DashboardPage'
-import BudgetPage from '../pages/client/BudgetPage'
-import ProfilePage from '../pages/client/ProfilePage'
-import ExchangeRatePage from '../pages/client/ExchangeRatePage'
-import ScanPage from '../pages/client/ScanPage'
-import ScanHistoryPage from '../pages/client/ScanHistoryPage'
-import AtmMapPage from '../pages/client/AtmMapPage'
-import NewsPage from '../pages/client/NewsPage'
-import TouristSpotsPage from '../pages/client/TouristSpotsPage'
-import TravelPlanPage from '../pages/client/TravelPlanPage'
-import PriceWikiPage from '../pages/client/PriceWikiPage'
+import DashboardPage    from '../pages/client/DashboardPage';
+import NewsPage         from '../pages/client/NewsPage';
+import ScanPage         from '../pages/client/ScanPage';
+import ScanHistoryPage  from '../pages/client/ScanHistoryPage';
+import BudgetPage       from '../pages/client/BudgetPage';
+import ExchangeRatePage from '../pages/client/ExchangeRatePage';
+import PriceWikiPage    from '../pages/client/PriceWikiPage';
+import CurrencyGuidePage from '../pages/client/CurrencyGuidePage';
+import TravelPlanPage   from '../pages/client/TravelPlanPage';
+import AtmMapPage       from '../pages/client/AtmMapPage';
+import TouristSpotsPage from '../pages/client/TouristSpotsPage';
+import ProfilePage      from '../pages/client/ProfilePage';
 
 // Admin pages
-import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
-import UserManagementPage from '../pages/admin/UserManagementPage'
-import ArticleApprovalPage from '../pages/admin/ArticleApprovalPage'
+import AdminDashboardPage  from '../pages/admin/AdminDashboardPage';
+import ArticleApprovalPage from '../pages/admin/ArticleApprovalPage';
+import UserManagementPage  from '../pages/admin/UserManagementPage';
 
-function ProtectedRoute({ children, requiredRole }) {
-  const { isAuthenticated, user } = useAuthStore()
-  if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (requiredRole && user?.role !== requiredRole) return <Navigate to="/dashboard" replace />
-  return children
-}
-
-export function AppRouter() {
+export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        {/* Auth */}
+        <Route path="/login"           element={<LoginPage />} />
+        <Route path="/register"        element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/verify-otp" element={<VerifyOtpPage />} />
+        <Route path="/verify-otp"      element={<VerifyOtpPage />} />
 
-        {/* Client */}
-        <Route path="/" element={<ProtectedRoute><ClientLayout /></ProtectedRoute>}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="budget" element={<BudgetPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="exchange-rate" element={<ExchangeRatePage />} />
-          <Route path="scan" element={<ScanPage />} />
-          <Route path="scan/history" element={<ScanHistoryPage />} />
-          <Route path="atm" element={<AtmMapPage />} />
-          <Route path="news" element={<NewsPage />} />
-          <Route path="tourist-spots" element={<TouristSpotsPage />} />
-          <Route path="travel-plan" element={<TravelPlanPage />} />
-          <Route path="price-wiki" element={<PriceWikiPage />} />
+        {/* Client (protected) */}
+        <Route element={<ClientLayout />}>
+          <Route path="/"             element={<DashboardPage />} />
+          <Route path="/news"         element={<NewsPage />} />
+          <Route path="/scan"         element={<ScanPage />} />
+          <Route path="/scan/history" element={<ScanHistoryPage />} />
+          <Route path="/budget"       element={<BudgetPage />} />
+          <Route path="/exchange"     element={<ExchangeRatePage />} />
+          <Route path="/wiki"         element={<PriceWikiPage />} />
+          <Route path="/wiki/guide"   element={<CurrencyGuidePage />} />
+          <Route path="/plans"        element={<TravelPlanPage />} />
+          <Route path="/atm-map"      element={<AtmMapPage />} />
+          <Route path="/spots"        element={<TouristSpotsPage />} />
+          <Route path="/profile"      element={<ProfilePage />} />
         </Route>
 
-        {/* Admin */}
-        <Route path="/admin" element={<ProtectedRoute requiredRole="ADMIN"><AdminLayout /></ProtectedRoute>}>
-          <Route index element={<AdminDashboardPage />} />
-          <Route path="users" element={<UserManagementPage />} />
-          <Route path="articles" element={<ArticleApprovalPage />} />
+        {/* Admin (admin only) */}
+        <Route path="/admin" element={
+          <ProtectedRoute adminOnly>
+            <AdminLayout />
+          </ProtectedRoute>
+        }>
+          <Route index                element={<AdminDashboardPage />} />
+          <Route path="articles"      element={<ArticleApprovalPage />} />
+          <Route path="users"         element={<UserManagementPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }

@@ -1,34 +1,55 @@
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Link } from 'react-router-dom'
-import { loginSchema } from '../../utils/validators'
-import { useAuth } from '../../hooks/useAuth'
-import Input from '../../components/common/Input'
-import Button from '../../components/common/Button'
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function LoginPage() {
-  const { login } = useAuth()
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
-    resolver: zodResolver(loginSchema)
-  })
+  const navigate = useNavigate();
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    // TODO: call authApi.login(email, password)
+    navigate('/');
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🇻🇳</div>
-          <h1 className="text-2xl font-bold text-gray-900">VietMoney Assistant</h1>
-          <p className="text-gray-500 text-sm mt-1">Đăng nhập để tiếp tục</p>
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', padding: 20, background: 'var(--bg)',
+    }}>
+      <div style={{ width: '100%', maxWidth: 380 }}>
+        <div className="topbar-logo" style={{ marginBottom: 32, fontSize: 24, display: 'block', textAlign: 'center'}}>
+          Viet<span style={{ color: 'var(--accent)' }}>Money</span>
         </div>
-        <form onSubmit={handleSubmit(login)} className="space-y-4">
-          <Input label="Tên đăng nhập" {...register('username')} error={errors.username?.message} placeholder="Nhập tên đăng nhập" />
-          <Input label="Mật khẩu" type="password" {...register('password')} error={errors.password?.message} placeholder="Nhập mật khẩu" />
-          <Button type="submit" loading={isSubmitting} className="w-full">Đăng nhập</Button>
-        </form>
-        <div className="mt-6 text-center space-y-2">
-          <Link to="/forgot-password" className="text-sm text-red-600 hover:underline">Quên mật khẩu?</Link>
-          <p className="text-sm text-gray-500">Chưa có tài khoản? <Link to="/register" className="text-red-600 hover:underline font-medium">Đăng ký ngay</Link></p>
+
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 24, padding: 28 }}>
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, marginBottom: 24 }}>Sign In</h2>
+
+          <form onSubmit={handleLogin}>
+            <div className="form-field">
+              <label className="form-label">Email</label>
+              <input type="email" className="form-input" placeholder="you@email.com"
+                value={email} onChange={e => setEmail(e.target.value)} required />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Password</label>
+              <input type="password" className="form-input" placeholder="••••••••"
+                value={password} onChange={e => setPassword(e.target.value)} required />
+            </div>
+            <div style={{ textAlign: 'right', marginBottom: 16 }}>
+              <Link to="/forgot-password" style={{ fontSize: 13, color: 'var(--muted)' }}>
+                Forgot password?
+              </Link>
+            </div>
+            <button type="submit" className="submit-form-btn">Sign In</button>
+          </form>
+
+          <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--muted)' }}>
+            Don't have an account?{' '}
+            <Link to="/register" style={{ color: 'var(--accent)' }}>Register</Link>
+          </p>
         </div>
       </div>
     </div>
-  )
+  );
 }

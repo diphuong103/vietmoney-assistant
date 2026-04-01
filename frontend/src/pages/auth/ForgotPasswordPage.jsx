@@ -1,51 +1,46 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import authApi from '../../api/authApi'
-import Input from '../../components/common/Input'
-import Button from '../../components/common/Button'
-import toast from 'react-hot-toast'
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
+  const [email, setEmail] = useState('');
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    try {
-      await authApi.forgotPassword({ email })
-      setSent(true)
-      toast.success('OTP đã được gửi đến email của bạn!')
-    } catch (err) {
-      toast.error(err?.message || 'Không tìm thấy email')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (sent) return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-50 to-orange-50">
-      <div className="bg-white rounded-2xl p-8 text-center max-w-md w-full shadow-lg">
-        <div className="text-5xl mb-4">📧</div>
-        <h2 className="text-xl font-bold mb-2">Kiểm tra email</h2>
-        <p className="text-gray-500 text-sm mb-6">Chúng tôi đã gửi mã OTP đến <strong>{email}</strong></p>
-        <Link to="/verify-otp" state={{ email }} className="text-red-600 hover:underline text-sm font-medium">Nhập mã OTP →</Link>
-      </div>
-    </div>
-  )
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // TODO: call authApi.forgotPassword(email)
+    navigate('/verify-otp');
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-50 to-orange-50">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-lg">
-        <h2 className="text-xl font-bold mb-1">Quên mật khẩu</h2>
-        <p className="text-gray-500 text-sm mb-6">Nhập email để nhận mã OTP đặt lại mật khẩu</p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-          <Button type="submit" loading={loading} className="w-full">Gửi mã OTP</Button>
-        </form>
-        <p className="mt-4 text-center text-sm"><Link to="/login" className="text-red-600 hover:underline">← Quay lại đăng nhập</Link></p>
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', padding: 20, background: 'var(--bg)',
+    }}>
+      <div style={{ width: '100%', maxWidth: 380 }}>
+        <div className="topbar-logo" style={{ marginBottom: 32, fontSize: 24, display: 'block' }}>
+          Viet<span style={{ color: 'var(--accent)' }}>Money</span>
+        </div>
+
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 24, padding: 28 }}>
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, marginBottom: 8 }}>Forgot Password</h2>
+          <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 24 }}>
+            Enter your email and we'll send you a reset code.
+          </p>
+
+          <form onSubmit={handleSubmit}>
+            <div className="form-field">
+              <label className="form-label">Email</label>
+              <input type="email" className="form-input" placeholder="you@email.com"
+                value={email} onChange={e => setEmail(e.target.value)} required />
+            </div>
+            <button type="submit" className="submit-form-btn">Send Reset Code</button>
+          </form>
+
+          <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--muted)' }}>
+            <Link to="/login" style={{ color: 'var(--accent)' }}>← Back to login</Link>
+          </p>
+        </div>
       </div>
     </div>
-  )
+  );
 }

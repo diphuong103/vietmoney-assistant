@@ -1,6 +1,11 @@
-export default function Spinner({ size = 'md', className = '' }) {
-  const s = { sm: 'w-4 h-4', md: 'w-8 h-8', lg: 'w-12 h-12' }[size]
+export default function Spinner({ size = 24 }) {
   return (
-    <div className={`${s} border-4 border-gray-200 border-t-red-600 rounded-full animate-spin ${className}`} />
-  )
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      border: '3px solid var(--border)',
+      borderTopColor: 'var(--accent)',
+      animation: 'spin 0.7s linear infinite',
+      display: 'inline-block',
+    }} />
+  );
 }
