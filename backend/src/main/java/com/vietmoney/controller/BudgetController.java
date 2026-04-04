@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/budgets")
+@RequestMapping("/api/budget")
 @RequiredArgsConstructor
 public class BudgetController {
 
@@ -44,5 +44,18 @@ public class BudgetController {
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         budgetService.deleteBudget(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa thành công", null));
+    }
+
+    @GetMapping("/daily")
+    public ResponseEntity<ApiResponse<Budget>> getDailyBudget(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(budgetService.getDailyBudget(userDetails.getUsername())));
+    }
+
+    @PutMapping("/daily")
+    public ResponseEntity<ApiResponse<Budget>> setDailyBudget(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody java.util.Map<String, java.math.BigDecimal> request) {
+        return ResponseEntity.ok(ApiResponse.success(
+            budgetService.setDailyBudget(userDetails.getUsername(), request.get("amount"))));
     }
 }

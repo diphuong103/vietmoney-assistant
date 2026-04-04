@@ -48,4 +48,19 @@ public class ArticleController {
             @RequestParam String reason) {
         return ResponseEntity.ok(ApiResponse.success("Đã từ chối bài viết", articleService.rejectArticle(id, reason)));
     }
+
+    @PostMapping("/{id}/like")
+    public ResponseEntity<ApiResponse<Void>> like(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        articleService.likeArticle(userDetails.getUsername(), id);
+        return ResponseEntity.ok(ApiResponse.success("Đã lưu vào danh sách yêu thích", null));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+        articleService.deleteArticle(id);
+        return ResponseEntity.ok(ApiResponse.success("Xoá bài viết thành công", null));
+    }
 }

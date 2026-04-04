@@ -59,4 +59,29 @@ public class BudgetService {
             throw new AppException(ErrorCode.BUDGET_NOT_FOUND);
         budgetRepository.deleteById(id);
     }
+
+    @Transactional
+    public Budget getDailyBudget(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        return budgetRepository.findAll().stream()
+                .filter(b -> b.getUser().getId().equals(user.getId()) && "Daily Budget".equals(b.getName()))
+                .findFirst()
+                .orElseGet(() -> {
+                    Budget b = Budget.builder()
+                        .user(user)
+                        .name("Daily Budget")
+                        .totalAmount(java.math.BigDecimal.ZERO)
+                        .currency("VND")
+                        .build();
+                    return budgetRepository.save(b);
+                });
+    }
+
+    @Transactional
+    public Budget setDailyBudget(String username, java.math.BigDecimal amount) {
+        Budget b = getDailyBudget(username);
+        b.setTotalAmount(amount);
+        return budgetRepository.save(b);
+    }
 }

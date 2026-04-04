@@ -7,6 +7,7 @@ import com.vietmoney.dto.request.ArticleRequest;
 import com.vietmoney.exception.AppException;
 import com.vietmoney.exception.ErrorCode;
 import com.vietmoney.repository.ArticleRepository;
+import com.vietmoney.repository.SavedArticleRepository;
 import com.vietmoney.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -19,6 +20,7 @@ public class ArticleService {
 
     private final ArticleRepository articleRepository;
     private final UserRepository userRepository;
+    private final SavedArticleRepository savedArticleRepository;
 
     public Page<Article> getApprovedArticles(int page, int size) {
         return articleRepository.findByStatus(ArticleStatus.APPROVED,
@@ -60,5 +62,24 @@ public class ArticleService {
         article.setStatus(ArticleStatus.REJECTED);
         article.setRejectionReason(reason);
         return articleRepository.save(article);
+    }
+
+    @Transactional
+    public void likeArticle(String username, Long articleId) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Article article = articleRepository.findById(articleId)
+                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
+        
+        com.vietmoney.domain.entity.SavedArticle savedArticle = com.vietmoney.domain.entity.SavedArticle.builder()
+                .user(user)
+                .article(article)
+                .build();
+        savedArticleRepository.save(savedArticle);
+    }
+
+    @Transactional
+    public void deleteArticle(Long id) {
+        articleRepository.deleteById(id);
     }
 }

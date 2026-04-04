@@ -24,13 +24,17 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final OtpService otpService;
 
+
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername()))
+        if (userRepository.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USER_ALREADY_EXISTS);
-        if (userRepository.existsByEmail(request.getEmail()))
+        }
+        if (userRepository.existsByEmail(request.getEmail())) {
             throw new AppException(ErrorCode.USER_ALREADY_EXISTS);
+        }
 
+        // 2. Tạo User mới (Lưu thẳng vào DB, không qua bước đợi OTP)
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -41,24 +45,67 @@ public class AuthService {
                 .role(Role.CLIENT)
                 .build();
 
+        System.out.println("TravelDestination:" + request.getTravelDestination());
         userRepository.save(user);
+
+        // 3. Tạo UserDetails để JwtService làm việc
         var userDetails = org.springframework.security.core.userdetails.User.builder()
-                .username(user.getUsername()).password(user.getPassword())
-                .authorities("ROLE_CLIENT").build();
+                .username(user.getUsername())
+                .password(user.getPassword())
+                .authorities("ROLE_CLIENT")
+                .build();
+
+        // 4. Trả về Token ngay lập tức
         String token = jwtService.generateToken(userDetails);
-        return AuthResponse.builder().accessToken(token).tokenType("Bearer").build();
+
+        return AuthResponse.builder()
+                .accessToken(token)
+                .tokenType("Bearer")
+                .build();
     }
 
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-        User user = userRepository.findByUsername(request.getUsername())
+
+        String input = request.getIdentifier();
+
+        // 🔥 tìm theo username hoặc email
+        User user = userRepository
+                .findByUsernameOrEmail(input, input)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // 🔥 authenticate bằng username thật
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        user.getUsername(),
+                        request.getPassword()
+                )
+        );
+
         var userDetails = org.springframework.security.core.userdetails.User.builder()
-                .username(user.getUsername()).password(user.getPassword())
-                .authorities("ROLE_" + user.getRole().name()).build();
+                .username(user.getUsername())
+                .password(user.getPassword())
+                .authorities("ROLE_" + user.getRole().name())
+                .build();
+
         String token = jwtService.generateToken(userDetails);
-        return AuthResponse.builder().accessToken(token).tokenType("Bearer").build();
+
+        UserProfileResponse userResponse = UserProfileResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .nationality(user.getNationality())
+                .travelDestination(user.getTravelDestination())
+                .avatarUrl(user.getAvatarUrl())
+                .role(user.getRole())
+                .createdAt(user.getCreatedAt())
+                .build();
+
+        return AuthResponse.builder()
+                .accessToken(token)
+                .tokenType("Bearer")
+                .user(userResponse)
+                .build();
     }
 
     public void forgotPassword(ForgotPasswordRequest request) {

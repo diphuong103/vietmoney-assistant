@@ -2,8 +2,9 @@ package com.vietmoney.controller;
 
 import com.vietmoney.domain.entity.Article;
 import com.vietmoney.dto.response.*;
-import com.vietmoney.repository.UserRepository;
+import com.vietmoney.domain.entity.User;
 import com.vietmoney.service.ArticleService;
+import com.vietmoney.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -16,20 +17,27 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final ArticleService articleService;
 
     @GetMapping("/users")
-    public ResponseEntity<ApiResponse<PageResponse<UserProfileResponse>>> getUsers(
+    public ResponseEntity<ApiResponse<PageResponse<User>>> getUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        // Implement with mapping
-        return ResponseEntity.ok(ApiResponse.success(null));
+        Page<com.vietmoney.domain.entity.User> usersPage = userService.getAllUsers(page, size);
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.of((Page)usersPage)));
+    }
+
+    @PatchMapping("/users/{id}/role")
+    public ResponseEntity<ApiResponse<Void>> updateRole(
+            @PathVariable Long id, @RequestParam String role) {
+        userService.updateUserRole(id, role);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật quyền thành công", null));
     }
 
     @DeleteMapping("/users/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
-        userRepository.deleteById(id);
+        userService.deleteUser(id);
         return ResponseEntity.ok(ApiResponse.success("Đã xóa người dùng", null));
     }
 

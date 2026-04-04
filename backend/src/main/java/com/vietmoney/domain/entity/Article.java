@@ -30,7 +30,8 @@ public class Article {
     private String tags;
 
     @Enumerated(EnumType.STRING)
-    private ArticleStatus status = ArticleStatus.PENDING;
+    @Column(nullable = false)
+    private ArticleStatus status;
 
     private String rejectionReason;
     private Long viewCount = 0L;

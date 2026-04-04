@@ -1,37 +1,55 @@
 package com.vietmoney.service.auth;
 
+import com.vietmoney.dto.request.RegisterRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
-import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
 public class OtpService {
 
-    private final StringRedisTemplate redisTemplate;
+    private final Map<String, String> otpStorage = new ConcurrentHashMap<>();
+    private final Map<String, RegisterRequest> pendingRegistrations = new ConcurrentHashMap<>();
     private final JavaMailSender mailSender;
 
     private static final String OTP_PREFIX = "otp:";
-    private static final int OTP_EXPIRY_MINUTES = 5;
 
-    public void generateAndSendOtp(String email) {
+    private void generateAndSendOtpInternal(String email) {
         String otp = String.format("%06d", new SecureRandom().nextInt(999999));
-        redisTemplate.opsForValue().set(OTP_PREFIX + email, otp, Duration.ofMinutes(OTP_EXPIRY_MINUTES));
+        otpStorage.put(OTP_PREFIX + email, otp);
         sendOtpEmail(email, otp);
     }
 
+    public void generateAndSendOtp(String email) {
+        generateAndSendOtpInternal(email);
+    }
+
+    public void generateAndSendOtp(String email, RegisterRequest request) {
+        pendingRegistrations.put(email, request);
+        generateAndSendOtpInternal(email);
+    }
+
+    public RegisterRequest getPendingRegistration(String email) {
+        return pendingRegistrations.get(email);
+    }
+
     public boolean validateOtp(String email, String otp) {
-        String stored = redisTemplate.opsForValue().get(OTP_PREFIX + email);
+        String stored = otpStorage.get(OTP_PREFIX + email);
         if (otp.equals(stored)) {
-            redisTemplate.delete(OTP_PREFIX + email);
+            otpStorage.remove(OTP_PREFIX + email);
             return true;
         }
         return false;
+    }
+
+    public RegisterRequest getAndRemovePendingRegistration(String email) {
+        return pendingRegistrations.remove(email);
     }
 
     private void sendOtpEmail(String to, String otp) {
@@ -49,10 +67,10 @@ public class OtpService {
 
     private String buildOtpEmailHtml(String otp) {
         return "<div style='font-family:sans-serif;text-align:center;padding:40px'>" +
-               "<h2 style='color:#D84315'>VietMoney Assistant</h2>" +
-               "<p>Mã OTP của bạn là:</p>" +
-               "<h1 style='color:#D84315;letter-spacing:8px'>" + otp + "</h1>" +
-               "<p>Mã có hiệu lực trong <strong>5 phút</strong>.</p>" +
-               "</div>";
+                "<h2 style='color:#D84315'>VietMoney Assistant</h2>" +
+                "<p>Mã OTP của bạn là:</p>" +
+                "<h1 style='color:#D84315;letter-spacing:8px'>" + otp + "</h1>" +
+                "<p>Mã có hiệu lực trong <strong>5 phút</strong>.</p>" +
+                "</div>";
     }
 }
