@@ -48,6 +48,7 @@ public class SecurityConfig {
             "/api/v1/articles",
             "/api/v1/articles/search",
             "/api/v1/articles/{id}",
+            "/api/v1/articles/public",
             "/api/v1/tourist-spots",
             "/api/v1/tourist-spots/search",
             "/api/v1/tourist-spots/{id}",
@@ -55,6 +56,9 @@ public class SecurityConfig {
             "/api/v1/exchange-rates",
             "/api/v1/exchange-rates/convert",
             "/api/v1/wiki/**",
+            "/api/v1/price-wiki/**",
+            "/api/v1/atm/**",
+            "/api/v1/users/me",
             "/actuator/health",
     };
 

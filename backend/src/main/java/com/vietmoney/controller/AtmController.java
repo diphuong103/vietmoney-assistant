@@ -1,24 +1,29 @@
 package com.vietmoney.controller;
 
+import com.vietmoney.dto.response.ApiResponse;
+import com.vietmoney.service.AtmService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/atm")
+@RequiredArgsConstructor
 public class AtmController {
 
-    // TODO: Inject AtmService here
+    private final AtmService atmService;
 
     @GetMapping("/nearby")
-    public ResponseEntity<?> getNearbyAtms(@RequestParam double lat, @RequestParam double lng,
+    public ResponseEntity<ApiResponse<List<Object>>> getNearbyAtms(
+            @RequestParam double lat, @RequestParam double lng,
             @RequestParam(defaultValue = "2000") int radius) {
-        // TODO: Call AtmService
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success(atmService.getNearbyAtms(lat, lng, radius)));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getAtmById(@PathVariable Long id) {
-        // TODO: Call AtmService
-        return ResponseEntity.ok().build();
+    public ResponseEntity<ApiResponse<Object>> getAtmById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(atmService.getAtmById(id)));
     }
 }
