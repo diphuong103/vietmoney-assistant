@@ -46,20 +46,19 @@ public class SecurityConfig {
     // ── Public GET endpoints ──────────────────────────────
     private static final String[] PUBLIC_GET = {
             "/api/v1/articles",
-            "/api/v1/articles/search",
-            "/api/v1/articles/{id}",
-            "/api/v1/articles/public",
+            "/api/v1/articles/public",           // ✅ GET danh sách đã duyệt
+            "/api/v1/articles/public/**",        // ✅ GET chi tiết bài (thay {id})
             "/api/v1/tourist-spots",
             "/api/v1/tourist-spots/search",
-            "/api/v1/tourist-spots/{id}",
             "/api/v1/tourist-spots/nearby",
+            "/api/v1/tourist-spots/**",          // ✅ dùng ** thay {id}
             "/api/v1/exchange-rates",
             "/api/v1/exchange-rates/convert",
             "/api/v1/wiki/**",
             "/api/v1/price-wiki/**",
             "/api/v1/atm/**",
-            "/api/v1/users/me",
             "/actuator/health",
+
     };
 
     @Bean
@@ -69,14 +68,17 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // ── CRITICAL: allow ALL preflight OPTIONS requests ──
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // ── Public routes ──
+                        // Public POST
                         .requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
-                        .requestMatchers(HttpMethod.GET,  PUBLIC_GET).permitAll()
-                        // ── Admin only ──
+                        // Public GET
+                        .requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
+                        // Scan không cần auth (nếu muốn public)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/scan").permitAll()
+                        // Admin only
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        // ── Everything else needs auth ──
+                        .requestMatchers("/api/v1/articles/public/**").permitAll()
+                        // Everything else cần auth
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider)

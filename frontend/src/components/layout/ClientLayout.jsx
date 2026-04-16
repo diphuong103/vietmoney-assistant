@@ -1,23 +1,46 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import BottomNav from './BottomNav';
+import { useAuthStore } from '../../store/authStore';
 
 const LANGS = [
   { code: 'en', flag: '🇺🇸', name: 'English' },
-  { code: 'ko', flag: '🇰🇷', name: '한국어'  },
+  { code: 'ko', flag: '🇰🇷', name: '한국어' },
   { code: 'vi', flag: '🇻🇳', name: 'Tiếng Việt' },
 ];
 
 export default function ClientLayout() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [langOpen, setLangOpen] = useState(false);
   const [activeLang, setActiveLang] = useState('en');
+  const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
 
   const currentLang = LANGS.find(l => l.code === activeLang);
 
   return (
     <div className="app">
       <Outlet />
+
+      {/* Admin Panel Button – only visible for admin users */}
+      {isAdmin && (
+        <button
+          className="float-btn admin-panel-btn"
+          onClick={() => navigate('/admin')}
+          title="Quản trị"
+          style={{
+            position: 'fixed', top: 16, right: 16, zIndex: 200,
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '8px 14px', borderRadius: 12,
+            background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
+            color: '#000', border: 'none', cursor: 'pointer',
+            fontSize: 13, fontWeight: 700, boxShadow: '0 4px 16px rgba(200,242,61,0.3)',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          🛡️ Quản trị
+        </button>
+      )}
 
       {/* Float Cluster */}
       <div className="float-cluster" id="float-cluster">

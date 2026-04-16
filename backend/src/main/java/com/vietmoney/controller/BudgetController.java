@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/budget")
+@RequestMapping("/api/v1/budget")
 @RequiredArgsConstructor
 public class BudgetController {
 
@@ -56,6 +56,6 @@ public class BudgetController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody java.util.Map<String, java.math.BigDecimal> request) {
         return ResponseEntity.ok(ApiResponse.success(
-            budgetService.setDailyBudget(userDetails.getUsername(), request.get("amount"))));
+                budgetService.setDailyBudget(userDetails.getUsername(), request.get("amount"))));
     }
 }

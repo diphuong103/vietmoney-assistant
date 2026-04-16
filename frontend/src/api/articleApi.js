@@ -2,7 +2,7 @@ import axiosClient from './axiosClient';
 
 const articleApi = {
   getAll: (params) =>
-    axiosClient.get('/articles', { params }),
+    axiosClient.get('/articles/public', { params }),
 
   getById: (id) =>
     axiosClient.get(`/articles/${id}`),

@@ -15,7 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/scan")
+@RequestMapping("/api/v1/scan")
 @RequiredArgsConstructor
 public class ScanController {
 

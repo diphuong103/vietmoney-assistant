@@ -24,14 +24,30 @@ public class UserService {
     public Page<User> getAllUsers(int page, int size) {
         return userRepository.findAll(PageRequest.of(page, size));
     }
-    
+
     public void updateUserRole(Long id, String role) {
         User user = getUserById(id);
+        if ("admin".equalsIgnoreCase(user.getUsername())) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
         user.setRole(Role.valueOf(role.toUpperCase()));
         userRepository.save(user);
     }
 
     public void deleteUser(Long id) {
+        User user = getUserById(id);
+        if ("admin".equalsIgnoreCase(user.getUsername())) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
         userRepository.deleteById(id);
+    }
+
+    public void toggleUserStatus(Long id) {
+        User user = getUserById(id);
+        if ("admin".equalsIgnoreCase(user.getUsername())) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+        user.setEnabled(!user.isEnabled());
+        userRepository.save(user);
     }
 }

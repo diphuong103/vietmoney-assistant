@@ -1,5 +1,6 @@
 package com.vietmoney.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.vietmoney.domain.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,15 +12,20 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
-@Data @Builder @NoArgsConstructor @AllArgsConstructor
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 public class User {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true)
     private String username;
 
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
 
@@ -33,9 +39,13 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private Role role = Role.CLIENT;
 
+    @Builder.Default
     private boolean enabled = true;
+
+    @Builder.Default
     private boolean emailVerified = false;
 
     @CreatedDate

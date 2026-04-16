@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/price-wiki")
+@RequestMapping("/api/v1/price-wiki")
 @RequiredArgsConstructor
 public class WikiPriceController {
 
