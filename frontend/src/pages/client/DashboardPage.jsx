@@ -28,19 +28,27 @@ function getGreeting() {
 
 const TICKER_ITEMS = [
   { label: 'VND/USD', val: '₫25,420', change: '+0.12%', up: true },
-  { label: 'VND/KRW', val: '₫18.9',   change: '−0.05%', up: false },
+  { label: 'VND/KRW', val: '₫18.9', change: '−0.05%', up: false },
   { label: 'VND/EUR', val: '₫27,810', change: '+0.23%', up: true },
-  { label: 'VND/JPY', val: '₫165.4',  change: '+0.08%', up: true },
+  { label: 'VND/JPY', val: '₫165.4', change: '+0.08%', up: true },
   { label: 'VND/GBP', val: '₫32,150', change: '−0.14%', up: false },
 ];
 const TICKER_FULL = [...TICKER_ITEMS, ...TICKER_ITEMS];
+
+// ── Destinations Data ────────────────────────────────────────────────────────
+const DESTINATIONS = [
+  { id: 1, name: 'Hạ Long Bay', location: 'Quảng Ninh', image: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&q=80&w=400', rating: '4.9' },
+  { id: 2, name: 'Hội An', location: 'Quảng Nam', image: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&q=80&w=400', rating: '4.8' },
+  { id: 3, name: 'Sa Pa', location: 'Lào Cai', image: 'https://images.unsplash.com/photo-1550652755-66774e14f8d2?auto=format&fit=crop&q=80&w=400', rating: '4.7' },
+  { id: 4, name: 'Bà Nà Hills', location: 'Đà Nẵng', image: 'https://images.unsplash.com/photo-1582298538104-fe2e74c27f59?auto=format&fit=crop&q=80&w=400', rating: '4.9' },
+];
 
 // ── SettingsMenu ──────────────────────────────────────────────────────────────
 
 function SettingsMenu() {
   const navigate = useNavigate();
-  const [open,       setOpen]  = useState(false);
-  const [loggingOut, setOut]   = useState(false);
+  const [open, setOpen] = useState(false);
+  const [loggingOut, setOut] = useState(false);
   const menuRef = useRef(null);
 
   // Đóng khi click ra ngoài
@@ -78,15 +86,15 @@ function SettingsMenu() {
         aria-haspopup="true"
         aria-expanded={open}
         style={{
-          background:   open ? 'var(--bg3)' : 'transparent',
+          background: open ? 'var(--bg3)' : 'transparent',
           borderRadius: 10,
-          transition:   'background 0.18s',
+          transition: 'background 0.18s',
         }}
       >
         <span style={{
-          display:    'inline-block',
+          display: 'inline-block',
           transition: 'transform 0.3s cubic-bezier(.34,1.56,.64,1)',
-          transform:  open ? 'rotate(60deg)' : 'rotate(0deg)',
+          transform: open ? 'rotate(60deg)' : 'rotate(0deg)',
         }}>
           ⚙️
         </span>
@@ -94,34 +102,34 @@ function SettingsMenu() {
 
       {/* Dropdown panel */}
       <div style={{
-        position:      'absolute',
-        top:           'calc(100% + 8px)',
-        right:         0,
-        width:         224,
-        background:    'var(--bg2)',
-        border:        '1px solid var(--border)',
-        borderRadius:  16,
-        boxShadow:     '0 8px 32px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.16)',
-        zIndex:        1000,
-        overflow:      'hidden',
+        position: 'absolute',
+        top: 'calc(100% + 8px)',
+        right: 0,
+        width: 224,
+        background: 'var(--bg2)',
+        border: '1px solid var(--border)',
+        borderRadius: 16,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.16)',
+        zIndex: 1000,
+        overflow: 'hidden',
         transformOrigin: 'top right',
-        transform:     open ? 'scale(1) translateY(0)'        : 'scale(0.92) translateY(-8px)',
-        opacity:       open ? 1                               : 0,
-        pointerEvents: open ? 'all'                           : 'none',
-        transition:    'transform 0.22s cubic-bezier(.34,1.56,.64,1), opacity 0.18s ease',
+        transform: open ? 'scale(1) translateY(0)' : 'scale(0.92) translateY(-8px)',
+        opacity: open ? 1 : 0,
+        pointerEvents: open ? 'all' : 'none',
+        transition: 'transform 0.22s cubic-bezier(.34,1.56,.64,1), opacity 0.18s ease',
       }}>
 
         {/* Header */}
         <div style={{
-          padding:      '13px 16px 10px',
+          padding: '13px 16px 10px',
           borderBottom: '1px solid var(--border)',
         }}>
           <div style={{
-            fontSize:      11,
-            fontFamily:    'DM Mono, monospace',
+            fontSize: 11,
+            fontFamily: 'DM Mono, monospace',
             textTransform: 'uppercase',
             letterSpacing: '0.6px',
-            color:         'var(--muted)',
+            color: 'var(--muted)',
           }}>
             Cài đặt
           </div>
@@ -130,25 +138,25 @@ function SettingsMenu() {
         {/* Placeholder items — chưa phát triển */}
         <div style={{ padding: '6px 0' }}>
           {[
-            { icon: '👤', label: 'Tài khoản'  },
-            { icon: '🔔', label: 'Thông báo'  },
-            { icon: '🎨', label: 'Giao diện'  },
+            { icon: '👤', label: 'Tài khoản' },
+            { icon: '🔔', label: 'Thông báo' },
+            { icon: '🎨', label: 'Giao diện' },
           ].map((item) => (
             <button
               key={item.label}
               disabled
               style={{
-                display:    'flex',
+                display: 'flex',
                 alignItems: 'center',
-                gap:        12,
-                width:      '100%',
-                padding:    '10px 16px',
+                gap: 12,
+                width: '100%',
+                padding: '10px 16px',
                 background: 'none',
-                border:     'none',
-                color:      'var(--text)',
-                cursor:     'not-allowed',
-                opacity:    0.38,
-                textAlign:  'left',
+                border: 'none',
+                color: 'var(--text)',
+                cursor: 'not-allowed',
+                opacity: 0.38,
+                textAlign: 'left',
                 fontFamily: 'inherit',
               }}
             >
@@ -170,16 +178,16 @@ function SettingsMenu() {
             onClick={handleLogout}
             disabled={loggingOut}
             style={{
-              display:    'flex',
+              display: 'flex',
               alignItems: 'center',
-              gap:        12,
-              width:      '100%',
-              padding:    '10px 16px',
+              gap: 12,
+              width: '100%',
+              padding: '10px 16px',
               background: 'none',
-              border:     'none',
-              color:      loggingOut ? 'var(--muted)' : '#f23d6e',
-              cursor:     loggingOut ? 'not-allowed'  : 'pointer',
-              textAlign:  'left',
+              border: 'none',
+              color: loggingOut ? 'var(--muted)' : '#f23d6e',
+              cursor: loggingOut ? 'not-allowed' : 'pointer',
+              textAlign: 'left',
               fontFamily: 'inherit',
               transition: 'background 0.15s',
             }}
@@ -208,19 +216,19 @@ function SettingsMenu() {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const [clock,   setClock] = useState('--:--');
-  const [dateStr, setDate]  = useState('');
+  const [clock, setClock] = useState('--:--');
+  const [dateStr, setDate] = useState('');
 
-  const isLoggedIn  = !!localStorage.getItem('accessToken');
-  const user        = isLoggedIn ? getStoredUser() : null;
+  const isLoggedIn = !!localStorage.getItem('accessToken');
+  const user = isLoggedIn ? getStoredUser() : null;
   const displayName = user?.fullName ?? user?.username ?? 'Traveler';
-  const avatarSrc   = resolveAvatar(user);
+  const avatarSrc = resolveAvatar(user);
 
   useEffect(() => {
     const tick = () => {
       const now = new Date();
       setClock(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-      setDate(now.toLocaleDateString('en-US',  { weekday: 'long', month: 'long', day: 'numeric' }));
+      setDate(now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }));
     };
     tick();
     const id = setInterval(tick, 1000);
@@ -333,6 +341,14 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Hero Search */}
+      <div className="hero-search-container">
+        <div className="hero-search-box">
+          <span className="hero-search-icon">🔍</span>
+          <input type="text" className="hero-search-input" placeholder="Search destinations, tips, currencies..." />
+        </div>
+      </div>
+
       {/* Quick Actions */}
       <div className="section-title">Quick Actions</div>
       <div className="bento-grid">
@@ -365,6 +381,23 @@ export default function DashboardPage() {
       </div>
 
       <div className="divider" />
+
+      {/* Destinations */}
+      <div className="section-title">Popular Destinations</div>
+      <div className="destinations-section">
+        <div className="destinations-slider">
+          {DESTINATIONS.map(dest => (
+            <div className="dest-card" key={dest.id}>
+              <img src={dest.image} alt={dest.name} loading="lazy" />
+              <div className="dest-badge">⭐ {dest.rating}</div>
+              <div className="dest-card-overlay">
+                <div className="dest-title">{dest.name}</div>
+                <div className="dest-sub">📍 {dest.location}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* News */}
       <div className="section-title">Latest News</div>
