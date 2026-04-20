@@ -4,6 +4,7 @@ import BottomNav from './BottomNav';
 import AIChatModal from './AIChatModal';
 import FloatingPopup from '../common/FloatingPopup';
 import { useAuthStore } from '../../store/authStore';
+import { getLanguage, setLanguage } from '../../utils/i18n';
 
 // Lazy-load heavy page content for popups
 const AtmMapPage = lazy(() => import('../../pages/client/AtmMapPage'));
@@ -42,7 +43,7 @@ export default function ClientLayout() {
   const { user } = useAuthStore();
 
   const [langOpen, setLangOpen] = useState(false);
-  const [activeLang, setActiveLang] = useState('en');
+  const [activeLang, setActiveLang] = useState(getLanguage());
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const [chatOpen, setChatOpen] = useState(false);
   const [atmOpen, setAtmOpen] = useState(false);
@@ -137,7 +138,12 @@ export default function ClientLayout() {
             <button
               key={l.code}
               className={`lang-option${activeLang === l.code ? ' active' : ''}`}
-              onClick={() => { setActiveLang(l.code); setLangOpen(false); }}
+              onClick={() => {
+                setActiveLang(l.code);
+                setLanguage(l.code);
+                setLangOpen(false);
+                window.location.reload();
+              }}
             >
               <span className="flag">{l.flag}</span>
               <span className="lang-name">{l.name}</span>
@@ -145,6 +151,16 @@ export default function ClientLayout() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ── Social Float ── */}
+      <div className="social-float-container">
+        <a href="https://facebook.com" target="_blank" rel="noreferrer" className="float-social-btn fb" title="Facebook">
+          <i className="fa-brands fa-facebook-f" style={{ fontFamily: 'sans-serif', fontStyle: 'normal', fontWeight: 900 }}>f</i>
+        </a>
+        <a href="mailto:contact@vietmoney.app" className="float-social-btn contact" title="Contact">
+          💬
+        </a>
       </div>
 
       {/* ── AI Chat Modal ── */}

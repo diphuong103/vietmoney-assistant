@@ -1,14 +1,15 @@
 import { NavLink } from 'react-router-dom';
-
-const NAV_ITEMS = [
-  { to: '/',         icon: '🏠', label: 'Home'   },
-  { to: '/news',     icon: '📰', label: 'News'   },
-  { to: '/scan',     icon: '📷', label: 'Scan'   },
-  { to: '/budget',   icon: '💰', label: 'Budget' },
-  { to: '/exchange', icon: '💱', label: 'Rates'  },
-];
+import { t } from '../../utils/i18n';
 
 export default function BottomNav() {
+  const NAV_ITEMS = [
+    { to: '/', icon: '🏠', label: t('nav_home') },
+    { to: '/news', icon: '📰', label: t('nav_news') },
+    { to: '/scan', icon: '📷', label: t('nav_scan') },
+    { to: '/budget', icon: '💰', label: t('nav_budget') },
+    { to: '/exchange', icon: '💱', label: t('nav_rates') },
+  ];
+
   return (
     <nav className="bottom-nav">
       {NAV_ITEMS.map(({ to, icon, label }) => (

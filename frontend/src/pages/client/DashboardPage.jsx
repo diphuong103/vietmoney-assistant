@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Badge from '../../components/common/Badge';
 import authApi, { clearSession } from '../../api/authApi';
+import { t } from '../../utils/i18n';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,7 @@ const DESTINATIONS = [
 // ── Quick Action Buttons ─────────────────────────────────────────────────────
 const QUICK_BTNS = [
   { icon: '📷', label: 'Quét Tiền AI', path: '/scan', authRequired: true },
-  { icon: '💬', label: 'Hỏi Đáp RAG', path: '/rag',  authRequired: false },
+  { icon: '💬', label: 'Hỏi Đáp RAG', path: '/rag', authRequired: false },
   { icon: '📋', label: 'Tra Giá Wiki', path: '/wiki', authRequired: false },
   { icon: '🗺️', label: 'Lên Lịch Trình', path: '/plan', authRequired: true },
 ];
@@ -88,7 +89,7 @@ const FEATURES = [
 
 const PRICE_ITEMS = [
   { icon: '🥖', name: 'Bánh Mì', low: '15,000', high: '35,000', tip: 'Phổ biến khắp nơi' },
-  { icon: '🍜', name: 'Phở',     low: '40,000', high: '80,000', tip: 'Tuỳ quán & thành phố' },
+  { icon: '🍜', name: 'Phở', low: '40,000', high: '80,000', tip: 'Tuỳ quán & thành phố' },
   { icon: '☕', name: 'Cà Phê', low: '15,000', high: '55,000', tip: 'Cà phê sữa đá' },
   { icon: '🚕', name: 'Taxi/km', low: '10,000', high: '20,000', tip: 'Grab thường rẻ hơn' },
   { icon: '🍚', name: 'Cơm tấm', low: '35,000', high: '65,000', tip: 'Đặc sản miền Nam' },
@@ -298,12 +299,73 @@ function ContactForm() {
   );
 }
 
+// ── Feature Slider Data ─────────────────────────────────────────────────────────
+
+const INTRO_SLIDES = [
+  {
+    image: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=800&q=80',
+    get tag() { return t('slide_1_tag'); },
+    get title() { return t('slide_1_title'); },
+    get description() { return t('slide_1_desc'); },
+    get actionText() { return t('slide_1_btn'); },
+    actionPath: '/scan'
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=800&q=80',
+    get tag() { return t('slide_2_tag'); },
+    get title() { return t('slide_2_title'); },
+    get description() { return t('slide_2_desc'); },
+    get actionText() { return t('slide_2_btn'); },
+    actionPath: '/budget'
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1550652755-66774e14f8d2?auto=format&fit=crop&w=800&q=80',
+    get tag() { return t('slide_3_tag'); },
+    get title() { return t('slide_3_title'); },
+    get description() { return t('slide_3_desc'); },
+    get actionText() { return t('slide_3_btn'); },
+    actionPath: '/plan'
+  }
+];
+
 // ── DashboardPage ─────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [clock, setClock] = useState('--:--');
   const [dateStr, setDate] = useState('');
+  const [currentIntroSlide, setCurrentIntroSlide] = useState(0);
+
+  const touchStartX = useRef(null);
+  const touchEndX = useRef(null);
+  const minSwipeDistance = 50;
+
+  const handleTouchStart = (e) => {
+    touchEndX.current = null;
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    const distance = touchStartX.current - touchEndX.current;
+
+    if (distance > minSwipeDistance) {
+      setCurrentIntroSlide(prev => (prev + 1) % INTRO_SLIDES.length);
+    } else if (distance < -minSwipeDistance) {
+      setCurrentIntroSlide(prev => (prev - 1 + INTRO_SLIDES.length) % INTRO_SLIDES.length);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIntroSlide(prev => (prev + 1) % INTRO_SLIDES.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
 
   const isLoggedIn = !!localStorage.getItem('accessToken');
   const user = isLoggedIn ? getStoredUser() : null;
@@ -390,16 +452,16 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="greeting-text">
-            <div className="label">{isLoggedIn ? 'Welcome back' : 'Welcome to VietMoney'}</div>
+            <div className="label">{isLoggedIn ? t('greeting_label') : 'Welcome to VietMoney'}</div>
             <div className="hello">
-              {getGreeting()}, <span>{isLoggedIn ? displayName : 'Guest'}</span> 👋
+              {t('greeting_hello').replace('Du khách', isLoggedIn ? displayName : 'Guest').replace('Good evening, ', '')}
             </div>
           </div>
           <div className="spacer" />
           {isLoggedIn && (
             <div className="greeting-meta">
-              <div className="meta-item"><strong>Day 3</strong><span> of your trip</span></div>
-              <div className="meta-item"><strong>₫1,240,000</strong><span> remaining</span></div>
+              <div className="meta-item"><strong>{t('trip_day')}</strong><span>{t('of_trip')}</span></div>
+              <div className="meta-item"><strong>₫1,240,000</strong><span>{t('remaining')}</span></div>
             </div>
           )}
         </div>
@@ -409,87 +471,131 @@ export default function DashboardPage() {
       <div className="hero-search-container compact">
         <div className="hero-search-box">
           <span className="hero-search-icon">🔍</span>
-          <input type="text" className="hero-search-input" placeholder="Search destinations, tips, currencies..." />
+          <input type="text" className="hero-search-input" placeholder={t('search_placeholder')} />
         </div>
       </div>
 
-      {/* ── Quick Action Buttons (4 nút bo tròn căn giữa) ── */}
-      <div className="section-title compact">Tính năng nhanh</div>
-      <div className="quick-btns-row">
-        {QUICK_BTNS.map((btn) => (
-          <button
-            key={btn.label}
-            className="quick-btn"
-            onClick={() => navigate(btn.authRequired && !isLoggedIn ? '/login' : btn.path)}
-          >
-            <span className="quick-btn-icon">{btn.icon}</span>
-            <span className="quick-btn-label">{btn.label}</span>
-          </button>
-        ))}
-      </div>
-
       {/* ── Quick Actions (bento grid gốc) ── */}
-      <div className="section-title compact">Quick Actions</div>
+      <div className="section-title compact">{t('quick_actions')}</div>
       <div className="quick-actions-row">
         <div className="bento-card scan-card" onClick={() => navigate(isLoggedIn ? '/scan' : '/login')}>
           <div className="card-icon">📷</div>
-          <div className="card-label">Scan Money</div>
-          <div className="card-sub">AI Recognition</div>
+          <div className="card-label">{t('scan_money')}</div>
+          <div className="card-sub">{t('scan_sub')}</div>
           <Badge>AI</Badge>
         </div>
         <div className="bento-card exchange-card" onClick={() => navigate('/exchange')}>
           <div className="card-icon">💱</div>
-          <div className="card-label">Exchange Rate</div>
+          <div className="card-label">{t('exchange_rate')}</div>
           <div className="card-value">25,420</div>
         </div>
         <div className="bento-card budget-card" onClick={() => navigate(isLoggedIn ? '/budget' : '/login')}>
           <div className="card-icon">💰</div>
-          <div className="card-label">Budget</div>
+          <div className="card-label">{t('budget')}</div>
           <div className="card-sub">{isLoggedIn ? '65% used today' : 'Manage your spending'}</div>
         </div>
         <div className="bento-card wiki-card" onClick={() => navigate('/wiki')}>
           <div className="card-icon">📋</div>
-          <div className="card-label">Price Wiki</div>
-          <div className="card-sub">Reference prices</div>
+          <div className="card-label">{t('price_wiki')}</div>
+          <div className="card-sub">{t('wiki_sub')}</div>
         </div>
         <div className="bento-card map-card" onClick={() => navigate('/wiki/guide')}>
           <div className="card-icon">🎓</div>
-          <div className="card-label">Currency Guide</div>
-          <div className="card-sub">Flip cards &amp; security</div>
+          <div className="card-label">{t('currency_guide')}</div>
+          <div className="card-sub">{t('guide_sub')}</div>
         </div>
       </div>
 
-      <div className="divider compact" />
+      {/* ── Awesome Tourist Introduction Slider ── */}
+      <div style={{ padding: '0 20px', marginBottom: 24, marginTop: 16 }}>
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            position: 'relative',
+            borderRadius: 24,
+            overflow: 'hidden',
+            background: `url(${INTRO_SLIDES[currentIntroSlide].image}) center/cover no-repeat`,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            minHeight: 320,
+            boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            transition: 'background 0.5s ease-in-out',
+            touchAction: 'pan-y'
+          }}
+        >
+          {/* Dark Overlay */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(180deg, rgba(10,12,15,0) 0%, rgba(10,12,15,0.9) 100%)'
+          }} />
 
-      {/* ── Destinations ── */}
-      <div className="section-title compact">Popular Destinations</div>
-      <div className="destinations-section">
-        <div className="destinations-slider">
-          {DESTINATIONS.map(dest => (
-            <div className="dest-card" key={dest.id}>
-              <img src={dest.image} alt={dest.name} loading="lazy" />
-              <div className="dest-badge">⭐ {dest.rating}</div>
-              <div className="dest-card-overlay">
-                <div className="dest-title">{dest.name}</div>
-                <div className="dest-sub">📍 {dest.location}</div>
-              </div>
+          {/* Content overlay */}
+          <div style={{ position: 'relative', zIndex: 2, padding: 24 }}>
+            <div style={{
+              display: 'inline-block', background: 'var(--accent)', color: '#000',
+              padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 800,
+              textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14
+            }}>
+              {INTRO_SLIDES[currentIntroSlide].tag}
             </div>
-          ))}
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: 24, fontWeight: 800, lineHeight: 1.3, marginBottom: 10, color: '#fff' }}>
+              {INTRO_SLIDES[currentIntroSlide].title}
+            </h2>
+            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', marginBottom: 20, maxWidth: '95%', lineHeight: 1.5, minHeight: 42 }}>
+              {INTRO_SLIDES[currentIntroSlide].description}
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => navigate(INTRO_SLIDES[currentIntroSlide].actionPath)} style={{
+                background: 'var(--accent)',
+                border: 'none',
+                color: '#000',
+                padding: '10px 20px',
+                borderRadius: 24,
+                fontSize: 13,
+                fontWeight: 700,
+                fontFamily: 'Syne, sans-serif',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(200, 242, 61, 0.3)',
+                transition: 'transform 0.2s'
+              }}>
+                {INTRO_SLIDES[currentIntroSlide].actionText}
+              </button>
+            </div>
+            {/* Dots */}
+            <div style={{ display: 'flex', gap: 6, position: 'absolute', bottom: 24, right: 24 }}>
+              {INTRO_SLIDES.map((_, i) => (
+                <div key={i} onClick={() => setCurrentIntroSlide(i)} style={{
+                  width: 8, height: 8, borderRadius: '50%', cursor: 'pointer',
+                  background: currentIntroSlide === i ? 'var(--accent)' : 'rgba(255,255,255,0.3)',
+                  transition: 'background 0.3s'
+                }} />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="divider compact" />
+
+
 
       {/* ── Section: Về VietMoney ── */}
-      <div className="section-title compact">Về VietMoney</div>
+      <div className="section-title compact">{t('about_title')}</div>
       <div className="about-section">
         <div className="about-grid">
           {/* Cột trái: Tầm nhìn */}
           <div className="about-vision">
-            <div className="about-vision-tag">Tầm nhìn</div>
-            <h2 className="about-vision-title">Trở thành trợ lý tài chính du lịch số 1 Việt Nam</h2>
+            <div className="about-vision-tag">{t('about_vision')}</div>
+            <h2 className="about-vision-title">{t('about_vision_title')}</h2>
             <p className="about-vision-desc">
-              VietMoney ra đời để giúp mọi du khách quốc tế trải nghiệm Việt Nam trọn vẹn hơn — không lo rào cản tiền tệ, không sợ bị chặt chém, không lạc lõng trước những tờ tiền lạ.
+              {t('about_vision_desc')}
             </p>
             <div className="about-stat-row">
               <div className="about-stat"><span className="about-stat-num">50K+</span><span className="about-stat-label">Người dùng</span></div>
@@ -584,6 +690,26 @@ export default function DashboardPage() {
               <div className="price-card-tip">{p.tip}</div>
             </div>
           ))}
+        </div>
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center' }}>
+          <button
+            onClick={() => navigate('/wiki')}
+            style={{
+              padding: '8px 24px', background: 'var(--bg3)', color: 'var(--text)',
+              border: '1px solid var(--border)', borderRadius: 20, cursor: 'pointer',
+              fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 13
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.borderColor = 'var(--accent)';
+              e.currentTarget.style.color = 'var(--accent)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.borderColor = 'var(--border)';
+              e.currentTarget.style.color = 'var(--text)';
+            }}
+          >
+            Xem thêm Wiki →
+          </button>
         </div>
       </div>
 

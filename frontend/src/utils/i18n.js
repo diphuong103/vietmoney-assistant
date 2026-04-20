@@ -4,10 +4,13 @@ import vi from '../locales/vi.json';
 
 const LOCALES = { en, ko, vi };
 
-let currentLang = 'en';
+let currentLang = localStorage.getItem('appLang') || 'vi';
 
 export function setLanguage(lang) {
-  if (LOCALES[lang]) currentLang = lang;
+  if (LOCALES[lang]) {
+    currentLang = lang;
+    localStorage.setItem('appLang', lang);
+  }
 }
 
 export function getLanguage() {
