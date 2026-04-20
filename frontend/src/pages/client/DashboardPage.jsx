@@ -32,6 +32,7 @@ const TICKER_ITEMS = [
   { label: 'VND/EUR', val: '₫27,810', change: '+0.23%', up: true },
   { label: 'VND/JPY', val: '₫165.4', change: '+0.08%', up: true },
   { label: 'VND/GBP', val: '₫32,150', change: '−0.14%', up: false },
+  { label: 'VND/CNY', val: '₫3,497', change: '+0.03%', up: true },
 ];
 const TICKER_FULL = [...TICKER_ITEMS, ...TICKER_ITEMS];
 
@@ -43,6 +44,100 @@ const DESTINATIONS = [
   { id: 4, name: 'Bà Nà Hills', location: 'Đà Nẵng', image: 'https://images.unsplash.com/photo-1582298538104-fe2e74c27f59?auto=format&fit=crop&q=80&w=400', rating: '4.9' },
 ];
 
+// ── Quick Action Buttons ─────────────────────────────────────────────────────
+const QUICK_BTNS = [
+  { icon: '📷', label: 'Quét Tiền AI', path: '/scan', authRequired: true },
+  { icon: '💬', label: 'Hỏi Đáp RAG', path: '/rag',  authRequired: false },
+  { icon: '📋', label: 'Tra Giá Wiki', path: '/wiki', authRequired: false },
+  { icon: '🗺️', label: 'Lên Lịch Trình', path: '/plan', authRequired: true },
+];
+
+// ── About / Features / Price / News data ─────────────────────────────────────
+const FEATURES = [
+  {
+    icon: '📷',
+    title: 'Quét Tiền AI',
+    desc: 'Nhận diện mệnh giá tiền Việt tức thì bằng camera. Không lo nhầm tờ, không lo bị thiếu.',
+    btn: 'Thử ngay',
+    path: '/scan',
+    authRequired: true,
+    color: 'feature-card--green',
+    img: 'https://images.unsplash.com/photo-1580048915913-4f8f5cb481c4?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    icon: '💰',
+    title: 'Quản Lý Ngân Sách',
+    desc: 'Theo dõi chi tiêu hàng ngày, đặt giới hạn và nhận cảnh báo khi vượt ngưỡng.',
+    btn: 'Quản lý',
+    path: '/budget',
+    authRequired: true,
+    color: 'feature-card--gold',
+    img: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    icon: '🗺️',
+    title: 'Kế Hoạch Du Lịch',
+    desc: 'Lập lịch trình thông minh, gợi ý địa điểm và ước tính ngân sách cho chuyến đi của bạn.',
+    btn: 'Lên lịch',
+    path: '/plan',
+    authRequired: true,
+    color: 'feature-card--blue',
+    img: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=600&q=80',
+  },
+];
+
+const PRICE_ITEMS = [
+  { icon: '🥖', name: 'Bánh Mì', low: '15,000', high: '35,000', tip: 'Phổ biến khắp nơi' },
+  { icon: '🍜', name: 'Phở',     low: '40,000', high: '80,000', tip: 'Tuỳ quán & thành phố' },
+  { icon: '☕', name: 'Cà Phê', low: '15,000', high: '55,000', tip: 'Cà phê sữa đá' },
+  { icon: '🚕', name: 'Taxi/km', low: '10,000', high: '20,000', tip: 'Grab thường rẻ hơn' },
+  { icon: '🍚', name: 'Cơm tấm', low: '35,000', high: '65,000', tip: 'Đặc sản miền Nam' },
+  { icon: '🏨', name: 'Hostel/đêm', low: '150,000', high: '350,000', tip: 'Tuỳ vị trí' },
+];
+
+const NEWS_ITEMS = [
+  {
+    emoji: '🏖️',
+    tag: 'Du lịch',
+    title: 'Top 5 Địa Điểm Ẩn Bị Bỏ Qua Ở Đà Nẵng',
+    desc: 'Những góc khuất tuyệt đẹp mà phần lớn khách du lịch chưa biết tới.',
+    author: 'Admin',
+    time: '2 giờ trước',
+    likes: 142,
+    path: '/news',
+  },
+  {
+    emoji: '💱',
+    tag: 'Tài chính',
+    title: 'Tỷ Giá USD/VND Tăng Nhẹ Tuần Này',
+    desc: 'Ngân hàng Nhà nước điều chỉnh biên độ, ảnh hưởng tới chi tiêu du khách.',
+    author: 'Finance',
+    time: '5 giờ trước',
+    likes: 87,
+    path: '/news',
+  },
+  {
+    emoji: '🎌',
+    tag: 'Văn hoá',
+    title: 'Hội An Mùa Đèn Lồng — Kinh Nghiệm Không Thể Bỏ Lỡ',
+    desc: 'Lễ hội đèn lồng hàng tháng thu hút hàng nghìn du khách quốc tế.',
+    author: 'Culture',
+    time: '1 ngày trước',
+    likes: 213,
+    path: '/news',
+  },
+  {
+    emoji: '🍜',
+    tag: 'Ẩm thực',
+    title: 'Bản Đồ Ẩm Thực Hội An: Ăn Gì, Ở Đâu?',
+    desc: 'Từ Cao Lầu đến Bánh Mì Phượng — cẩm nang đầy đủ cho tín đồ ẩm thực.',
+    author: 'Food',
+    time: '2 ngày trước',
+    likes: 305,
+    path: '/news',
+  },
+];
+
 // ── SettingsMenu ──────────────────────────────────────────────────────────────
 
 function SettingsMenu() {
@@ -51,7 +146,6 @@ function SettingsMenu() {
   const [loggingOut, setOut] = useState(false);
   const menuRef = useRef(null);
 
-  // Đóng khi click ra ngoài
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
@@ -63,11 +157,8 @@ function SettingsMenu() {
 
   const handleLogout = async () => {
     setOut(true);
-    try {
-      await authApi.logout();
-    } catch (_) {
-      // Dù lỗi vẫn clear phía client
-    } finally {
+    try { await authApi.logout(); } catch (_) { }
+    finally {
       clearSession();
       setOut(false);
       setOpen(false);
@@ -76,139 +167,134 @@ function SettingsMenu() {
   };
 
   return (
-    <div ref={menuRef} style={{ position: 'relative' }}>
-
-      {/* Trigger ⚙️ */}
+    <div ref={menuRef} className="settings-menu">
       <button
-        className="icon-btn"
+        className="icon-btn settings-trigger"
         onClick={() => setOpen(v => !v)}
         title="Cài đặt"
         aria-haspopup="true"
         aria-expanded={open}
-        style={{
-          background: open ? 'var(--bg3)' : 'transparent',
-          borderRadius: 10,
-          transition: 'background 0.18s',
-        }}
       >
-        <span style={{
-          display: 'inline-block',
-          transition: 'transform 0.3s cubic-bezier(.34,1.56,.64,1)',
-          transform: open ? 'rotate(60deg)' : 'rotate(0deg)',
-        }}>
-          ⚙️
-        </span>
+        <span className={`settings-trigger-icon ${open ? 'open' : 'closed'}`}>⚙️</span>
       </button>
 
-      {/* Dropdown panel */}
-      <div style={{
-        position: 'absolute',
-        top: 'calc(100% + 8px)',
-        right: 0,
-        width: 224,
-        background: 'var(--bg2)',
-        border: '1px solid var(--border)',
-        borderRadius: 16,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.16)',
-        zIndex: 1000,
-        overflow: 'hidden',
-        transformOrigin: 'top right',
-        transform: open ? 'scale(1) translateY(0)' : 'scale(0.92) translateY(-8px)',
-        opacity: open ? 1 : 0,
-        pointerEvents: open ? 'all' : 'none',
-        transition: 'transform 0.22s cubic-bezier(.34,1.56,.64,1), opacity 0.18s ease',
-      }}>
-
-        {/* Header */}
-        <div style={{
-          padding: '13px 16px 10px',
-          borderBottom: '1px solid var(--border)',
-        }}>
-          <div style={{
-            fontSize: 11,
-            fontFamily: 'DM Mono, monospace',
-            textTransform: 'uppercase',
-            letterSpacing: '0.6px',
-            color: 'var(--muted)',
-          }}>
-            Cài đặt
-          </div>
+      <div className={`settings-dropdown ${open ? 'open' : 'closed'}`}>
+        <div className="settings-dropdown-header">
+          <div className="settings-dropdown-header-label">Cài đặt</div>
         </div>
 
-        {/* Placeholder items — chưa phát triển */}
-        <div style={{ padding: '6px 0' }}>
+        <div className="settings-dropdown-body">
           {[
-            { icon: '👤', label: 'Tài khoản' },
-            { icon: '🔔', label: 'Thông báo' },
-            { icon: '🎨', label: 'Giao diện' },
+            { icon: '👤', label: 'Tài khoản', sub: 'Đang phát triển' },
+            { icon: '🔔', label: 'Thông báo', sub: 'Đang phát triển' },
+            { icon: '🎨', label: 'Giao diện', sub: 'Đang phát triển' },
           ].map((item) => (
-            <button
-              key={item.label}
-              disabled
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                width: '100%',
-                padding: '10px 16px',
-                background: 'none',
-                border: 'none',
-                color: 'var(--text)',
-                cursor: 'not-allowed',
-                opacity: 0.38,
-                textAlign: 'left',
-                fontFamily: 'inherit',
-              }}
-            >
-              <span style={{ fontSize: 17 }}>{item.icon}</span>
+            <button key={item.label} disabled className="settings-menu-item">
+              <span className="settings-menu-item-icon">{item.icon}</span>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</div>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
-                  Đang phát triển
-                </div>
+                <div className="settings-menu-item-label">{item.label}</div>
+                <div className="settings-menu-item-sub">{item.sub}</div>
               </div>
             </button>
           ))}
 
-          {/* Divider */}
-          <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
+          <div className="settings-divider" />
 
-          {/* Đăng xuất */}
           <button
             onClick={handleLogout}
             disabled={loggingOut}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              width: '100%',
-              padding: '10px 16px',
-              background: 'none',
-              border: 'none',
-              color: loggingOut ? 'var(--muted)' : '#f23d6e',
-              cursor: loggingOut ? 'not-allowed' : 'pointer',
-              textAlign: 'left',
-              fontFamily: 'inherit',
-              transition: 'background 0.15s',
-            }}
-            onMouseEnter={e => {
-              if (!loggingOut) e.currentTarget.style.background = 'rgba(242,61,110,0.09)';
-            }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+            className="settings-logout-btn"
           >
-            <span style={{ fontSize: 17 }}>{loggingOut ? '⏳' : '🚪'}</span>
+            <span className="settings-logout-icon">{loggingOut ? '⏳' : '🚪'}</span>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>
+              <div className="settings-logout-label">
                 {loggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
-                Thoát khỏi tài khoản
-              </div>
+              <div className="settings-logout-sub">Thoát khỏi tài khoản</div>
             </div>
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+// ── ContactForm ───────────────────────────────────────────────────────────────
+
+function ContactForm() {
+  const [form, setForm] = useState({ name: '', email: '', message: '' });
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.email || !form.message) return;
+    setSending(true);
+    // Mock submit — replace with real API call as needed
+    await new Promise(r => setTimeout(r, 900));
+    setSending(false);
+    setSent(true);
+  };
+
+  if (sent) {
+    return (
+      <div className="contact-success">
+        <div className="contact-success-icon">✅</div>
+        <div className="contact-success-title">Đã gửi thành công!</div>
+        <div className="contact-success-sub">Chúng tôi sẽ phản hồi trong vòng 24 giờ.</div>
+        <button className="contact-reset-btn" onClick={() => { setForm({ name: '', email: '', message: '' }); setSent(false); }}>
+          Gửi yêu cầu khác
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form className="contact-form" onSubmit={handleSubmit}>
+      <div className="contact-form-row">
+        <div className="contact-field">
+          <label className="contact-label">Họ và tên</label>
+          <input
+            className="contact-input"
+            type="text"
+            name="name"
+            placeholder="Nguyễn Văn A"
+            value={form.name}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="contact-field">
+          <label className="contact-label">Email</label>
+          <input
+            className="contact-input"
+            type="email"
+            name="email"
+            placeholder="you@example.com"
+            value={form.email}
+            onChange={handleChange}
+            required
+          />
+        </div>
+      </div>
+      <div className="contact-field">
+        <label className="contact-label">Nội dung</label>
+        <textarea
+          className="contact-input contact-textarea"
+          name="message"
+          placeholder="Mô tả vấn đề hoặc câu hỏi của bạn..."
+          value={form.message}
+          onChange={handleChange}
+          required
+          rows={4}
+        />
+      </div>
+      <button type="submit" className="contact-submit-btn" disabled={sending}>
+        {sending ? '⏳ Đang gửi...' : '✉️ Gửi yêu cầu'}
+      </button>
+    </form>
   );
 }
 
@@ -242,11 +328,9 @@ export default function DashboardPage() {
         actions={
           isLoggedIn ? (
             <>
-              {/* Avatar → profile */}
               <div
                 className="user-box"
                 onClick={() => navigate('/profile')}
-                style={{ cursor: 'pointer' }}
                 title="Xem hồ sơ"
               >
                 <img
@@ -265,32 +349,12 @@ export default function DashboardPage() {
               </div>
 
               <button className="icon-btn" title="Thông báo">🔔</button>
-
-              {/* Settings dropdown */}
               <SettingsMenu />
             </>
           ) : (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <button
-                onClick={() => navigate('/login')}
-                style={{
-                  background: 'transparent', color: 'var(--accent)',
-                  border: '1px solid var(--accent)', padding: '6px 12px',
-                  borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold',
-                }}
-              >
-                Log In
-              </button>
-              <button
-                onClick={() => navigate('/register')}
-                style={{
-                  background: 'var(--accent)', color: '#fff', border: 'none',
-                  padding: '6px 12px', borderRadius: '8px',
-                  cursor: 'pointer', fontWeight: 'bold',
-                }}
-              >
-                Sign Up
-              </button>
+            <div className="navbar-actions-guest">
+              <button className="btn-login" onClick={() => navigate('/login')}>Log In</button>
+              <button className="btn-signup" onClick={() => navigate('/register')}>Sign Up</button>
             </div>
           )
         }
@@ -342,16 +406,31 @@ export default function DashboardPage() {
       </div>
 
       {/* Hero Search */}
-      <div className="hero-search-container">
+      <div className="hero-search-container compact">
         <div className="hero-search-box">
           <span className="hero-search-icon">🔍</span>
           <input type="text" className="hero-search-input" placeholder="Search destinations, tips, currencies..." />
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="section-title">Quick Actions</div>
-      <div className="bento-grid">
+      {/* ── Quick Action Buttons (4 nút bo tròn căn giữa) ── */}
+      <div className="section-title compact">Tính năng nhanh</div>
+      <div className="quick-btns-row">
+        {QUICK_BTNS.map((btn) => (
+          <button
+            key={btn.label}
+            className="quick-btn"
+            onClick={() => navigate(btn.authRequired && !isLoggedIn ? '/login' : btn.path)}
+          >
+            <span className="quick-btn-icon">{btn.icon}</span>
+            <span className="quick-btn-label">{btn.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* ── Quick Actions (bento grid gốc) ── */}
+      <div className="section-title compact">Quick Actions</div>
+      <div className="quick-actions-row">
         <div className="bento-card scan-card" onClick={() => navigate(isLoggedIn ? '/scan' : '/login')}>
           <div className="card-icon">📷</div>
           <div className="card-label">Scan Money</div>
@@ -373,17 +452,17 @@ export default function DashboardPage() {
           <div className="card-label">Price Wiki</div>
           <div className="card-sub">Reference prices</div>
         </div>
-        <div className="bento-card map-card wide" onClick={() => navigate('/wiki/guide')}>
+        <div className="bento-card map-card" onClick={() => navigate('/wiki/guide')}>
           <div className="card-icon">🎓</div>
           <div className="card-label">Currency Guide</div>
-          <div className="card-sub">Learn Vietnamese Dong — flip cards &amp; security features</div>
+          <div className="card-sub">Flip cards &amp; security</div>
         </div>
       </div>
 
-      <div className="divider" />
+      <div className="divider compact" />
 
-      {/* Destinations */}
-      <div className="section-title">Popular Destinations</div>
+      {/* ── Destinations ── */}
+      <div className="section-title compact">Popular Destinations</div>
       <div className="destinations-section">
         <div className="destinations-slider">
           {DESTINATIONS.map(dest => (
@@ -399,25 +478,160 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* News */}
-      <div className="section-title">Latest News</div>
-      <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div className="news-card-item" onClick={() => navigate('/news')}>
-          <div className="news-img">🏖️</div>
-          <div className="news-body">
-            <span className="news-tag">Travel</span>
-            <div className="news-title">Top 5 Hidden Gems in Da Nang You Must Visit</div>
-            <div className="news-footer">
-              <div className="news-author">
-                <div className="news-author-dot">A</div>
-                <span>Admin · 2h ago</span>
+      <div className="divider compact" />
+
+      {/* ── Section: Về VietMoney ── */}
+      <div className="section-title compact">Về VietMoney</div>
+      <div className="about-section">
+        <div className="about-grid">
+          {/* Cột trái: Tầm nhìn */}
+          <div className="about-vision">
+            <div className="about-vision-tag">Tầm nhìn</div>
+            <h2 className="about-vision-title">Trở thành trợ lý tài chính du lịch số 1 Việt Nam</h2>
+            <p className="about-vision-desc">
+              VietMoney ra đời để giúp mọi du khách quốc tế trải nghiệm Việt Nam trọn vẹn hơn — không lo rào cản tiền tệ, không sợ bị chặt chém, không lạc lõng trước những tờ tiền lạ.
+            </p>
+            <div className="about-stat-row">
+              <div className="about-stat"><span className="about-stat-num">50K+</span><span className="about-stat-label">Người dùng</span></div>
+              <div className="about-stat"><span className="about-stat-num">12</span><span className="about-stat-label">Loại tiền tệ</span></div>
+              <div className="about-stat"><span className="about-stat-num">4.9★</span><span className="about-stat-label">Đánh giá</span></div>
+            </div>
+          </div>
+
+          {/* Cột phải: Tiện ích */}
+          <div className="about-features">
+            <div className="about-vision-tag">Tiện ích</div>
+            {[
+              { icon: '🤖', title: 'RAG AI Hỏi Đáp', desc: 'Trả lời mọi câu hỏi về tài chính & du lịch VN' },
+              { icon: '📷', title: 'Nhận diện mệnh giá', desc: 'AI nhận dạng tiền Việt chính xác tức thì' },
+              { icon: '💱', title: 'Chuyển đổi tỉ giá', desc: 'Cập nhật tỉ giá thực tế theo thời gian thực' },
+              { icon: '📊', title: 'Quản lý ngân sách', desc: 'Theo dõi và kiểm soát chi tiêu thông minh' },
+            ].map((f) => (
+              <div key={f.title} className="about-feature-item">
+                <div className="about-feature-icon">{f.icon}</div>
+                <div>
+                  <div className="about-feature-title">{f.title}</div>
+                  <div className="about-feature-desc">{f.desc}</div>
+                </div>
               </div>
-              <div className="news-like">❤️ 142</div>
+            ))}
+          </div>
+        </div>
+
+        {/* Thông tin liên hệ */}
+        <div className="about-contact-row">
+          <div className="about-contact-item">
+            <span className="about-contact-icon">✉️</span>
+            <div>
+              <div className="about-contact-label">Email</div>
+              <div className="about-contact-val">hello@vietmoney.app</div>
+            </div>
+          </div>
+          <div className="about-contact-item">
+            <span className="about-contact-icon">📍</span>
+            <div>
+              <div className="about-contact-label">Địa chỉ</div>
+              <div className="about-contact-val">36 Bạch Đằng, Đà Nẵng</div>
+            </div>
+          </div>
+          <div className="about-contact-item">
+            <span className="about-contact-icon">📞</span>
+            <div>
+              <div className="about-contact-label">Điện thoại</div>
+              <div className="about-contact-val">+84 236 123 4567</div>
             </div>
           </div>
         </div>
       </div>
-      <div style={{ height: 16 }} />
+
+      <div className="divider compact" />
+
+      {/* ── Section: Tính Năng Nổi Bật ── */}
+      <div className="section-title compact">Tính Năng Nổi Bật</div>
+      <div className="features-grid">
+        {FEATURES.map((f) => (
+          <div key={f.title} className={`feature-card ${f.color}`}>
+            <div className="feature-card-img-wrap">
+              <img src={f.img} alt={f.title} className="feature-card-img" loading="lazy" />
+              <div className="feature-card-img-overlay" />
+              <div className="feature-card-badge">{f.icon} {f.title}</div>
+            </div>
+            <div className="feature-card-body">
+              <p className="feature-card-desc">{f.desc}</p>
+              <button
+                className="feature-card-btn"
+                onClick={() => navigate(f.authRequired && !isLoggedIn ? '/login' : f.path)}
+              >
+                {f.btn} →
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="divider compact" />
+
+      {/* ── Section: Wiki Giá Tham Khảo ── */}
+      <div className="section-title compact">Wiki Giá Tham Khảo</div>
+      <div className="price-section">
+        <div className="price-ref-tag">📌 Thông tin tham khảo — Giá có thể thay đổi theo địa điểm</div>
+        <div className="price-grid">
+          {PRICE_ITEMS.map((p) => (
+            <div key={p.name} className="price-card">
+              <div className="price-card-icon">{p.icon}</div>
+              <div className="price-card-name">{p.name}</div>
+              <div className="price-card-range">₫{p.low} – ₫{p.high}</div>
+              <div className="price-card-tip">{p.tip}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="divider compact" />
+
+      {/* ── Section: Tin Tức Nổi Bật ── */}
+      <div className="section-title compact">Tin Tức Nổi Bật</div>
+      <div className="news-grid">
+        {NEWS_ITEMS.map((n, i) => (
+          <div key={i} className="news-card-item news-card-new" onClick={() => navigate(n.path)}>
+            <div className="news-thumb">{n.emoji}</div>
+            <div className="news-body">
+              <span className="news-tag">{n.tag}</span>
+              <div className="news-title">{n.title}</div>
+              <div className="news-desc">{n.desc}</div>
+              <div className="news-footer">
+                <div className="news-author">
+                  <div className="news-author-dot">{n.author[0]}</div>
+                  <span>{n.author} · {n.time}</span>
+                </div>
+                <div className="news-footer-right">
+                  <span className="news-like">❤️ {n.likes}</span>
+                  <button className="news-more-btn" onClick={(e) => { e.stopPropagation(); navigate(n.path); }}>Xem thêm</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="divider compact" />
+
+      {/* ── Section: Liên Hệ / Hỏi Đáp ── */}
+      <div className="section-title compact">Liên Hệ / Hỏi Đáp</div>
+      <div className="contact-section">
+        <div className="contact-card">
+          <div className="contact-card-header">
+            <div className="contact-card-title">Gửi yêu cầu hỗ trợ</div>
+            <div className="contact-card-sub">Chúng tôi phản hồi trong vòng 24 giờ</div>
+          </div>
+          <ContactForm />
+        </div>
+      </div>
+
+      <div style={{ height: 24 }} />
+
+      {/* Language + Theme Switcher (fixed bottom-left) */}
+      {/* Đã chuyển sang ClientLayout — luôn hiển thị ở mọi tab */}
     </div>
   );
 }

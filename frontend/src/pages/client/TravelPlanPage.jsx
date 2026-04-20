@@ -3,13 +3,13 @@ import Navbar from '../../components/layout/Navbar';
 import travelPlanApi from '../../api/travelPlanApi';
 import dayjs from 'dayjs';
 
-const CITIES = ['Hà Nội','Hồ Chí Minh','Đà Nẵng','Hội An','Huế','Nha Trang','Phú Quốc','Hạ Long','Cần Thơ','Đà Lạt'];
+const CITIES = ['Hà Nội', 'Hồ Chí Minh', 'Đà Nẵng', 'Hội An', 'Huế', 'Nha Trang', 'Phú Quốc', 'Hạ Long', 'Cần Thơ', 'Đà Lạt'];
 
-export default function TravelPlanPage() {
-  const [plans, setPlans]         = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [showForm, setShowForm]   = useState(false);
-  const [form, setForm]           = useState({
+export default function TravelPlanPage({ embedded = false }) {
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
     title: '', destination: '', startDate: '', endDate: '', budget: '',
   });
 
@@ -72,23 +72,23 @@ export default function TravelPlanPage() {
     outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
   };
 
-  return (
-    <div className="page active" id="page-plans">
-      <Navbar
-        title={<>Travel<span style={{ color: 'var(--accent)' }}>Plans</span></>}
-        actions={
+  const content = (
+    <>
+      {/* Create form toggle (embedded header) */}
+      {embedded && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
           <button
             className="icon-btn"
             onClick={() => setShowForm(v => !v)}
             style={{ fontSize: 18 }}
           >{showForm ? '✕' : '➕'}</button>
-        }
-      />
+        </div>
+      )}
 
       {/* Create form */}
       {showForm && (
         <div style={{
-          margin: '12px 20px', padding: 16,
+          marginBottom: 12, padding: 16,
           background: 'var(--bg2)', border: '1px solid var(--border)',
           borderRadius: 16,
         }}>
@@ -98,28 +98,28 @@ export default function TravelPlanPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <input
               placeholder="Tiêu đề (vd: Đà Nẵng 3N2Đ)"
-              value={form.title} onChange={e => setForm(f => ({...f, title: e.target.value}))}
+              value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
               style={inputStyle}
             />
             <select
               value={form.destination}
-              onChange={e => setForm(f => ({...f, destination: e.target.value}))}
-              style={{...inputStyle, cursor: 'pointer'}}
+              onChange={e => setForm(f => ({ ...f, destination: e.target.value }))}
+              style={{ ...inputStyle, cursor: 'pointer' }}
             >
               <option value="">-- Chọn điểm đến --</option>
               {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <div style={{ display: 'flex', gap: 8 }}>
               <input type="date" value={form.startDate}
-                onChange={e => setForm(f => ({...f, startDate: e.target.value}))}
-                style={{...inputStyle, flex: 1}} />
+                onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
+                style={{ ...inputStyle, flex: 1 }} />
               <input type="date" value={form.endDate}
-                onChange={e => setForm(f => ({...f, endDate: e.target.value}))}
-                style={{...inputStyle, flex: 1}} />
+                onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
+                style={{ ...inputStyle, flex: 1 }} />
             </div>
             <input
               placeholder="Ngân sách (vd: 5,000,000đ)"
-              value={form.budget} onChange={e => setForm(f => ({...f, budget: e.target.value}))}
+              value={form.budget} onChange={e => setForm(f => ({ ...f, budget: e.target.value }))}
               style={inputStyle}
             />
             <button
@@ -134,7 +134,7 @@ export default function TravelPlanPage() {
         </div>
       )}
 
-      <div className="plans-container" style={{ padding: '12px 20px' }}>
+      <div className="plans-container" style={{ padding: embedded ? '0' : '12px 20px' }}>
         {loading && (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
             <div style={{ fontSize: 28, animation: 'pulse 1.5s infinite' }}>✈️</div>
@@ -205,6 +205,24 @@ export default function TravelPlanPage() {
           );
         })}
       </div>
+    </>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <div className="page active" id="page-plans">
+      <Navbar
+        title={<>Travel<span style={{ color: 'var(--accent)' }}>Plans</span></>}
+        actions={
+          <button
+            className="icon-btn"
+            onClick={() => setShowForm(v => !v)}
+            style={{ fontSize: 18 }}
+          >{showForm ? '✕' : '➕'}</button>
+        }
+      />
+      {content}
     </div>
   );
 }

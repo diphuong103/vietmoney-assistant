@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import Navbar from '../../components/layout/Navbar';
 import atmApi from '../../api/atmApi';
 
-export default function AtmMapPage() {
-  const [atms, setAtms]       = useState([]);
+export default function AtmMapPage({ embedded = false }) {
+  const [atms, setAtms] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [coords, setCoords]   = useState(null);
+  const [coords, setCoords] = useState(null);
   const [geoError, setGeoError] = useState('');
 
   useEffect(() => {
@@ -41,6 +41,104 @@ export default function AtmMapPage() {
     }
   };
 
+  const content = (
+    <div style={{ padding: embedded ? '0' : '12px 20px' }}>
+      {/* GPS status */}
+      {geoError && (
+        <div style={{
+          background: 'rgba(242,196,61,0.08)', border: '1px solid rgba(242,196,61,0.3)',
+          borderRadius: 12, padding: '10px 14px', fontSize: 12,
+          color: 'var(--gold)', marginBottom: 12,
+        }}>
+          📍 {geoError}
+        </div>
+      )}
+
+      {/* Location badge */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        marginBottom: 16, padding: '10px 14px',
+        background: 'var(--bg2)', border: '1px solid var(--border)',
+        borderRadius: 12,
+      }}>
+        <span style={{ fontSize: 20 }}>📍</span>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>Vị trí hiện tại</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+            {coords
+              ? `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`
+              : 'Đang xác định...'
+            }
+          </div>
+        </div>
+        <div style={{
+          marginLeft: 'auto', padding: '4px 10px',
+          background: 'rgba(200,242,61,0.1)', border: '1px solid rgba(200,242,61,0.2)',
+          borderRadius: 8, fontSize: 11, color: 'var(--accent)', fontWeight: 600,
+        }}>
+          {atms.length} ATMs
+        </div>
+      </div>
+
+      {loading && (
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
+          <div style={{ fontSize: 28, animation: 'pulse 1.5s infinite' }}>🏧</div>
+          <div style={{ fontSize: 13, marginTop: 8 }}>Đang tìm ATM gần bạn...</div>
+        </div>
+      )}
+
+      {!loading && atms.length === 0 && (
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
+          <span style={{ fontSize: 48 }}>🗺️</span>
+          <p style={{ fontSize: 14, marginTop: 12 }}>Không tìm thấy ATM xung quanh.</p>
+        </div>
+      )}
+
+      {/* ATM list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {atms.map((atm, i) => (
+          <div
+            key={atm.id ?? i}
+            style={{
+              background: 'var(--bg2)', border: '1px solid var(--border)',
+              borderRadius: 14, padding: '14px 16px',
+              display: 'flex', alignItems: 'center', gap: 12,
+              transition: 'transform 0.15s',
+              cursor: 'pointer',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
+          >
+            <div style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: 'rgba(200,242,61,0.1)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', fontSize: 22,
+              flexShrink: 0,
+            }}>
+              🏧
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>
+                {atm.name ?? 'ATM'}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                {atm.address ?? `${(atm.lat ?? 0).toFixed(4)}, ${(atm.lng ?? 0).toFixed(4)}`}
+              </div>
+            </div>
+            <div style={{
+              fontSize: 11, color: 'var(--accent)',
+              fontFamily: 'DM Mono, monospace',
+            }}>
+              {atm.distance ?? '~nearby'}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (embedded) return content;
+
   return (
     <div className="page active" id="page-atm">
       <Navbar
@@ -53,100 +151,7 @@ export default function AtmMapPage() {
           )
         }
       />
-
-      <div style={{ padding: '12px 20px' }}>
-        {/* GPS status */}
-        {geoError && (
-          <div style={{
-            background: 'rgba(242,196,61,0.08)', border: '1px solid rgba(242,196,61,0.3)',
-            borderRadius: 12, padding: '10px 14px', fontSize: 12,
-            color: 'var(--gold)', marginBottom: 12,
-          }}>
-            📍 {geoError}
-          </div>
-        )}
-
-        {/* Location badge */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          marginBottom: 16, padding: '10px 14px',
-          background: 'var(--bg2)', border: '1px solid var(--border)',
-          borderRadius: 12,
-        }}>
-          <span style={{ fontSize: 20 }}>📍</span>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>Vị trí hiện tại</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-              {coords
-                ? `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`
-                : 'Đang xác định...'
-              }
-            </div>
-          </div>
-          <div style={{
-            marginLeft: 'auto', padding: '4px 10px',
-            background: 'rgba(200,242,61,0.1)', border: '1px solid rgba(200,242,61,0.2)',
-            borderRadius: 8, fontSize: 11, color: 'var(--accent)', fontWeight: 600,
-          }}>
-            {atms.length} ATMs
-          </div>
-        </div>
-
-        {loading && (
-          <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
-            <div style={{ fontSize: 28, animation: 'pulse 1.5s infinite' }}>🏧</div>
-            <div style={{ fontSize: 13, marginTop: 8 }}>Đang tìm ATM gần bạn...</div>
-          </div>
-        )}
-
-        {!loading && atms.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
-            <span style={{ fontSize: 48 }}>🗺️</span>
-            <p style={{ fontSize: 14, marginTop: 12 }}>Không tìm thấy ATM xung quanh.</p>
-          </div>
-        )}
-
-        {/* ATM list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {atms.map((atm, i) => (
-            <div
-              key={atm.id ?? i}
-              style={{
-                background: 'var(--bg2)', border: '1px solid var(--border)',
-                borderRadius: 14, padding: '14px 16px',
-                display: 'flex', alignItems: 'center', gap: 12,
-                transition: 'transform 0.15s',
-                cursor: 'pointer',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
-            >
-              <div style={{
-                width: 44, height: 44, borderRadius: 12,
-                background: 'rgba(200,242,61,0.1)', display: 'flex',
-                alignItems: 'center', justifyContent: 'center', fontSize: 22,
-                flexShrink: 0,
-              }}>
-                🏧
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>
-                  {atm.name ?? 'ATM'}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                  {atm.address ?? `${(atm.lat ?? 0).toFixed(4)}, ${(atm.lng ?? 0).toFixed(4)}`}
-                </div>
-              </div>
-              <div style={{
-                fontSize: 11, color: 'var(--accent)',
-                fontFamily: 'DM Mono, monospace',
-              }}>
-                {atm.distance ?? '~nearby'}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {content}
     </div>
   );
 }
