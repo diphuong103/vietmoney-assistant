@@ -6,6 +6,15 @@ const atmApi = {
 
   getById: (id) =>
     axiosClient.get(`/atm/${id}`),
+
+  saveAtm: (data) =>
+    axiosClient.post('/atm/save', data),
+
+  unsaveAtm: (atmId) =>
+    axiosClient.delete(`/atm/unsave/${atmId}`),
+
+  getSaved: () =>
+    axiosClient.get('/atm/saved'),
 };
 
 export default atmApi;

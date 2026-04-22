@@ -55,10 +55,16 @@ export default function AppRouter() {
           <Route path="/wiki" element={<PriceWikiPage />} />
           <Route path="/wiki/guide" element={<CurrencyGuidePage />} />
           <Route path="/plans" element={<TravelPlanPage />} />
-          <Route path="/atm-map" element={<AtmMapPage />} />
           <Route path="/spots" element={<TouristSpotsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
+
+        {/* ATM Map standalone protected */}
+        <Route path="/atm-map" element={
+          <ProtectedRoute>
+            <AtmMapPage />
+          </ProtectedRoute>
+        } />
 
         {/* Admin (admin only) */}
         <Route path="/admin" element={

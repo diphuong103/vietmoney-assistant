@@ -7,7 +7,6 @@ import { useAuthStore } from '../../store/authStore';
 import { getLanguage, setLanguage } from '../../utils/i18n';
 
 // Lazy-load heavy page content for popups
-const AtmMapPage = lazy(() => import('../../pages/client/AtmMapPage'));
 const TravelPlanPage = lazy(() => import('../../pages/client/TravelPlanPage'));
 
 // ── LANGS ─────────────────────────────────────────────────────────────────────
@@ -46,7 +45,6 @@ export default function ClientLayout() {
   const [activeLang, setActiveLang] = useState(getLanguage());
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const [chatOpen, setChatOpen] = useState(false);
-  const [atmOpen, setAtmOpen] = useState(false);
   const [plansOpen, setPlansOpen] = useState(false);
 
   const langRef = useRef(null);
@@ -101,7 +99,7 @@ export default function ClientLayout() {
         </button>
         <button
           className="float-btn float-map-btn"
-          onClick={() => setAtmOpen(true)}
+          onClick={() => navigate('/atm-map')}
         >
           <span className="icon">🗺️</span>
           <span className="float-btn-label">ATM Map</span>
@@ -166,22 +164,7 @@ export default function ClientLayout() {
       {/* ── AI Chat Modal ── */}
       <AIChatModal open={chatOpen} onClose={() => setChatOpen(false)} />
 
-      {/* ── ATM Map Popup ── */}
-      <FloatingPopup
-        open={atmOpen}
-        onClose={() => setAtmOpen(false)}
-        title="ATM Map"
-        icon="🗺️"
-      >
-        <Suspense fallback={
-          <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
-            <div style={{ fontSize: 28 }}>🏧</div>
-            <div style={{ fontSize: 13, marginTop: 8 }}>Đang tải...</div>
-          </div>
-        }>
-          {atmOpen && <AtmMapPage embedded />}
-        </Suspense>
-      </FloatingPopup>
+
 
       {/* ── Plans Popup ── */}
       <FloatingPopup
