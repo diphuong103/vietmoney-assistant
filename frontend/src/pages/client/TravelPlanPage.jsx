@@ -24,6 +24,7 @@ export default function TravelPlanPage({ embedded = false }) {
   // State Cho Kế Hoạch Chi Tiết 
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [scheduleByDay, setScheduleByDay] = useState({});
+  const [savingItinerary, setSavingItinerary] = useState(false);
 
   // Inline Edit Task State
   const [editingTask, setEditingTask] = useState(null); // { day, idx }
@@ -54,7 +55,7 @@ export default function TravelPlanPage({ embedded = false }) {
 
   useEffect(() => { fetchPlans(); }, []);
 
-  // Khi chọn một plan, khởi tạo mock schedule theo số ngày
+  // Khi chọn một plan, load itinerary từ API hoặc khởi tạo mock schedule
   useEffect(() => {
     if (selectedPlan) {
       const start = dayjs(selectedPlan.startDate);
@@ -62,8 +63,22 @@ export default function TravelPlanPage({ embedded = false }) {
       const daysCount = (selectedPlan.startDate && selectedPlan.endDate) ? end.diff(start, 'day') + 1 : 3;
       const dayArr = Array.from({ length: daysCount > 0 ? daysCount : 1 }).map((_, i) => i + 1);
 
+      // Nếu plan đã có itinerary từ DB → load
+      let savedItinerary = null;
+      if (selectedPlan.itinerary) {
+        try {
+          savedItinerary = typeof selectedPlan.itinerary === 'string'
+            ? JSON.parse(selectedPlan.itinerary)
+            : selectedPlan.itinerary;
+        } catch { savedItinerary = null; }
+      }
+
       const initial = {};
-      dayArr.forEach(d => initial[d] = JSON.parse(JSON.stringify(mockScheduleData)));
+      dayArr.forEach(d => {
+        initial[d] = savedItinerary && savedItinerary[d]
+          ? JSON.parse(JSON.stringify(savedItinerary[d]))
+          : JSON.parse(JSON.stringify(mockScheduleData));
+      });
       setScheduleByDay(initial);
       setEditingTask(null);
     }
@@ -72,28 +87,63 @@ export default function TravelPlanPage({ embedded = false }) {
   const handleCreateOrUpdate = async () => {
     if (!form.title.trim() || !form.destination) return;
     try {
+      const payload = {
+        title: form.title,
+        destination: form.destination,
+        startDate: form.startDate || null,
+        endDate: form.endDate || null,
+        budget: form.budget || null,
+        currency: form.currency || 'VND',
+        numberOfPeople: parseInt(form.numberOfPeople) || 1,
+      };
       if (editingId) {
-        setPlans(prev => prev.map(p => p.id === editingId ? { ...p, ...form } : p));
-      } else {
-        const newPlan = {
-          id: Date.now().toString(),
-          title: form.title,
-          destination: form.destination,
-          startDate: form.startDate || null,
-          endDate: form.endDate || null,
-          budget: form.budget || null,
-          currency: form.currency || 'VND',
-          numberOfPeople: form.numberOfPeople || '1'
-        };
         try {
-          await travelPlanApi.createPlan(newPlan);
-        } catch { } // ignore
-        setPlans(prev => [newPlan, ...prev]);
+          const res = await travelPlanApi.updatePlan(editingId, payload);
+          const updated = res.data?.data ?? { id: editingId, ...payload };
+          setPlans(prev => prev.map(p => p.id === editingId ? updated : p));
+        } catch {
+          setPlans(prev => prev.map(p => p.id === editingId ? { ...p, ...payload } : p));
+        }
+      } else {
+        try {
+          const res = await travelPlanApi.createPlan(payload);
+          const created = res.data?.data ?? { id: Date.now().toString(), ...payload };
+          setPlans(prev => [created, ...prev]);
+        } catch {
+          setPlans(prev => [{ id: Date.now().toString(), ...payload }, ...prev]);
+        }
       }
       setForm({ title: '', destination: '', startDate: '', endDate: '', budget: '', currency: 'VND', numberOfPeople: '1' });
       setShowForm(false);
       setEditingId(null);
     } catch { }
+  };
+
+  // Lưu lịch trình chi tiết qua API
+  const handleSaveItinerary = async () => {
+    if (!selectedPlan) return;
+    setSavingItinerary(true);
+    try {
+      const payload = {
+        title: selectedPlan.title,
+        destination: selectedPlan.destination,
+        startDate: selectedPlan.startDate,
+        endDate: selectedPlan.endDate,
+        budget: selectedPlan.budget,
+        currency: selectedPlan.currency || 'VND',
+        numberOfPeople: parseInt(selectedPlan.numberOfPeople) || 1,
+        itinerary: JSON.stringify(scheduleByDay),
+      };
+      const res = await travelPlanApi.updatePlan(selectedPlan.id, payload);
+      const updated = res.data?.data ?? { ...selectedPlan, itinerary: JSON.stringify(scheduleByDay) };
+      setPlans(prev => prev.map(p => p.id === selectedPlan.id ? updated : p));
+      setSelectedPlan(updated);
+      alert('✅ Đã lưu lịch trình thành công!');
+    } catch {
+      alert('❌ Lưu thất bại, vui lòng thử lại.');
+    } finally {
+      setSavingItinerary(false);
+    }
   };
 
   const handleEdit = (plan, e) => {
@@ -195,13 +245,25 @@ export default function TravelPlanPage({ embedded = false }) {
             borderRadius: 16, padding: 16, marginBottom: 24, textAlign: 'center'
           }}>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>Hệ thống sẽ dựa vào thời gian, địa điểm và ngân sách để tự động tạo lịch trình phù hợp nhất.</p>
-            <button style={{
-              background: 'var(--accent)', color: '#000', fontWeight: 700,
-              padding: '10px 20px', borderRadius: 24, fontSize: 14, fontFamily: 'Syne, sans-serif',
-              boxShadow: '0 4px 12px rgba(200,242,61,0.3)'
-            }}>
-              ✨ AI Lên Lịch Tự Động
-            </button>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button style={{
+                background: 'var(--accent)', color: '#000', fontWeight: 700,
+                padding: '10px 20px', borderRadius: 24, fontSize: 14, fontFamily: 'Syne, sans-serif',
+                boxShadow: '0 4px 12px rgba(200,242,61,0.3)'
+              }}>
+                ✨ AI Lên Lịch Tự Động
+              </button>
+              <button
+                onClick={handleSaveItinerary}
+                disabled={savingItinerary}
+                style={{
+                  background: savingItinerary ? 'var(--bg3)' : 'rgba(61,143,242,0.9)', color: '#fff', fontWeight: 700,
+                  padding: '10px 20px', borderRadius: 24, fontSize: 14, fontFamily: 'Syne, sans-serif',
+                  boxShadow: '0 4px 12px rgba(61,143,242,0.3)', border: 'none', cursor: savingItinerary ? 'not-allowed' : 'pointer'
+                }}>
+                {savingItinerary ? '⏳ Đang lưu...' : '💾 Lưu Lịch Trình'}
+              </button>
+            </div>
           </div>
 
           <h4 style={{ fontFamily: 'Syne, sans-serif', marginBottom: 16, color: 'var(--muted)' }}>LỊCH TRÌNH CHI TIẾT</h4>

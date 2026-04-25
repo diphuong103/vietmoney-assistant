@@ -1,9 +1,109 @@
-import { useEffect, useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import Navbar from '../../components/layout/Navbar';
 import Badge from '../../components/common/Badge';
 import authApi, { clearSession } from '../../api/authApi';
 import { t } from '../../utils/i18n';
+import '../../assets/styles/landing.css';
+
+// ── Weather Helpers ──────────────────────────────────────────────────────────
+const WEATHER_CODES = {
+  0: { icon: '☀️', desc: 'Clear sky' },
+  1: { icon: '🌤️', desc: 'Mainly clear' },
+  2: { icon: '⛅', desc: 'Partly cloudy' },
+  3: { icon: '☁️', desc: 'Overcast' },
+  45: { icon: '🌫️', desc: 'Foggy' },
+  48: { icon: '🌫️', desc: 'Fog (rime)' },
+  51: { icon: '🌦️', desc: 'Light drizzle' },
+  53: { icon: '🌦️', desc: 'Drizzle' },
+  55: { icon: '🌧️', desc: 'Heavy drizzle' },
+  61: { icon: '🌧️', desc: 'Light rain' },
+  63: { icon: '🌧️', desc: 'Rain' },
+  65: { icon: '🌧️', desc: 'Heavy rain' },
+  80: { icon: '🌦️', desc: 'Rain showers' },
+  81: { icon: '🌧️', desc: 'Heavy showers' },
+  95: { icon: '⛈️', desc: 'Thunderstorm' },
+};
+
+function WeatherWidget() {
+  const [weather, setWeather] = useState(null);
+  const [cityName, setCityName] = useState('Đang định vị...');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWeather = (lat, lon) => {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`;
+      fetch(url)
+        .then(r => r.json())
+        .then(data => { if (data?.current) setWeather(data.current); })
+        .catch(() => { })
+        .finally(() => setLoading(false));
+
+      // Reverse geocode for city name
+      fetch(`https://geocoding-api.open-meteo.com/v1/search?name=&latitude=${lat}&longitude=${lon}&count=1`)
+        .catch(() => { });
+      // Use a simpler reverse geocode via nominatim
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`)
+        .then(r => r.json())
+        .then(data => {
+          const city = data?.address?.city || data?.address?.town || data?.address?.state || 'Your Location';
+          setCityName(city);
+        })
+        .catch(() => setCityName('Your Location'));
+    };
+
+    // Try browser geolocation first
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+        () => {
+          // Permission denied — fallback to HCMC
+          setCityName('Ho Chi Minh City');
+          fetchWeather(10.8231, 106.6297);
+        },
+        { timeout: 5000 }
+      );
+    } else {
+      setCityName('Ho Chi Minh City');
+      fetchWeather(10.8231, 106.6297);
+    }
+  }, []);
+
+  const code = weather?.weather_code ?? 0;
+  const info = WEATHER_CODES[code] || WEATHER_CODES[0];
+  const temp = weather?.temperature_2m ?? '--';
+  const humidity = weather?.relative_humidity_2m ?? '--';
+  const wind = weather?.wind_speed_10m ?? '--';
+
+  return (
+    <div className="lp-glass lp-weather-card">
+      <h3 className="lp-weather-title">🌤️ Local Weather</h3>
+      <p className="lp-weather-location">{cityName}</p>
+      {loading ? (
+        <div className="lp-weather-loading">📍 Đang lấy vị trí...</div>
+      ) : (
+        <>
+          <div className="lp-weather-main">
+            <span className="lp-weather-icon">{info.icon}</span>
+            <span className="lp-weather-temp">{Math.round(temp)}°C</span>
+          </div>
+          <div className="lp-weather-desc">{info.desc}</div>
+          <div className="lp-weather-details">
+            <div className="lp-weather-detail">
+              <span>💧</span>
+              <span>{humidity}%</span>
+            </div>
+            <div className="lp-weather-detail">
+              <span>🌬️</span>
+              <span>{wind} km/h</span>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -25,118 +125,85 @@ function getGreeting() {
   return 'Good evening';
 }
 
-// ── Ticker ────────────────────────────────────────────────────────────────────
-
-const TICKER_ITEMS = [
-  { label: 'VND/USD', val: '₫25,420', change: '+0.12%', up: true },
-  { label: 'VND/KRW', val: '₫18.9', change: '−0.05%', up: false },
-  { label: 'VND/EUR', val: '₫27,810', change: '+0.23%', up: true },
-  { label: 'VND/JPY', val: '₫165.4', change: '+0.08%', up: true },
-  { label: 'VND/GBP', val: '₫32,150', change: '−0.14%', up: false },
-  { label: 'VND/CNY', val: '₫3,497', change: '+0.03%', up: true },
+// ── Exchange Rate Ticker Data ────────────────────────────────────────────────
+const TICKER_RATES = [
+  { label: 'USD/VND', val: '₫25,420', change: '+0.12%', up: true },
+  { label: 'EUR/VND', val: '₫27,810', change: '+0.23%', up: true },
+  { label: 'JPY/VND', val: '₫165.4', change: '+0.08%', up: true },
+  { label: 'KRW/VND', val: '₫18.9', change: '−0.05%', up: false },
+  { label: 'GBP/VND', val: '₫32,150', change: '−0.14%', up: false },
+  { label: 'CNY/VND', val: '₫3,497', change: '+0.03%', up: true },
+  { label: 'AUD/VND', val: '₫16,320', change: '+0.18%', up: true },
+  { label: 'THB/VND', val: '₫720', change: '−0.07%', up: false },
 ];
-const TICKER_FULL = [...TICKER_ITEMS, ...TICKER_ITEMS];
+const TICKER_DOUBLE = [...TICKER_RATES, ...TICKER_RATES];
 
-// ── Destinations Data ────────────────────────────────────────────────────────
-const DESTINATIONS = [
-  { id: 1, name: 'Hạ Long Bay', location: 'Quảng Ninh', image: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&q=80&w=400', rating: '4.9' },
-  { id: 2, name: 'Hội An', location: 'Quảng Nam', image: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&q=80&w=400', rating: '4.8' },
-  { id: 3, name: 'Sa Pa', location: 'Lào Cai', image: 'https://images.unsplash.com/photo-1550652755-66774e14f8d2?auto=format&fit=crop&q=80&w=400', rating: '4.7' },
-  { id: 4, name: 'Bà Nà Hills', location: 'Đà Nẵng', image: 'https://images.unsplash.com/photo-1582298538104-fe2e74c27f59?auto=format&fit=crop&q=80&w=400', rating: '4.9' },
+// ── Budget Chart Data ────────────────────────────────────────────────────────
+const BUDGET_DATA = [
+  { name: 'Spent', value: 1760000 },
+  { name: 'Remaining', value: 3240000 },
+];
+const CHART_COLORS = ['#f59e0b', '#059669'];
+
+// ── Currency Conversion Rates ────────────────────────────────────────────────
+const FX = {
+  USD: 25420,
+  EUR: 27810,
+  JPY: 165.4,
+  KRW: 18.9,
+  GBP: 32150,
+  AUD: 16320,
+  THB: 720,
+};
+
+// ── Wiki Prices ──────────────────────────────────────────────────────────────
+const WIKI_PRICES = [
+  { emoji: '☕', name: 'Cafe', price: '25–55k' },
+  { emoji: '🍜', name: 'Phở', price: '40–80k' },
+  { emoji: '🚕', name: 'Taxi', price: '10–20k/km' },
+  { emoji: '🥖', name: 'Bánh Mì', price: '15–35k' },
+  { emoji: '🍚', name: 'Cơm', price: '35–65k' },
+  { emoji: '🍺', name: 'Bia', price: '15–40k' },
 ];
 
-// ── Quick Action Buttons ─────────────────────────────────────────────────────
-const QUICK_BTNS = [
-  { icon: '📷', label: 'Quét Tiền AI', path: '/scan', authRequired: true },
-  { icon: '💬', label: 'Hỏi Đáp RAG', path: '/rag', authRequired: false },
-  { icon: '📋', label: 'Tra Giá Wiki', path: '/wiki', authRequired: false },
-  { icon: '🗺️', label: 'Lên Lịch Trình', path: '/plan', authRequired: true },
-];
-
-// ── About / Features / Price / News data ─────────────────────────────────────
-const FEATURES = [
+// ── Blog/News Posts ──────────────────────────────────────────────────────────
+const BLOG_POSTS = [
   {
-    icon: '📷',
-    title: 'Quét Tiền AI',
-    desc: 'Nhận diện mệnh giá tiền Việt tức thì bằng camera. Không lo nhầm tờ, không lo bị thiếu.',
-    btn: 'Thử ngay',
-    path: '/scan',
-    authRequired: true,
-    color: 'feature-card--green',
-    img: 'https://images.unsplash.com/photo-1580048915913-4f8f5cb481c4?auto=format&fit=crop&w=600&q=80',
+    img: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=600&q=80',
+    tag: 'Travel',
+    title: 'Top 5 Hidden Gems in Hội An',
+    excerpt: 'Discover breathtaking spots that most tourists overlook in the ancient town.',
+    author: 'VietMoney', time: '2h ago',
   },
   {
-    icon: '💰',
-    title: 'Quản Lý Ngân Sách',
-    desc: 'Theo dõi chi tiêu hàng ngày, đặt giới hạn và nhận cảnh báo khi vượt ngưỡng.',
-    btn: 'Quản lý',
-    path: '/budget',
-    authRequired: true,
-    color: 'feature-card--gold',
-    img: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    icon: '🗺️',
-    title: 'Kế Hoạch Du Lịch',
-    desc: 'Lập lịch trình thông minh, gợi ý địa điểm và ước tính ngân sách cho chuyến đi của bạn.',
-    btn: 'Lên lịch',
-    path: '/plan',
-    authRequired: true,
-    color: 'feature-card--blue',
     img: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=600&q=80',
+    tag: 'Finance',
+    title: 'USD/VND Rate Update This Week',
+    excerpt: 'The State Bank adjusted the margin, affecting tourist spending power.',
+    author: 'Finance', time: '5h ago',
+  },
+  {
+    img: 'https://images.unsplash.com/photo-1550652755-66774e14f8d2?auto=format&fit=crop&w=600&q=80',
+    tag: 'Culture',
+    title: 'Hội An Lantern Festival — A Must-See',
+    excerpt: 'The monthly lantern festival attracts thousands of international visitors.',
+    author: 'Culture', time: '1d ago',
+  },
+  {
+    img: 'https://images.unsplash.com/photo-1582298538104-fe2e74c27f59?auto=format&fit=crop&w=600&q=80',
+    tag: 'Food',
+    title: 'Hội An Food Map: What & Where to Eat',
+    excerpt: 'From Cao Lầu to Bánh Mì Phượng — the ultimate foodie guide.',
+    author: 'Food', time: '2d ago',
   },
 ];
 
-const PRICE_ITEMS = [
-  { icon: '🥖', name: 'Bánh Mì', low: '15,000', high: '35,000', tip: 'Phổ biến khắp nơi' },
-  { icon: '🍜', name: 'Phở', low: '40,000', high: '80,000', tip: 'Tuỳ quán & thành phố' },
-  { icon: '☕', name: 'Cà Phê', low: '15,000', high: '55,000', tip: 'Cà phê sữa đá' },
-  { icon: '🚕', name: 'Taxi/km', low: '10,000', high: '20,000', tip: 'Grab thường rẻ hơn' },
-  { icon: '🍚', name: 'Cơm tấm', low: '35,000', high: '65,000', tip: 'Đặc sản miền Nam' },
-  { icon: '🏨', name: 'Hostel/đêm', low: '150,000', high: '350,000', tip: 'Tuỳ vị trí' },
-];
-
-const NEWS_ITEMS = [
-  {
-    emoji: '🏖️',
-    tag: 'Du lịch',
-    title: 'Top 5 Địa Điểm Ẩn Bị Bỏ Qua Ở Đà Nẵng',
-    desc: 'Những góc khuất tuyệt đẹp mà phần lớn khách du lịch chưa biết tới.',
-    author: 'Admin',
-    time: '2 giờ trước',
-    likes: 142,
-    path: '/news',
-  },
-  {
-    emoji: '💱',
-    tag: 'Tài chính',
-    title: 'Tỷ Giá USD/VND Tăng Nhẹ Tuần Này',
-    desc: 'Ngân hàng Nhà nước điều chỉnh biên độ, ảnh hưởng tới chi tiêu du khách.',
-    author: 'Finance',
-    time: '5 giờ trước',
-    likes: 87,
-    path: '/news',
-  },
-  {
-    emoji: '🎌',
-    tag: 'Văn hoá',
-    title: 'Hội An Mùa Đèn Lồng — Kinh Nghiệm Không Thể Bỏ Lỡ',
-    desc: 'Lễ hội đèn lồng hàng tháng thu hút hàng nghìn du khách quốc tế.',
-    author: 'Culture',
-    time: '1 ngày trước',
-    likes: 213,
-    path: '/news',
-  },
-  {
-    emoji: '🍜',
-    tag: 'Ẩm thực',
-    title: 'Bản Đồ Ẩm Thực Hội An: Ăn Gì, Ở Đâu?',
-    desc: 'Từ Cao Lầu đến Bánh Mì Phượng — cẩm nang đầy đủ cho tín đồ ẩm thực.',
-    author: 'Food',
-    time: '2 ngày trước',
-    likes: 305,
-    path: '/news',
-  },
+// ── Tips ─────────────────────────────────────────────────────────────────────
+const TIPS = [
+  { icon: '💬', title: 'How to Bargain', desc: 'Start at 50% of the quoted price, be friendly, walk away if too high — the vendor will often call you back.' },
+  { icon: '💵', title: 'Spot 20k vs 500k Notes', desc: 'Always check the color and size. The 500k note is larger with a blue tint. Under UV light, security features glow.' },
+  { icon: '🏧', title: 'ATM Tips for Tourists', desc: 'Use ATMs inside banks to avoid skimmers. Vietcombank & BIDV ATMs accept Visa/Mastercard with low fees.' },
+  { icon: '📱', title: 'Pay with Grab/MoMo', desc: 'Download Grab for rides & food delivery. MoMo works at many shops if you have a local phone number.' },
 ];
 
 // ── SettingsMenu ──────────────────────────────────────────────────────────────
@@ -233,7 +300,6 @@ function ContactForm() {
     e.preventDefault();
     if (!form.name || !form.email || !form.message) return;
     setSending(true);
-    // Mock submit — replace with real API call as needed
     await new Promise(r => setTimeout(r, 900));
     setSending(false);
     setSent(true);
@@ -257,40 +323,16 @@ function ContactForm() {
       <div className="contact-form-row">
         <div className="contact-field">
           <label className="contact-label">Họ và tên</label>
-          <input
-            className="contact-input"
-            type="text"
-            name="name"
-            placeholder="Nguyễn Văn A"
-            value={form.name}
-            onChange={handleChange}
-            required
-          />
+          <input className="contact-input" type="text" name="name" placeholder="Nguyễn Văn A" value={form.name} onChange={handleChange} required />
         </div>
         <div className="contact-field">
           <label className="contact-label">Email</label>
-          <input
-            className="contact-input"
-            type="email"
-            name="email"
-            placeholder="you@example.com"
-            value={form.email}
-            onChange={handleChange}
-            required
-          />
+          <input className="contact-input" type="email" name="email" placeholder="you@example.com" value={form.email} onChange={handleChange} required />
         </div>
       </div>
       <div className="contact-field">
         <label className="contact-label">Nội dung</label>
-        <textarea
-          className="contact-input contact-textarea"
-          name="message"
-          placeholder="Mô tả vấn đề hoặc câu hỏi của bạn..."
-          value={form.message}
-          onChange={handleChange}
-          required
-          rows={4}
-        />
+        <textarea className="contact-input contact-textarea" name="message" placeholder="Mô tả vấn đề hoặc câu hỏi của bạn..." value={form.message} onChange={handleChange} required rows={4} />
       </div>
       <button type="submit" className="contact-submit-btn" disabled={sending}>
         {sending ? '⏳ Đang gửi...' : '✉️ Gửi yêu cầu'}
@@ -299,102 +341,32 @@ function ContactForm() {
   );
 }
 
-// ── Feature Slider Data ─────────────────────────────────────────────────────────
-
-const INTRO_SLIDES = [
-  {
-    image: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=800&q=80',
-    get tag() { return t('slide_1_tag'); },
-    get title() { return t('slide_1_title'); },
-    get description() { return t('slide_1_desc'); },
-    get actionText() { return t('slide_1_btn'); },
-    actionPath: '/scan'
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=800&q=80',
-    get tag() { return t('slide_2_tag'); },
-    get title() { return t('slide_2_title'); },
-    get description() { return t('slide_2_desc'); },
-    get actionText() { return t('slide_2_btn'); },
-    actionPath: '/budget'
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1550652755-66774e14f8d2?auto=format&fit=crop&w=800&q=80',
-    get tag() { return t('slide_3_tag'); },
-    get title() { return t('slide_3_title'); },
-    get description() { return t('slide_3_desc'); },
-    get actionText() { return t('slide_3_btn'); },
-    actionPath: '/plan'
-  }
-];
-
 // ── DashboardPage ─────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const [clock, setClock] = useState('--:--');
-  const [dateStr, setDate] = useState('');
-  const [currentIntroSlide, setCurrentIntroSlide] = useState(0);
-
-  const touchStartX = useRef(null);
-  const touchEndX = useRef(null);
-  const minSwipeDistance = 50;
-
-  const handleTouchStart = (e) => {
-    touchEndX.current = null;
-    touchStartX.current = e.targetTouches[0].clientX;
-  };
-
-  const handleTouchMove = (e) => {
-    touchEndX.current = e.targetTouches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStartX.current || !touchEndX.current) return;
-    const distance = touchStartX.current - touchEndX.current;
-
-    if (distance > minSwipeDistance) {
-      setCurrentIntroSlide(prev => (prev + 1) % INTRO_SLIDES.length);
-    } else if (distance < -minSwipeDistance) {
-      setCurrentIntroSlide(prev => (prev - 1 + INTRO_SLIDES.length) % INTRO_SLIDES.length);
-    }
-  };
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentIntroSlide(prev => (prev + 1) % INTRO_SLIDES.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, []);
+  const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState('USD');
 
   const isLoggedIn = !!localStorage.getItem('accessToken');
   const user = isLoggedIn ? getStoredUser() : null;
   const displayName = user?.fullName ?? user?.username ?? 'Traveler';
   const avatarSrc = resolveAvatar(user);
 
-  useEffect(() => {
-    const tick = () => {
-      const now = new Date();
-      setClock(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-      setDate(now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }));
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
+  // Currency conversion
+  const converted = amount && !isNaN(amount)
+    ? (parseFloat(amount) * (FX[currency] || 25420)).toLocaleString('vi-VN')
+    : '0';
 
   return (
-    <div className="page active" id="page-home">
+    <div className="landing-page">
+      {/* ═══════════ ORIGINAL NAVBAR ═══════════ */}
       <Navbar
         title={<>Viet<span style={{ color: 'var(--accent)' }}>Money</span></>}
         actions={
           isLoggedIn ? (
             <>
-              <div
-                className="user-box"
-                onClick={() => navigate('/profile')}
-                title="Xem hồ sơ"
-              >
+              <div className="user-box" onClick={() => navigate('/profile')} title="Xem hồ sơ">
                 <img
                   src={avatarSrc}
                   className="avatar"
@@ -409,7 +381,6 @@ export default function DashboardPage() {
                   <div className="name">{displayName}</div>
                 </div>
               </div>
-
               <button className="icon-btn" title="Thông báo">🔔</button>
               <SettingsMenu />
             </>
@@ -422,342 +393,287 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Ticker */}
-      <div className="ticker-wrap">
-        <div className="ticker-inner">
-          {TICKER_FULL.map((item, i) => (
-            <div className="ticker-item" key={i}>
-              <span className="ticker-label">{item.label}</span>
-              <span className="ticker-val">{item.val}</span>
-              <span className={`ticker-change ${item.up ? 'up' : 'down'}`}>{item.change}</span>
+      {/* ── Exchange Rate Ticker (below header) ── */}
+      <div className="lp-ticker">
+        <div className="lp-ticker-inner">
+          {TICKER_DOUBLE.map((item, i) => (
+            <div className="lp-ticker-item" key={i}>
+              <span className="lp-ticker-label">{item.label}</span>
+              <span className="lp-ticker-val">{item.val}</span>
+              <span className={`lp-ticker-change ${item.up ? 'up' : 'down'}`}>{item.change}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Greeting Card */}
-      <div className="greeting-section">
-        <div className="greeting-card">
-          <div className="greeting-row">
-            <div>
-              <div className="clock">{clock}</div>
-              <div className="date-str">{dateStr}</div>
+      {/* ═══════════ TIER 1: HERO ═══════════ */}
+      <section className="lp-hero" style={{ minHeight: '80vh' }}>
+        <div className="lp-hero-content">
+          <div className="lp-hero-badge">
+            <span className="dot" />
+            Smart Travel Financial Assistant
+          </div>
+
+          <h1 className="lp-hero-title">
+            Your Vietnam Trip,{' '}
+            <span className="highlight">Financially Mastered.</span>
+          </h1>
+
+          <p className="lp-hero-desc">
+            Scan money with AI, track budgets in real-time, compare prices—everything
+            a tourist needs to manage finances in Vietnam, all in one beautiful app.
+          </p>
+
+          <button className="lp-cta-btn" onClick={() => navigate(isLoggedIn ? '/scan' : '/login')}>
+            <span className="lp-cta-icon">📷</span>
+            Scan Money Now
+          </button>
+        </div>
+      </section>
+
+      {/* ═══════════ TIER 2: FINANCIAL DASHBOARD ═══════════ */}
+      <section className="lp-dashboard lp-section">
+        <h2 className="lp-section-title">Financial Dashboard</h2>
+        <p className="lp-section-subtitle">
+          Track your budget, convert currencies instantly, and take control of your travel spending.
+        </p>
+
+        <div className="lp-dashboard-grid">
+          {/* Budget Card */}
+          <div className="lp-glass lp-budget-card">
+            <div className="lp-budget-header">
+              <h3 className="lp-budget-title">📊 Travel Budget</h3>
+              <span className="lp-budget-badge">This Week</span>
             </div>
-            <div className="weather-pill">
-              <span className="weather-icon">⛅</span>
-              <div className="weather-info">
-                <div className="temp">29°C</div>
-                <div className="city">{user?.travelDestination ?? 'Hội An, VN'}</div>
+            <div className="lp-chart-wrap" style={{ position: 'relative' }}>
+              <ResponsiveContainer width={200} height={200}>
+                <PieChart>
+                  <Pie
+                    data={BUDGET_DATA}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={65}
+                    outerRadius={90}
+                    paddingAngle={4}
+                    dataKey="value"
+                    stroke="none"
+                    startAngle={90}
+                    endAngle={-270}
+                  >
+                    {BUDGET_DATA.map((_, idx) => (
+                      <Cell key={idx} fill={CHART_COLORS[idx]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ position: 'absolute', textAlign: 'center' }}>
+                <div style={{ fontSize: 12, color: 'var(--lp-muted)', fontWeight: 500 }}>Remaining</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 800, color: 'var(--lp-emerald)' }}>65%</div>
+              </div>
+            </div>
+            <div className="lp-budget-info">
+              <div className="lp-budget-stat">
+                <div className="lp-budget-stat-label">Budget Left</div>
+                <div className="lp-budget-stat-val emerald">₫3,240,000</div>
+              </div>
+              <div className="lp-budget-stat">
+                <div className="lp-budget-stat-label">Today's Spent</div>
+                <div className="lp-budget-stat-val amber">₫480,000</div>
               </div>
             </div>
           </div>
-          <div className="greeting-text">
-            <div className="label">{isLoggedIn ? t('greeting_label') : 'Welcome to VietMoney'}</div>
-            <div className="hello">
-              {t('greeting_hello').replace('Du khách', isLoggedIn ? displayName : 'Guest').replace('Good evening, ', '')}
+
+          {/* Weather Widget */}
+          <WeatherWidget />
+
+          {/* Currency Converter */}
+          <div className="lp-glass lp-converter-card">
+            <h3 className="lp-converter-title">💱 Quick Currency Converter</h3>
+            <p className="lp-converter-sub">See how much your money is worth in Vietnamese Đồng</p>
+
+            <div className="lp-converter-row">
+              <div className="lp-converter-input-wrap">
+                <span className="lp-converter-currency">$</span>
+                <input
+                  className="lp-converter-input"
+                  type="number"
+                  placeholder="100"
+                  value={amount}
+                  onChange={e => setAmount(e.target.value)}
+                />
+              </div>
+              <select
+                className="lp-converter-select"
+                value={currency}
+                onChange={e => setCurrency(e.target.value)}
+              >
+                {Object.keys(FX).map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="lp-converter-result">
+              <div className="lp-converter-result-label">Vietnamese Đồng (VND)</div>
+              <div className="lp-converter-result-val">₫{converted}</div>
+              <div className="lp-converter-result-sub">
+                1 {currency} ≈ ₫{(FX[currency] || 25420).toLocaleString('vi-VN')}
+              </div>
             </div>
           </div>
-          <div className="spacer" />
-          {isLoggedIn && (
-            <div className="greeting-meta">
-              <div className="meta-item"><strong>{t('trip_day')}</strong><span>{t('of_trip')}</span></div>
-              <div className="meta-item"><strong>₫1,240,000</strong><span>{t('remaining')}</span></div>
-            </div>
-          )}
         </div>
-      </div>
+      </section>
 
-      {/* Hero Search */}
-      <div className="hero-search-container compact">
-        <div className="hero-search-box">
-          <span className="hero-search-icon">🔍</span>
-          <input type="text" className="hero-search-input" placeholder={t('search_placeholder')} />
-        </div>
-      </div>
+      {/* ═══════════ TIER 3: UTILITY GRID ═══════════ */}
+      <section className="lp-utility lp-section">
+        <h2 className="lp-section-title">Traveler's Toolkit</h2>
+        <p className="lp-section-subtitle">
+          Essential tools designed for tourists navigating Vietnam with confidence.
+        </p>
 
-      {/* ── Quick Actions (bento grid gốc) ── */}
-      <div className="section-title compact">{t('quick_actions')}</div>
-      <div className="quick-actions-row">
-        <div className="bento-card scan-card" onClick={() => navigate(isLoggedIn ? '/scan' : '/login')}>
-          <div className="card-icon">📷</div>
-          <div className="card-label">{t('scan_money')}</div>
-          <div className="card-sub">{t('scan_sub')}</div>
-          <Badge>AI</Badge>
-        </div>
-        <div className="bento-card exchange-card" onClick={() => navigate('/exchange')}>
-          <div className="card-icon">💱</div>
-          <div className="card-label">{t('exchange_rate')}</div>
-          <div className="card-value">25,420</div>
-        </div>
-        <div className="bento-card budget-card" onClick={() => navigate(isLoggedIn ? '/budget' : '/login')}>
-          <div className="card-icon">💰</div>
-          <div className="card-label">{t('budget')}</div>
-          <div className="card-sub">{isLoggedIn ? '65% used today' : 'Manage your spending'}</div>
-        </div>
-        <div className="bento-card wiki-card" onClick={() => navigate('/wiki')}>
-          <div className="card-icon">📋</div>
-          <div className="card-label">{t('price_wiki')}</div>
-          <div className="card-sub">{t('wiki_sub')}</div>
-        </div>
-        <div className="bento-card map-card" onClick={() => navigate('/wiki/guide')}>
-          <div className="card-icon">🎓</div>
-          <div className="card-label">{t('currency_guide')}</div>
-          <div className="card-sub">{t('guide_sub')}</div>
-        </div>
-      </div>
-
-      {/* ── Awesome Tourist Introduction Slider ── */}
-      <div style={{ padding: '0 20px', marginBottom: 24, marginTop: 16 }}>
-        <div
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          style={{
-            position: 'relative',
-            borderRadius: 24,
-            overflow: 'hidden',
-            background: `url(${INTRO_SLIDES[currentIntroSlide].image}) center/cover no-repeat`,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'flex-end',
-            minHeight: 320,
-            boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            transition: 'background 0.5s ease-in-out',
-            touchAction: 'pan-y'
-          }}
-        >
-          {/* Dark Overlay */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'linear-gradient(180deg, rgba(10,12,15,0) 0%, rgba(10,12,15,0.9) 100%)'
-          }} />
-
-          {/* Content overlay */}
-          <div style={{ position: 'relative', zIndex: 2, padding: 24 }}>
-            <div style={{
-              display: 'inline-block', background: 'var(--accent)', color: '#000',
-              padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 800,
-              textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14
-            }}>
-              {INTRO_SLIDES[currentIntroSlide].tag}
-            </div>
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: 24, fontWeight: 800, lineHeight: 1.3, marginBottom: 10, color: '#fff' }}>
-              {INTRO_SLIDES[currentIntroSlide].title}
-            </h2>
-            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', marginBottom: 20, maxWidth: '95%', lineHeight: 1.5, minHeight: 42 }}>
-              {INTRO_SLIDES[currentIntroSlide].description}
+        <div className="lp-utility-grid">
+          {/* ATM Map */}
+          <div className="lp-glass lp-util-card" onClick={() => navigate('/atm-map')}>
+            <div className="lp-util-icon">📍</div>
+            <h3 className="lp-util-card-title">ATM Finder</h3>
+            <p className="lp-util-card-desc">
+              Locate international-card friendly ATMs (Visa/Mastercard) near you instantly.
             </p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={() => navigate(INTRO_SLIDES[currentIntroSlide].actionPath)} style={{
-                background: 'var(--accent)',
-                border: 'none',
-                color: '#000',
-                padding: '10px 20px',
-                borderRadius: 24,
-                fontSize: 13,
-                fontWeight: 700,
-                fontFamily: 'Syne, sans-serif',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(200, 242, 61, 0.3)',
-                transition: 'transform 0.2s'
-              }}>
-                {INTRO_SLIDES[currentIntroSlide].actionText}
-              </button>
-            </div>
-            {/* Dots */}
-            <div style={{ display: 'flex', gap: 6, position: 'absolute', bottom: 24, right: 24 }}>
-              {INTRO_SLIDES.map((_, i) => (
-                <div key={i} onClick={() => setCurrentIntroSlide(i)} style={{
-                  width: 8, height: 8, borderRadius: '50%', cursor: 'pointer',
-                  background: currentIntroSlide === i ? 'var(--accent)' : 'rgba(255,255,255,0.3)',
-                  transition: 'background 0.3s'
-                }} />
+            <div className="lp-util-highlight">🟢 ATM nearest you: ~200m</div>
+          </div>
+
+          {/* Travel Planner */}
+          <div className="lp-glass lp-util-card" onClick={() => navigate('/plans')}>
+            <div className="lp-util-icon amber-bg">📅</div>
+            <h3 className="lp-util-card-title">Travel Planner</h3>
+            <p className="lp-util-card-desc">
+              Smart itineraries, budget estimates, and local recommendations for your trip.
+            </p>
+            <div className="lp-util-highlight amber">🕖 Next: Dinner at Hội An — 19:00</div>
+          </div>
+
+          {/* Wiki Price */}
+          <div className="lp-glass lp-util-card" onClick={() => navigate('/wiki')}>
+            <div className="lp-util-icon blue-bg">📋</div>
+            <h3 className="lp-util-card-title">Vietnam Price Wiki</h3>
+            <p className="lp-util-card-desc">
+              Know what things cost before you buy. Crowdsourced average prices.
+            </p>
+            <div className="lp-wiki-price-row">
+              {WIKI_PRICES.map(w => (
+                <div className="lp-wiki-price-item" key={w.name}>
+                  <span className="emoji">{w.emoji}</span>
+                  <span className="price">{w.price}</span>
+                  <span className="name">{w.name}</span>
+                </div>
               ))}
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="divider compact" />
+      {/* ═══════════ TIER 4: COMMUNITY & NEWS ═══════════ */}
+      <section className="lp-community lp-section">
+        <h2 className="lp-section-title">Community & News</h2>
+        <p className="lp-section-subtitle">
+          Stories, tips, and insights from fellow travelers exploring Vietnam.
+        </p>
 
-
-
-      {/* ── Section: Về VietMoney ── */}
-      <div className="section-title compact">{t('about_title')}</div>
-      <div className="about-section">
-        <div className="about-grid">
-          {/* Cột trái: Tầm nhìn */}
-          <div className="about-vision">
-            <div className="about-vision-tag">{t('about_vision')}</div>
-            <h2 className="about-vision-title">{t('about_vision_title')}</h2>
-            <p className="about-vision-desc">
-              {t('about_vision_desc')}
-            </p>
-            <div className="about-stat-row">
-              <div className="about-stat"><span className="about-stat-num">50K+</span><span className="about-stat-label">Người dùng</span></div>
-              <div className="about-stat"><span className="about-stat-num">12</span><span className="about-stat-label">Loại tiền tệ</span></div>
-              <div className="about-stat"><span className="about-stat-num">4.9★</span><span className="about-stat-label">Đánh giá</span></div>
-            </div>
-          </div>
-
-          {/* Cột phải: Tiện ích */}
-          <div className="about-features">
-            <div className="about-vision-tag">Tiện ích</div>
-            {[
-              { icon: '🤖', title: 'RAG AI Hỏi Đáp', desc: 'Trả lời mọi câu hỏi về tài chính & du lịch VN' },
-              { icon: '📷', title: 'Nhận diện mệnh giá', desc: 'AI nhận dạng tiền Việt chính xác tức thì' },
-              { icon: '💱', title: 'Chuyển đổi tỉ giá', desc: 'Cập nhật tỉ giá thực tế theo thời gian thực' },
-              { icon: '📊', title: 'Quản lý ngân sách', desc: 'Theo dõi và kiểm soát chi tiêu thông minh' },
-            ].map((f) => (
-              <div key={f.title} className="about-feature-item">
-                <div className="about-feature-icon">{f.icon}</div>
-                <div>
-                  <div className="about-feature-title">{f.title}</div>
-                  <div className="about-feature-desc">{f.desc}</div>
+        <div className="lp-community-layout">
+          {/* Masonry Blog */}
+          <div className="lp-masonry">
+            {BLOG_POSTS.map((post, i) => (
+              <div className="lp-masonry-card" key={i} onClick={() => navigate('/news')}>
+                <img
+                  src={post.img}
+                  alt={post.title}
+                  className="lp-masonry-img"
+                  loading="lazy"
+                  style={{ borderRadius: '20px 20px 0 0' }}
+                />
+                <div className="lp-masonry-body">
+                  <span className="lp-masonry-tag">{post.tag}</span>
+                  <h4 className="lp-masonry-title">{post.title}</h4>
+                  <p className="lp-masonry-excerpt">{post.excerpt}</p>
+                </div>
+                <div className="lp-masonry-footer">
+                  <span>{post.author} · {post.time}</span>
+                  <span style={{ color: 'var(--lp-emerald)', cursor: 'pointer' }}>Read more →</span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Thông tin liên hệ */}
-        <div className="about-contact-row">
-          <div className="about-contact-item">
-            <span className="about-contact-icon">✉️</span>
-            <div>
-              <div className="about-contact-label">Email</div>
-              <div className="about-contact-val">hello@vietmoney.app</div>
-            </div>
-          </div>
-          <div className="about-contact-item">
-            <span className="about-contact-icon">📍</span>
-            <div>
-              <div className="about-contact-label">Địa chỉ</div>
-              <div className="about-contact-val">36 Bạch Đằng, Đà Nẵng</div>
-            </div>
-          </div>
-          <div className="about-contact-item">
-            <span className="about-contact-icon">📞</span>
-            <div>
-              <div className="about-contact-label">Điện thoại</div>
-              <div className="about-contact-val">+84 236 123 4567</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="divider compact" />
-
-      {/* ── Section: Tính Năng Nổi Bật ── */}
-      <div className="section-title compact">Tính Năng Nổi Bật</div>
-      <div className="features-grid">
-        {FEATURES.map((f) => (
-          <div key={f.title} className={`feature-card ${f.color}`}>
-            <div className="feature-card-img-wrap">
-              <img src={f.img} alt={f.title} className="feature-card-img" loading="lazy" />
-              <div className="feature-card-img-overlay" />
-              <div className="feature-card-badge">{f.icon} {f.title}</div>
-            </div>
-            <div className="feature-card-body">
-              <p className="feature-card-desc">{f.desc}</p>
-              <button
-                className="feature-card-btn"
-                onClick={() => navigate(f.authRequired && !isLoggedIn ? '/login' : f.path)}
-              >
-                {f.btn} →
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="divider compact" />
-
-      {/* ── Section: Wiki Giá Tham Khảo ── */}
-      <div className="section-title compact">Wiki Giá Tham Khảo</div>
-      <div className="price-section">
-        <div className="price-ref-tag">📌 Thông tin tham khảo — Giá có thể thay đổi theo địa điểm</div>
-        <div className="price-grid">
-          {PRICE_ITEMS.map((p) => (
-            <div key={p.name} className="price-card">
-              <div className="price-card-icon">{p.icon}</div>
-              <div className="price-card-name">{p.name}</div>
-              <div className="price-card-range">₫{p.low} – ₫{p.high}</div>
-              <div className="price-card-tip">{p.tip}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center' }}>
-          <button
-            onClick={() => navigate('/wiki')}
-            style={{
-              padding: '8px 24px', background: 'var(--bg3)', color: 'var(--text)',
-              border: '1px solid var(--border)', borderRadius: 20, cursor: 'pointer',
-              fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 13
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.borderColor = 'var(--accent)';
-              e.currentTarget.style.color = 'var(--accent)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border)';
-              e.currentTarget.style.color = 'var(--text)';
-            }}
-          >
-            Xem thêm Wiki →
-          </button>
-        </div>
-      </div>
-
-      <div className="divider compact" />
-
-      {/* ── Section: Tin Tức Nổi Bật ── */}
-      <div className="section-title compact">Tin Tức Nổi Bật</div>
-      <div className="news-grid">
-        {NEWS_ITEMS.map((n, i) => (
-          <div key={i} className="news-card-item news-card-new" onClick={() => navigate(n.path)}>
-            <div className="news-thumb">{n.emoji}</div>
-            <div className="news-body">
-              <span className="news-tag">{n.tag}</span>
-              <div className="news-title">{n.title}</div>
-              <div className="news-desc">{n.desc}</div>
-              <div className="news-footer">
-                <div className="news-author">
-                  <div className="news-author-dot">{n.author[0]}</div>
-                  <span>{n.author} · {n.time}</span>
-                </div>
-                <div className="news-footer-right">
-                  <span className="news-like">❤️ {n.likes}</span>
-                  <button className="news-more-btn" onClick={(e) => { e.stopPropagation(); navigate(n.path); }}>Xem thêm</button>
-                </div>
+          {/* Wiki Essentials Sidebar */}
+          <div className="lp-tips-sidebar">
+            <h3 className="lp-tips-sidebar-title">💡 Wiki Essentials</h3>
+            {TIPS.map((tip, i) => (
+              <div className="lp-glass lp-tip-card" key={i}>
+                <div className="lp-tip-card-icon">{tip.icon}</div>
+                <h4 className="lp-tip-card-title">{tip.title}</h4>
+                <p className="lp-tip-card-desc">{tip.desc}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════ TIER 5: FOOTER ═══════════ */}
+      <footer className="lp-footer">
+        <div className="lp-footer-inner">
+          <div className="lp-footer-grid">
+            <div className="lp-footer-brand">
+              <h3>Viet<span>Money</span></h3>
+              <p>
+                The smart financial companion for tourists in Vietnam.
+                Scan, track, convert, and travel with confidence.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="lp-footer-col-title">Features</h4>
+              <ul className="lp-footer-links">
+                <li><a href="/scan">AI Money Scanner</a></li>
+                <li><a href="/budget">Budget Tracker</a></li>
+                <li><a href="/exchange">Exchange Rates</a></li>
+                <li><a href="/wiki">Price Wiki</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="lp-footer-col-title">Explore</h4>
+              <ul className="lp-footer-links">
+                <li><a href="/atm-map">ATM Finder</a></li>
+                <li><a href="/plans">Travel Planner</a></li>
+                <li><a href="/spots">Tourist Spots</a></li>
+                <li><a href="/news">Travel News</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="lp-footer-col-title">Company</h4>
+              <ul className="lp-footer-links">
+                <li><a href="#">About Us</a></li>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Terms of Service</a></li>
+                <li><a href="#">Contact</a></li>
+              </ul>
             </div>
           </div>
-        ))}
-      </div>
 
-      <div className="divider compact" />
-
-      {/* ── Section: Liên Hệ / Hỏi Đáp ── */}
-      <div className="section-title compact">Liên Hệ / Hỏi Đáp</div>
-      <div className="contact-section">
-        <div className="contact-card">
-          <div className="contact-card-header">
-            <div className="contact-card-title">Gửi yêu cầu hỗ trợ</div>
-            <div className="contact-card-sub">Chúng tôi phản hồi trong vòng 24 giờ</div>
+          <div className="lp-footer-bottom">
+            <span>© 2026 VietMoney. All rights reserved.</span>
+            <div className="lp-footer-social">
+              <a href="#" title="Twitter">𝕏</a>
+              <a href="#" title="Facebook">f</a>
+              <a href="#" title="Instagram">📷</a>
+              <a href="#" title="GitHub">⌨</a>
+            </div>
           </div>
-          <ContactForm />
         </div>
-      </div>
+      </footer>
 
       <div style={{ height: 24 }} />
-
-      {/* Language + Theme Switcher (fixed bottom-left) */}
-      {/* Đã chuyển sang ClientLayout — luôn hiển thị ở mọi tab */}
     </div>
   );
 }

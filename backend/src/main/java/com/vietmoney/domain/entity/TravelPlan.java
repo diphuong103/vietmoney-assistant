@@ -10,10 +10,14 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "travel_plans")
-@Data @Builder @NoArgsConstructor @AllArgsConstructor
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 public class TravelPlan {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -25,6 +29,8 @@ public class TravelPlan {
     private LocalDate startDate;
     private LocalDate endDate;
     private String budget;
+    private String currency;
+    private Integer numberOfPeople;
 
     @Column(columnDefinition = "JSON")
     private String itinerary;

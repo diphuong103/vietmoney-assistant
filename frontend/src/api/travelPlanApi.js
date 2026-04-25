@@ -7,6 +7,9 @@ const travelPlanApi = {
   createPlan: (data) =>
     axiosClient.post('/travel-plans', data),
 
+  updatePlan: (id, data) =>
+    axiosClient.put(`/travel-plans/${id}`, data),
+
   deletePlan: (id) =>
     axiosClient.delete(`/travel-plans/${id}`),
 };

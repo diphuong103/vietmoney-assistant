@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { t } from '../../utils/i18n';
 
-export default function BottomNav() {
+export default function BottomNav({ onOpenSearch }) {
   const NAV_ITEMS = [
     { to: '/', icon: '🏠', label: t('nav_home') },
     { to: '/news', icon: '📰', label: t('nav_news') },
@@ -23,6 +23,15 @@ export default function BottomNav() {
           <span className="nav-label">{label}</span>
         </NavLink>
       ))}
+      {/* Search button — mobile only */}
+      <button
+        className="nav-item nav-search-btn"
+        onClick={() => onOpenSearch?.()}
+        aria-label="Search"
+      >
+        <span className="nav-icon">🔍</span>
+        <span className="nav-label">Search</span>
+      </button>
     </nav>
   );
 }

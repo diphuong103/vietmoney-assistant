@@ -2,6 +2,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import BottomNav from './BottomNav';
 import AIChatModal from './AIChatModal';
+import VerticalDock from './VerticalDock';
 import FloatingPopup from '../common/FloatingPopup';
 import { useAuthStore } from '../../store/authStore';
 import { getLanguage, setLanguage } from '../../utils/i18n';
@@ -35,6 +36,82 @@ function ThemeToggle({ dark, onToggle }) {
   );
 }
 
+// ── SearchOverlay ─────────────────────────────────────────────────────────────
+
+function SearchOverlay({ open, onClose }) {
+  const inputRef = useRef(null);
+  const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      const t = setTimeout(() => inputRef.current?.focus(), 200);
+      return () => clearTimeout(t);
+    }
+    setQuery('');
+  }, [open]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open, onClose]);
+
+  const SEARCH_ITEMS = [
+    { icon: '📷', label: 'AI Scanner', path: '/scan' },
+    { icon: '💱', label: 'Exchange Rates', path: '/exchange' },
+    { icon: '💰', label: 'Budget', path: '/budget' },
+    { icon: '📋', label: 'Price Wiki', path: '/wiki' },
+    { icon: '🗺️', label: 'ATM Map', path: '/atm-map' },
+    { icon: '📅', label: 'Travel Plans', path: '/plans' },
+    { icon: '📰', label: 'News', path: '/news' },
+    { icon: '🎓', label: 'Currency Guide', path: '/wiki/guide' },
+    { icon: '🏝️', label: 'Tourist Spots', path: '/spots' },
+    { icon: '👤', label: 'Profile', path: '/profile' },
+  ];
+
+  const filtered = query.trim()
+    ? SEARCH_ITEMS.filter(i => i.label.toLowerCase().includes(query.toLowerCase()))
+    : SEARCH_ITEMS;
+
+  return (
+    <div className={`search-overlay ${open ? 'open' : ''}`} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="search-modal">
+        <div className="search-input-wrap">
+          <span className="search-input-icon">🔍</span>
+          <input
+            ref={inputRef}
+            className="search-input"
+            type="text"
+            placeholder="Search features, pages..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <button className="search-close-btn" onClick={onClose}>✕</button>
+        </div>
+        <div className="search-results">
+          {filtered.map((item) => (
+            <button
+              key={item.path}
+              className="search-result-item"
+              onClick={() => { navigate(item.path); onClose(); }}
+            >
+              <span className="search-result-icon">{item.icon}</span>
+              <span className="search-result-label">{item.label}</span>
+              <span className="search-result-arrow">→</span>
+            </button>
+          ))}
+          {filtered.length === 0 && (
+            <div className="search-no-results">No results found for "{query}"</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── ClientLayout ──────────────────────────────────────────────────────────────
 
 export default function ClientLayout() {
@@ -46,6 +123,7 @@ export default function ClientLayout() {
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const [chatOpen, setChatOpen] = useState(false);
   const [plansOpen, setPlansOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const langRef = useRef(null);
   const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
@@ -66,6 +144,18 @@ export default function ClientLayout() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [langOpen]);
+
+  // Ctrl+K / Cmd+K to open search
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(s => !s);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   return (
     <div className="app">
@@ -91,25 +181,37 @@ export default function ClientLayout() {
         </button>
       )}
 
-      {/* ── Float Cluster ── */}
-      <div className="float-cluster" id="float-cluster">
-        <button className="float-btn" onClick={() => setPlansOpen(true)}>
-          <span className="icon">🧭</span>
-          <span className="float-btn-label">Plans</span>
-        </button>
+      {/* ── Vertical Dock (right edge — desktop only) ── */}
+      <VerticalDock
+        onOpenPlans={() => setPlansOpen(true)}
+        onOpenSearch={() => setSearchOpen(true)}
+      />
+
+      {/* ── Floating Action Buttons (bottom-right — visible on all screens) ── */}
+      <div className="floating-fabs">
         <button
-          className="float-btn float-map-btn"
-          onClick={() => navigate('/atm-map')}
-        >
-          <span className="icon">🗺️</span>
-          <span className="float-btn-label">ATM Map</span>
-        </button>
-        <button
-          className="float-btn float-chat-btn"
+          className="fab-btn fab-chat"
           onClick={() => setChatOpen(true)}
+          title="AI Chat"
+          aria-label="Open AI Chat"
         >
-          <span className="icon">🤖</span>
-          <span className="float-btn-label">AI Chat</span>
+          🤖
+        </button>
+        <button
+          className="fab-btn fab-atm"
+          onClick={() => navigate('/atm-map')}
+          title="ATM Map"
+          aria-label="Open ATM Map"
+        >
+          🗺️
+        </button>
+        <button
+          className="fab-btn fab-plans"
+          onClick={() => setPlansOpen(true)}
+          title="Travel Plans"
+          aria-label="Open Travel Plans"
+        >
+          🧭
         </button>
       </div>
 
@@ -151,20 +253,11 @@ export default function ClientLayout() {
         </div>
       </div>
 
-      {/* ── Social Float ── */}
-      <div className="social-float-container">
-        <a href="https://facebook.com" target="_blank" rel="noreferrer" className="float-social-btn fb" title="Facebook">
-          <i className="fa-brands fa-facebook-f" style={{ fontFamily: 'sans-serif', fontStyle: 'normal', fontWeight: 900 }}>f</i>
-        </a>
-        <a href="mailto:contact@vietmoney.app" className="float-social-btn contact" title="Contact">
-          💬
-        </a>
-      </div>
+      {/* ── Search Overlay ── */}
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* ── AI Chat Modal ── */}
       <AIChatModal open={chatOpen} onClose={() => setChatOpen(false)} />
-
-
 
       {/* ── Plans Popup ── */}
       <FloatingPopup
@@ -183,7 +276,8 @@ export default function ClientLayout() {
         </Suspense>
       </FloatingPopup>
 
-      <BottomNav />
+      {/* ── Bottom Nav (mobile only — CSS hides on desktop) ── */}
+      <BottomNav onOpenSearch={() => setSearchOpen(true)} />
     </div>
   );
 }

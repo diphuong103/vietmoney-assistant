@@ -1,8 +1,10 @@
 package com.vietmoney.controller;
 
-import com.vietmoney.domain.entity.TravelPlan;
+import com.vietmoney.dto.request.TravelPlanRequest;
 import com.vietmoney.dto.response.ApiResponse;
+import com.vietmoney.dto.response.TravelPlanResponse;
 import com.vietmoney.service.TravelPlanService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,18 +21,27 @@ public class TravelPlanController {
     private final TravelPlanService travelPlanService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<TravelPlan>>> getMyPlans(
+    public ResponseEntity<ApiResponse<List<TravelPlanResponse>>> getMyPlans(
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(ApiResponse.success(
                 travelPlanService.getUserPlans(userDetails.getUsername())));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<TravelPlan>> createPlan(
+    public ResponseEntity<ApiResponse<TravelPlanResponse>> createPlan(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody TravelPlan plan) {
+            @Valid @RequestBody TravelPlanRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Tạo kế hoạch thành công",
-                travelPlanService.createPlan(userDetails.getUsername(), plan)));
+                travelPlanService.createPlan(userDetails.getUsername(), request)));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<TravelPlanResponse>> updatePlan(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody TravelPlanRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật kế hoạch thành công",
+                travelPlanService.updatePlan(id, userDetails.getUsername(), request)));
     }
 
     @DeleteMapping("/{id}")
