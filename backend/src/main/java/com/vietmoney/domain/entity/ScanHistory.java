@@ -1,5 +1,6 @@
 package com.vietmoney.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -17,6 +18,7 @@ public class ScanHistory {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore  // ← thêm dòng này
     private User user;
 
     private String imageUrl;
