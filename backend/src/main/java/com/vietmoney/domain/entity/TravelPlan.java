@@ -1,21 +1,20 @@
+// backend/src/main/java/com/vietmoney/domain/entity/TravelPlan.java
 package com.vietmoney.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Entity
 @Table(name = "travel_plans")
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@EntityListeners(AuditingEntityListener.class)
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class TravelPlan {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,17 +23,28 @@ public class TravelPlan {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(nullable = false)
     private String title;
+
     private String destination;
     private LocalDate startDate;
     private LocalDate endDate;
     private String budget;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "json")
+    private Object itinerary;
+
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
     private String currency;
+
+    @Column(name = "number_of_people")
     private Integer numberOfPeople;
 
-    @Column(columnDefinition = "JSON")
-    private String itinerary;
-
-    @CreatedDate
-    private LocalDateTime createdAt;
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
 }

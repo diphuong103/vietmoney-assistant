@@ -55,6 +55,9 @@ app:
   # AiProxyService sẽ gọi: http://localhost:8001/recognize
   ai-service:
     url: "http://localhost:8001"
+  gemini:
+    api-key:
+    url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
 
   exchange-rate:
     api-url: "https://v6.exchangerate-api.com/v6/611b5efa4b7a9afb5a343b21/latest/VND"

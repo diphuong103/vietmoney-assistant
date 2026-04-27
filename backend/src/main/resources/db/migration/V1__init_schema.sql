@@ -106,6 +106,18 @@ CREATE TABLE travel_plans (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE schedule_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    travel_plan_id BIGINT NOT NULL,
+    day_number INT NOT NULL,
+    time_slot VARCHAR(10) NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    description TEXT,
+    estimated_cost VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (travel_plan_id) REFERENCES travel_plans(id) ON DELETE CASCADE
+);
+
 CREATE TABLE city_price_wikis (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     city VARCHAR(100) NOT NULL,
