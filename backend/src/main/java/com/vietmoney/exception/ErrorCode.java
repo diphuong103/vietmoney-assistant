@@ -22,7 +22,8 @@ public enum ErrorCode {
 
     // Chỉ thêm 2 dòng này vào phần // Resources
     SCAN_NOT_FOUND(404, "Bản ghi scan không tồn tại", HttpStatus.NOT_FOUND),
-    PLAN_NOT_FOUND(404, "Kế hoạch du lịch không tồn tại", HttpStatus.NOT_FOUND);
+    PLAN_NOT_FOUND(404, "Kế hoạch du lịch không tồn tại", HttpStatus.NOT_FOUND),
+    SCHEDULE_ITEM_NOT_FOUND(404, "Không tìm thấy hoạt động trong lịch trình",  HttpStatus.NOT_FOUND);
 
 
 
