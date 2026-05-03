@@ -9,6 +9,7 @@ import com.vietmoney.exception.ErrorCode;
 import com.vietmoney.repository.ArticleRepository;
 import com.vietmoney.repository.SavedArticleRepository;
 import com.vietmoney.repository.UserRepository;
+import com.vietmoney.repository.ArticleLikeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class ArticleService {
         private final ArticleRepository articleRepository;
         private final UserRepository userRepository;
         private final SavedArticleRepository savedArticleRepository;
+        private final ArticleLikeRepository articleLikeRepository;
 
         public Page<Article> getApprovedArticles(int page, int size) {
                 return articleRepository.findByStatus(ArticleStatus.APPROVED,
@@ -50,8 +52,12 @@ public class ArticleService {
                                 .title(request.getTitle())
                                 .content(request.getContent())
                                 .thumbnailUrl(request.getThumbnailUrl())
+                                .mediaUrl(request.getMediaUrl())
+                                .mediaType(request.getMediaType())
                                 .tags(request.getTags())
                                 .status(ArticleStatus.PENDING)
+                                .likeCount(0L)
+                                .viewCount(0L)
                                 .build();
                 return articleRepository.save(article);
         }
@@ -74,7 +80,7 @@ public class ArticleService {
         }
 
         @Transactional
-        public void likeArticle(String username, Long articleId) {
+        public void saveArticle(String username, Long articleId) {
                 User user = userRepository.findByUsername(username)
                                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
                 Article article = articleRepository.findById(articleId)
@@ -88,16 +94,41 @@ public class ArticleService {
                 savedArticleRepository.save(savedArticle);
         }
 
+        @Transactional
+        public void toggleLikeArticle(String username, Long articleId) {
+                User user = userRepository.findByUsername(username)
+                                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                Article article = articleRepository.findById(articleId)
+                                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
+
+                java.util.Optional<com.vietmoney.domain.entity.ArticleLike> existingLike = articleLikeRepository
+                                .findByUserAndArticle(user, article);
+
+                if (existingLike.isPresent()) {
+                        articleLikeRepository.delete(existingLike.get());
+                        article.setLikeCount(Math.max(0, article.getLikeCount() - 1));
+                } else {
+                        com.vietmoney.domain.entity.ArticleLike newLike = com.vietmoney.domain.entity.ArticleLike
+                                        .builder()
+                                        .user(user)
+                                        .article(article)
+                                        .build();
+                        articleLikeRepository.save(newLike);
+                        article.setLikeCount(article.getLikeCount() + 1);
+                }
+                articleRepository.save(article);
+        }
+
         public Page<Article> getMyArticles(String username, int page, int size) {
                 User author = userRepository.findByUsername(username)
-                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
                 return articleRepository.findByAuthor(author,
-                        PageRequest.of(page, size, Sort.by("createdAt").descending()));
+                                PageRequest.of(page, size, Sort.by("createdAt").descending()));
         }
 
         public Article getArticleById(Long id) {
                 return articleRepository.findById(id)
-                        .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
+                                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
         }
 
         @Transactional

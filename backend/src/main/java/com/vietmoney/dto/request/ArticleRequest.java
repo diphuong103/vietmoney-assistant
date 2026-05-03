@@ -5,8 +5,12 @@ import lombok.Data;
 
 @Data
 public class ArticleRequest {
-    @NotBlank private String title;
-    @NotBlank private String content;
+    @NotBlank
+    private String title;
+    @NotBlank
+    private String content;
     private String thumbnailUrl;
     private String tags;
+    private String mediaUrl;
+    private String mediaType;
 }

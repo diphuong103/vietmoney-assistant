@@ -347,6 +347,24 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('USD');
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToMenu = (e, id) => {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (el) {
+      const top = el.getBoundingClientRect().top + window.pageYOffset - 80;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  };
 
   const isLoggedIn = !!localStorage.getItem('accessToken');
   const user = isLoggedIn ? getStoredUser() : null;
@@ -359,12 +377,22 @@ export default function DashboardPage() {
     : '0';
 
   return (
-    <div className="landing-page">
-      {/* ═══════════ ORIGINAL NAVBAR ═══════════ */}
-      <Navbar
-        title={<>Viet<span style={{ color: 'var(--accent)' }}>Money</span></>}
-        actions={
-          isLoggedIn ? (
+    <div className="landing-page" style={{ paddingTop: 72 }}>
+      {/* ═══════════ CUSTOM LANDING HEADER ═══════════ */}
+      <nav className={`lp-nav ${scrolled ? 'scrolled' : ''}`}>
+        <a href="#" className="lp-nav-logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+          Viet<span>Money</span>
+        </a>
+
+        <div className="lp-nav-links">
+          <button className="lp-nav-link" onClick={(e) => scrollToMenu(e, 'financial-dashboard')}>Financial Dashboard</button>
+          <button className="lp-nav-link" onClick={(e) => scrollToMenu(e, 'travelers-toolkit')}>Traveler's Toolkit</button>
+          <button className="lp-nav-link" onClick={(e) => scrollToMenu(e, 'community-news')}>Community & News</button>
+          <button className="lp-nav-link" onClick={(e) => scrollToMenu(e, 'about')}>About</button>
+        </div>
+
+        <div className="lp-nav-actions" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          {isLoggedIn ? (
             <>
               <div className="user-box" onClick={() => navigate('/profile')} title="Xem hồ sơ">
                 <img
@@ -381,17 +409,16 @@ export default function DashboardPage() {
                   <div className="name">{displayName}</div>
                 </div>
               </div>
-              <button className="icon-btn" title="Thông báo">🔔</button>
               <SettingsMenu />
             </>
           ) : (
-            <div className="navbar-actions-guest">
-              <button className="btn-login" onClick={() => navigate('/login')}>Log In</button>
-              <button className="btn-signup" onClick={() => navigate('/register')}>Sign Up</button>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+              <button className="lp-nav-link" style={{ fontWeight: 600 }} onClick={() => navigate('/login')}>Log In</button>
+              <button className="lp-nav-cta" onClick={() => navigate('/register')}>Sign Up</button>
             </div>
-          )
-        }
-      />
+          )}
+        </div>
+      </nav>
 
       {/* ── Exchange Rate Ticker (below header) ── */}
       <div className="lp-ticker">
@@ -432,7 +459,7 @@ export default function DashboardPage() {
       </section>
 
       {/* ═══════════ TIER 2: FINANCIAL DASHBOARD ═══════════ */}
-      <section className="lp-dashboard lp-section">
+      <section id="financial-dashboard" className="lp-dashboard lp-section">
         <h2 className="lp-section-title">Financial Dashboard</h2>
         <p className="lp-section-subtitle">
           Track your budget, convert currencies instantly, and take control of your travel spending.
@@ -525,7 +552,7 @@ export default function DashboardPage() {
       </section>
 
       {/* ═══════════ TIER 3: UTILITY GRID ═══════════ */}
-      <section className="lp-utility lp-section">
+      <section id="travelers-toolkit" className="lp-utility lp-section">
         <h2 className="lp-section-title">Traveler's Toolkit</h2>
         <p className="lp-section-subtitle">
           Essential tools designed for tourists navigating Vietnam with confidence.
@@ -573,7 +600,7 @@ export default function DashboardPage() {
       </section>
 
       {/* ═══════════ TIER 4: COMMUNITY & NEWS ═══════════ */}
-      <section className="lp-community lp-section">
+      <section id="community-news" className="lp-community lp-section">
         <h2 className="lp-section-title">Community & News</h2>
         <p className="lp-section-subtitle">
           Stories, tips, and insights from fellow travelers exploring Vietnam.
@@ -619,7 +646,7 @@ export default function DashboardPage() {
       </section>
 
       {/* ═══════════ TIER 5: FOOTER ═══════════ */}
-      <footer className="lp-footer">
+      <footer id="about" className="lp-footer">
         <div className="lp-footer-inner">
           <div className="lp-footer-grid">
             <div className="lp-footer-brand">

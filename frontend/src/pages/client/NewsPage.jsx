@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Navbar from '../../components/layout/Navbar';
 import articleApi from '../../api/articleApi';
+import { uploadToImgBB } from '../../services/imgbbService';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
@@ -36,10 +37,14 @@ const FALLBACK_NEWS = [
 
 export default function NewsPage() {
   const [articles, setArticles] = useState([]);
-  const [loading, setLoading]   = useState(true);
+  const [loading, setLoading] = useState(true);
   const [postText, setPostText] = useState('');
+  const [file, setFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
   const [likedIds, setLikedIds] = useState(new Set());
+  const [savedIds, setSavedIds] = useState(new Set());
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const load = async () => {
@@ -58,34 +63,71 @@ export default function NewsPage() {
   }, []);
 
   const submitPost = async () => {
-    if (!postText.trim()) return;
+    if (!postText.trim() && !file) return;
     try {
+      let mediaUrl = null;
+      let mediaType = null;
+
+      if (file) {
+        const resMedia = await uploadToImgBB(file, file.name || 'news.jpg');
+        mediaUrl = resMedia.imageUrl;
+        mediaType = 'IMAGE';
+      }
+
       await articleApi.create({
-        title: postText.trim().slice(0, 100),
+        title: postText.substring(0, 100) || 'Status update',
         content: postText.trim(),
         category: 'User Post',
+        mediaUrl,
+        mediaType
       });
-      setUserPosts(prev => [{ text: postText, time: 'Vừa xong' }, ...prev]);
+      setUserPosts(prev => [{ text: postText, time: 'Vừa xong', pending: true, mediaUrl, mediaType }, ...prev]);
       setPostText('');
+      setFile(null);
+      setFilePreview(null);
+      alert('Bài viết đã gửi, đang chờ quản trị viên phê duyệt!');
     } catch {
-      // Nếu lỗi auth, vẫn show local post
-      setUserPosts(prev => [{ text: postText, time: 'Vừa xong' }, ...prev]);
+      setUserPosts(prev => [{ text: postText, time: 'Vừa xong', pending: true }, ...prev]);
       setPostText('');
+      setFile(null);
+      setFilePreview(null);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const selected = e.target.files[0];
+    if (selected) {
+      setFile(selected);
+      setFilePreview(URL.createObjectURL(selected));
     }
   };
 
   const handleLike = async (article) => {
-    if (likedIds.has(article.id)) return;
     try {
       await articleApi.like(article.id);
-      setLikedIds(prev => new Set(prev).add(article.id));
+      setLikedIds(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(article.id)) newSet.delete(article.id);
+        else newSet.add(article.id);
+        return newSet;
+      });
     } catch {
-      // silent — toast auto nếu 401
+      // silent — toast auto
+    }
+  };
+
+  const handleSave = async (article) => {
+    if (savedIds.has(article.id)) return;
+    try {
+      await articleApi.save(article.id);
+      setSavedIds(prev => new Set(prev).add(article.id));
+    } catch {
+      // silent
     }
   };
 
   const getArticleEmoji = (a) => a.img ?? a.imageUrl ?? '📰';
-  const getArticleTag   = (a) => a.tag ?? a.category ?? 'News';
+  const getArticleTag = (a) => a.tag ?? a.category ?? 'News';
 
   return (
     <div className="page active" id="page-news">
@@ -115,18 +157,35 @@ export default function NewsPage() {
           />
           <div className="post-actions">
             <div className="post-attach">
-              <button className="attach-btn">📷 Photo</button>
-              <button className="attach-btn">🎬 Video</button>
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept="image/*" />
+              <button className="attach-btn" onClick={() => fileInputRef.current.click()}>📷 Tải ảnh lên</button>
             </div>
             <button className="post-submit" onClick={submitPost}>Post</button>
           </div>
+          {filePreview && (
+            <div style={{ marginTop: 10, position: 'relative', display: 'inline-block' }}>
+              <img src={filePreview} style={{ maxHeight: 150, borderRadius: 8 }} alt="preview" />
+              <button onClick={() => { setFile(null); setFilePreview(null); }} style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '50%', width: 24, height: 24 }}>×</button>
+            </div>
+          )}
         </div>
 
         {/* User Posts */}
         {userPosts.map((p, i) => (
           <div className="news-card-item" key={'u-' + i}>
+            {p.mediaUrl && (
+              <div className="news-img" style={{ padding: 0 }}>
+                {p.mediaType === 'VIDEO' ? (
+                  <video src={p.mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} controls />
+                ) : (
+                  <img src={p.mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="media" />
+                )}
+              </div>
+            )}
             <div className="news-body">
-              <span className="news-tag">You</span>
+              <span className="news-tag" style={{ background: 'var(--accent)', color: '#fff' }}>
+                {p.pending ? 'Chờ duyệt' : 'You'}
+              </span>
               <div className="news-title" style={{ fontSize: 14, fontWeight: 400 }}>{p.text}</div>
               <div className="news-footer">
                 <div className="news-author">
@@ -152,12 +211,19 @@ export default function NewsPage() {
           return (
             <div className="news-card-item" key={n.id}>
               <div className="news-img"
-                style={n.imgBg ? { background: n.imgBg } : {}}
+                style={n.imgBg && !n.mediaUrl ? { background: n.imgBg } : { padding: n.mediaUrl ? 0 : undefined }}
               >
-                {typeof getArticleEmoji(n) === 'string' && getArticleEmoji(n).length <= 4
-                  ? getArticleEmoji(n)
-                  : '📰'
-                }
+                {n.mediaUrl ? (
+                  n.mediaType === 'VIDEO' ? (
+                    <video src={n.mediaUrl.startsWith('http') ? n.mediaUrl : `http://localhost:8080${n.mediaUrl}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} controls />
+                  ) : (
+                    <img src={n.mediaUrl.startsWith('http') ? n.mediaUrl : `http://localhost:8080${n.mediaUrl}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="media" />
+                  )
+                ) : (
+                  typeof getArticleEmoji(n) === 'string' && getArticleEmoji(n).length <= 4
+                    ? getArticleEmoji(n)
+                    : '📰'
+                )}
               </div>
               <div className="news-body">
                 <span
@@ -180,12 +246,21 @@ export default function NewsPage() {
                       }
                     </span>
                   </div>
-                  <div
-                    className="news-like"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleLike(n)}
-                  >
-                    {likedIds.has(n.id) ? '💖' : '❤️'} {(n.likeCount ?? n.likes ?? 0) + (likedIds.has(n.id) ? 1 : 0)}
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <div
+                      className="news-like"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleLike(n)}
+                    >
+                      {likedIds.has(n.id) ? '💖' : '❤️'} {(n.likeCount ?? n.likes ?? 0) + (likedIds.has(n.id) ? 1 : 0)}
+                    </div>
+                    <div
+                      className="news-like"
+                      style={{ cursor: 'pointer', opacity: savedIds.has(n.id) ? 1 : 0.6 }}
+                      onClick={() => handleSave(n)}
+                    >
+                      {savedIds.has(n.id) ? '🔖 Đã lưu' : '📌 Lưu'}
+                    </div>
                   </div>
                 </div>
               </div>

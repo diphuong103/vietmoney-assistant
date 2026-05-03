@@ -83,13 +83,22 @@ public class ArticleController {
                 articleService.rejectArticle(id, reason)));
     }
 
-    // User: like/lưu bài
+    // User: lưu bài
+    @PostMapping("/{id}/save")
+    public ResponseEntity<ApiResponse<Void>> save(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        articleService.saveArticle(userDetails.getUsername(), id);
+        return ResponseEntity.ok(ApiResponse.success("Đã lưu vào danh sách yêu thích", null));
+    }
+
+    // User: thả tym
     @PostMapping("/{id}/like")
     public ResponseEntity<ApiResponse<Void>> like(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
-        articleService.likeArticle(userDetails.getUsername(), id);
-        return ResponseEntity.ok(ApiResponse.success("Đã lưu vào danh sách yêu thích", null));
+        articleService.toggleLikeArticle(userDetails.getUsername(), id);
+        return ResponseEntity.ok(ApiResponse.success("Đã thả tym", null));
     }
 
     // Admin: xoá bài
@@ -99,6 +108,5 @@ public class ArticleController {
         articleService.deleteArticle(id);
         return ResponseEntity.ok(ApiResponse.success("Xoá bài viết thành công", null));
     }
-
 
 }

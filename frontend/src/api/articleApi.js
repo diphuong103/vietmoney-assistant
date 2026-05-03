@@ -21,6 +21,16 @@ const articleApi = {
 
   like: (id) =>
     axiosClient.post(`/articles/${id}/like`),
+
+  save: (id) =>
+    axiosClient.post(`/articles/${id}/save`),
+
+  uploadMedia: (formData) =>
+    axiosClient.post('/media/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
 };
 
 export default articleApi;
