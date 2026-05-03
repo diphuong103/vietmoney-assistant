@@ -10,7 +10,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/atm")
@@ -20,15 +19,47 @@ public class AtmController {
     private final AtmService atmService;
 
     @GetMapping("/nearby")
-    public ResponseEntity<ApiResponse<List<Object>>> getNearbyAtms(
+    public ResponseEntity<ApiResponse<List<?>>> getNearbyAtms(
             @RequestParam double lat, @RequestParam double lng,
-            @RequestParam(defaultValue = "2000") int radius) {
+            @RequestParam(defaultValue = "3000") int radius) {
         return ResponseEntity.ok(ApiResponse.success(atmService.getNearbyAtms(lat, lng, radius)));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<Object>> getAtmById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(atmService.getAtmById(id)));
+    }
+
+    /**
+     * Proxy Goong Direction API — giữ API key an toàn tại backend
+     */
+    @GetMapping("/direction")
+    public ResponseEntity<ApiResponse<Object>> getDirection(
+            @RequestParam String origin,
+            @RequestParam String destination,
+            @RequestParam(defaultValue = "car") String vehicle) {
+        return ResponseEntity.ok(ApiResponse.success(
+                atmService.getDirection(origin, destination, vehicle)));
+    }
+
+    /**
+     * Autocomplete tìm kiếm địa điểm (ATM / Ngân hàng)
+     */
+    @GetMapping("/autocomplete")
+    public ResponseEntity<ApiResponse<List<?>>> getAutocomplete(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "21.0285") double lat,
+            @RequestParam(defaultValue = "105.8542") double lng) {
+        return ResponseEntity.ok(ApiResponse.success(
+                atmService.searchAutocomplete(query, lat, lng)));
+    }
+
+    /**
+     * Lấy chi tiết vị trí (lat/lng) của một placeId
+     */
+    @GetMapping("/place-detail")
+    public ResponseEntity<ApiResponse<Object>> getPlaceDetail(@RequestParam String placeId) {
+        return ResponseEntity.ok(ApiResponse.success(atmService.getPlaceDetail(placeId)));
     }
 
     @PostMapping("/save")
@@ -48,8 +79,12 @@ public class AtmController {
     }
 
     @GetMapping("/saved")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getSavedAtms(
+    public ResponseEntity<?> getSavedAtms(
             @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(ApiResponse.success(atmService.getSavedAtms(userDetails.getUsername())));
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body("Chưa đăng nhập");
+        }
+        return ResponseEntity.ok(
+                ApiResponse.success(atmService.getSavedAtms(userDetails.getUsername())));
     }
 }

@@ -56,9 +56,11 @@ public class AuthService {
 
                 // 4. Trả về Token ngay lập tức
                 String token = jwtService.generateToken(userDetails);
+                String refreshToken = jwtService.generateRefreshToken(userDetails);
 
                 return AuthResponse.builder()
                                 .accessToken(token)
+                                .refreshToken(refreshToken)
                                 .tokenType("Bearer")
                                 .build();
         }
@@ -89,6 +91,7 @@ public class AuthService {
                                 .build();
 
                 String token = jwtService.generateToken(userDetails);
+                String refreshToken = jwtService.generateRefreshToken(userDetails);
 
                 UserProfileResponse userResponse = UserProfileResponse.builder()
                                 .id(user.getId())
@@ -104,8 +107,37 @@ public class AuthService {
 
                 return AuthResponse.builder()
                                 .accessToken(token)
+                                .refreshToken(refreshToken)
                                 .tokenType("Bearer")
                                 .user(userResponse)
+                                .build();
+        }
+
+        public AuthResponse refreshToken(String refreshToken) {
+                String username = jwtService.extractUsername(refreshToken);
+                if (username == null) {
+                        throw new AppException(ErrorCode.INVALID_TOKEN);
+                }
+                User user = userRepository.findByUsername(username)
+                                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+                var userDetails = org.springframework.security.core.userdetails.User.builder()
+                                .username(user.getUsername())
+                                .password(user.getPassword())
+                                .authorities("ROLE_" + user.getRole().name())
+                                .build();
+
+                if (!jwtService.isTokenValid(refreshToken, userDetails)) {
+                        throw new AppException(ErrorCode.INVALID_TOKEN);
+                }
+
+                String accessToken = jwtService.generateToken(userDetails);
+                String newRefreshToken = jwtService.generateRefreshToken(userDetails);
+
+                return AuthResponse.builder()
+                                .accessToken(accessToken)
+                                .refreshToken(newRefreshToken)
+                                .tokenType("Bearer")
                                 .build();
         }
 
