@@ -38,7 +38,13 @@ public class Article {
     private ArticleStatus status;
 
     private String rejectionReason;
+    @Builder.Default
     private Long viewCount = 0L;
+
+    private String mediaUrl;
+    private String mediaType;
+    @Builder.Default
+    private Long likeCount = 0L;
 
     @CreatedDate
     private LocalDateTime createdAt;

@@ -24,7 +24,7 @@ public class ArticleController {
     @GetMapping("/public")
     public ResponseEntity<ApiResponse<PageResponse<Article>>> getApproved(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "20") int size) {
         Page<Article> result = articleService.getApprovedArticles(page, size);
         return ResponseEntity.ok(ApiResponse.success(PageResponse.of(result)));
     }
@@ -40,7 +40,7 @@ public class ArticleController {
     public ResponseEntity<ApiResponse<PageResponse<Article>>> getMyArticles(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "20") int size) {
         Page<Article> result = articleService.getMyArticles(userDetails.getUsername(), page, size);
         return ResponseEntity.ok(ApiResponse.success(PageResponse.of(result)));
     }
@@ -60,7 +60,7 @@ public class ArticleController {
     public ResponseEntity<ApiResponse<PageResponse<Article>>> getByStatus(
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "20") int size) {
         Page<Article> result = articleService.getArticlesByStatus(status, page, size);
         return ResponseEntity.ok(ApiResponse.success(PageResponse.of(result)));
     }
@@ -83,13 +83,33 @@ public class ArticleController {
                 articleService.rejectArticle(id, reason)));
     }
 
-    // User: like/lưu bài
+    // User: toggle like bài — trả về liked/saved/likeCount
     @PostMapping("/{id}/like")
-    public ResponseEntity<ApiResponse<Void>> like(
+    public ResponseEntity<ApiResponse<ArticleStatusResponse>> like(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
-        articleService.likeArticle(userDetails.getUsername(), id);
-        return ResponseEntity.ok(ApiResponse.success("Đã lưu vào danh sách yêu thích", null));
+        ArticleStatusResponse status = articleService.toggleLike(userDetails.getUsername(), id);
+        String msg = status.isLiked() ? "Đã thích bài viết" : "Đã bỏ thích";
+        return ResponseEntity.ok(ApiResponse.success(msg, status));
+    }
+
+    // User: toggle lưu bài — trả về liked/saved/likeCount
+    @PostMapping("/{id}/save")
+    public ResponseEntity<ApiResponse<ArticleStatusResponse>> save(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        ArticleStatusResponse status = articleService.toggleSave(userDetails.getUsername(), id);
+        String msg = status.isSaved() ? "Đã lưu bài viết" : "Đã bỏ lưu bài viết";
+        return ResponseEntity.ok(ApiResponse.success(msg, status));
+    }
+
+    // User: lấy trạng thái like/save của bài viết hiện tại
+    @GetMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<ArticleStatusResponse>> getStatus(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        ArticleStatusResponse status = articleService.getArticleStatus(userDetails.getUsername(), id);
+        return ResponseEntity.ok(ApiResponse.success(status));
     }
 
     // Admin: xoá bài
@@ -99,6 +119,4 @@ public class ArticleController {
         articleService.deleteArticle(id);
         return ResponseEntity.ok(ApiResponse.success("Xoá bài viết thành công", null));
     }
-
-
 }
