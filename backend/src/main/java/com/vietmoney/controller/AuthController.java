@@ -37,4 +37,15 @@ public class AuthController {
         authService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Đặt lại mật khẩu thành công", null));
     }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@RequestParam String token) {
+        return ResponseEntity.ok(ApiResponse.success("Làm mới token thành công", authService.refreshToken(token)));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestParam(required = false) String refreshToken) {
+        // Có thể bổ sung tính năng revoke (thu hồi) refreshToken sau này
+        return ResponseEntity.ok(ApiResponse.success("Đăng xuất thành công", null));
+    }
 }

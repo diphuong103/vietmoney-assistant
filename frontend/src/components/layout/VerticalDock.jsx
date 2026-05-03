@@ -116,7 +116,7 @@ export default function VerticalDock({ onOpenPlans, onOpenSearch }) {
     };
 
     return (
-        <nav className="vertical-dock" aria-label="Quick access dock">
+        <nav className="vertical-dock" aria-label="Quick access dock" style={{ width: 50 }}>
             {DOCK_ITEMS.map((item, idx) => {
                 if (item === null) {
                     return <div key={`sep-${idx}`} className="vdock-separator" />;
