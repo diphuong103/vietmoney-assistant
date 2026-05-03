@@ -168,7 +168,7 @@ export default function ClientLayout() {
           onClick={() => navigate('/admin')}
           title="Quản trị"
           style={{
-            position: 'fixed', top: 16, right: 16, zIndex: 200,
+            position: 'fixed', top: 100, right: 16, zIndex: 200,
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '8px 14px', borderRadius: 12,
             background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
