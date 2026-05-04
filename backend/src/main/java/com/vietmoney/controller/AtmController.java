@@ -18,11 +18,16 @@ public class AtmController {
 
     private final AtmService atmService;
 
+    /**
+     * Tìm ATM lân cận — truyền username (nullable) để per-user cooldown hoạt động.
+     */
     @GetMapping("/nearby")
     public ResponseEntity<ApiResponse<List<?>>> getNearbyAtms(
             @RequestParam double lat, @RequestParam double lng,
-            @RequestParam(defaultValue = "3000") int radius) {
-        return ResponseEntity.ok(ApiResponse.success(atmService.getNearbyAtms(lat, lng, radius)));
+            @RequestParam(defaultValue = "10000") int radius,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails != null ? userDetails.getUsername() : null;
+        return ResponseEntity.ok(ApiResponse.success(atmService.getNearbyAtms(lat, lng, radius, username)));
     }
 
     @GetMapping("/{id}")
@@ -55,7 +60,7 @@ public class AtmController {
     }
 
     /**
-     * Lấy chi tiết vị trí (lat/lng) của một placeId
+     * Lấy chi tiết vị trí (lat/lng) của một placeId — gọi khi user click ATM
      */
     @GetMapping("/place-detail")
     public ResponseEntity<ApiResponse<Object>> getPlaceDetail(@RequestParam String placeId) {

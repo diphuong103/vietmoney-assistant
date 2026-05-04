@@ -10,11 +10,16 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "atm_cache", indexes = {
-        @Index(name = "idx_atm_cache_place_id",  columnList = "place_id",  unique = true),
-        @Index(name = "idx_atm_cache_grid_key",  columnList = "grid_key"),
-        @Index(name = "idx_atm_cache_scanned_at", columnList = "scanned_at")
+        @Index(name = "idx_atm_cache_place_id", columnList = "place_id", unique = true),
+        @Index(name = "idx_atm_cache_grid_key", columnList = "grid_key"),
+        @Index(name = "idx_atm_cache_scanned_at", columnList = "scanned_at"),
+        @Index(name = "idx_atm_cache_lat_lng", columnList = "lat, lng")
 })
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class AtmCache {
 
     @Id
