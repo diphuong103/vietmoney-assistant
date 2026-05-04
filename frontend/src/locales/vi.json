@@ -1,0 +1,22 @@
+{
+  "greeting_label": "Chào mừng trở lại",
+  "greeting_hello": "Chào buổi tối, Du khách 👋",
+  "trip_day": "Ngày 3",
+  "of_trip": " trong chuyến đi",
+  "remaining": " còn lại",
+  "quick_actions": "Thao tác nhanh",
+  "scan_money": "Quét tiền",
+  "scan_sub": "Nhận dạng AI",
+  "exchange_rate": "Tỷ giá",
+  "budget": "Ngân sách",
+  "price_wiki": "Wiki giá",
+  "wiki_sub": "Giá tham khảo",
+  "currency_guide": "Hướng dẫn tiền tệ",
+  "guide_sub": "Tìm hiểu tiền Đồng — lật thẻ & tính năng bảo mật",
+  "latest_news": "Tin tức mới nhất",
+  "nav_home": "Trang chủ",
+  "nav_news": "Tin tức",
+  "nav_scan": "Quét",
+  "nav_budget": "Ngân sách",
+  "nav_rates": "Tỷ giá"
+}

@@ -1,0 +1,29 @@
+# Java / Maven
+backend/target/
+backend/*.jar
+*.class
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# Python
+ai-service/__pycache__/
+ai-service/**/__pycache__/
+ai-service/.venv/
+ai-service/app/models/*.pt
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db

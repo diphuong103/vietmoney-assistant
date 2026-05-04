@@ -1,0 +1,22 @@
+{
+  "greeting_label": "Welcome back",
+  "greeting_hello": "Good evening, Traveler 👋",
+  "trip_day": "Day 3",
+  "of_trip": " of your trip",
+  "remaining": " remaining",
+  "quick_actions": "Quick Actions",
+  "scan_money": "Scan Money",
+  "scan_sub": "AI Recognition",
+  "exchange_rate": "Exchange Rate",
+  "budget": "Budget",
+  "price_wiki": "Price Wiki",
+  "wiki_sub": "Reference prices",
+  "currency_guide": "Currency Guide",
+  "guide_sub": "Learn Vietnamese Dong — flip cards & security features",
+  "latest_news": "Latest News",
+  "nav_home": "Home",
+  "nav_news": "News",
+  "nav_scan": "Scan",
+  "nav_budget": "Budget",
+  "nav_rates": "Rates"
+}
