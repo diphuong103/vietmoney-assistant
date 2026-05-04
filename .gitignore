@@ -15,9 +15,9 @@ ai-service/.venv/
 ai-service/app/models/*.pt
 
 # Environment
-.env
+frontend/.env
 .env.local
-.env.production
+frontend/.env.production
 frontend/.env.production
 frontend/.env.development
 

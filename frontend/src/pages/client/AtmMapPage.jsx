@@ -8,7 +8,7 @@ import '@goongmaps/goong-js/dist/goong-js.css';
 const MAPTILES_KEY = import.meta.env.VITE_GOONG_MAPTILES_KEY || '';
 const FALLBACK_CENTER = { lat: 21.0285, lng: 105.8542 };
 
-/* ── Bank metadata ──────────────────────────────────────────────────────── */
+/* ── Bank metadata ───────────────────────────────────MAPTILES_KEY───────────────────── */
 const BANK_META = {
   Vietcombank: { color: '#007b3e', emoji: '🟢', short: 'VCB', bg: '#dcfce7' },
   Techcombank: { color: '#d02128', emoji: '🔴', short: 'TCB', bg: '#fee2e2' },
@@ -113,7 +113,7 @@ export default function AtmMapPage({ embedded = false }) {
   const [showFilters, setShowFilters] = useState(false);
 
   /* ── New: Radius / Panel / Hover ────────────────────────────────── */
-  const [searchRadius, setSearchRadius] = useState(3000);
+  const [searchRadius, setSearchRadius] = useState(10000); // default 10 km
   const [panelMinimized, setPanelMinimized] = useState(false);
   const [hoveredAtmId, setHoveredAtmId] = useState(null);
 
@@ -145,6 +145,11 @@ export default function AtmMapPage({ embedded = false }) {
   const listRef = useRef(null);
   const mapCentered = useRef(false); // prevent flyTo after first lock
   const customPlaceMarkerRef = useRef(null);
+  const panCenterRef = useRef(null);  // last fetch center for pan-threshold
+  const panTimerRef = useRef(null);   // debounce timer for pan re-fetch
+
+  /* ── Pan re-fetch state ──────────────────────────────────────────── */
+  const [panLoading, setPanLoading] = useState(false);
 
   /* ── Travel mode collapsed ──────────────────────────────────────── */
   const [travelCollapsed, setTravelCollapsed] = useState(false);
@@ -183,6 +188,8 @@ export default function AtmMapPage({ embedded = false }) {
     setGeoLoading(false);
     setGeoError('');
     loadAtms(c.lat, c.lng);
+    // Seed panCenterRef so the first pan is measured from GPS location
+    panCenterRef.current = { lat: c.lat, lng: c.lng };
     // Only fly to location on first lock OR when user explicitly clicks GPS button
     if (gMapRef.current && (!mapCentered.current || forceCenter)) {
       mapCentered.current = true;
@@ -265,7 +272,15 @@ export default function AtmMapPage({ embedded = false }) {
   ════════════════════════════════════════════════════════════════════ */
   useEffect(() => {
     if (!mapDivRef.current || gMapRef.current) return;
+
+    // Guard: không có key thì không khởi tạo map
+    if (!MAPTILES_KEY) {
+      setLoading(false);
+      return;
+    }
+
     goongjs.accessToken = MAPTILES_KEY;
+
     const center = coords ?? FALLBACK_CENTER;
     const map = new goongjs.Map({
       container: mapDivRef.current,
@@ -273,15 +288,66 @@ export default function AtmMapPage({ embedded = false }) {
       center: [center.lng, center.lat],
       zoom: 14,
     });
+
     map.addControl(new goongjs.NavigationControl(), 'bottom-right');
     map.on('load', () => {
-      map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
-      map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#2563eb', 'line-width': 5, 'line-opacity': 0.9 } });
+      map.addSource('route', {
+        type: 'geojson',
+        data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } }
+      });
+      map.addLayer({
+        id: 'route-line', type: 'line', source: 'route',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#2563eb', 'line-width': 5, 'line-opacity': 0.9 }
+      });
       gMapRef.current = map;
       setMapReady(true);
+
+      // ── Radius circle source + layers ──
+      map.addSource('radius-circle', {
+        type: 'geojson',
+        data: { type: 'Feature', geometry: { type: 'Point', coordinates: [center.lng, center.lat] } }
+      });
+      // Filled circle
+      map.addLayer({
+        id: 'radius-fill', type: 'circle', source: 'radius-circle',
+        paint: {
+          'circle-radius': [
+            'interpolate', ['linear'], ['zoom'],
+            10, 1, 12, 30, 14, 100, 16, 400, 18, 1600
+          ],
+          'circle-color': '#2563eb',
+          'circle-opacity': 0.06,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#2563eb',
+          'circle-stroke-opacity': 0.35
+        }
+      }, 'route-line'); // insert below route layer
+
+      // ── Map pan/drag re-fetch: moveend + 500m threshold + 800ms debounce ──
+      map.on('moveend', () => {
+        const center = map.getCenter();
+        const newLat = center.lat, newLng = center.lng;
+        const prev = panCenterRef.current;
+        if (prev) {
+          // Haversine approx distance (degrees) — quick check before fetch
+          const dLat = (newLat - prev.lat) * Math.PI / 180;
+          const dLng = (newLng - prev.lng) * Math.PI / 180;
+          const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(prev.lat * Math.PI / 180) * Math.cos(newLat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+          const distKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          if (distKm < 0.5) return; // < 500m, skip
+        }
+        clearTimeout(panTimerRef.current);
+        panTimerRef.current = setTimeout(() => {
+          panCenterRef.current = { lat: newLat, lng: newLng };
+          setPanLoading(true);
+          loadAtms(newLat, newLng).finally(() => setPanLoading(false));
+        }, 800);
+      });
     });
+
     return () => { try { map.remove(); } catch { /**/ } };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapDivRef.current]);
 
   /* ── User location marker ─────────────────────────────────────── */
@@ -297,6 +363,66 @@ export default function AtmMapPage({ embedded = false }) {
     if (userMarkerRef.current) userMarkerRef.current.remove();
     userMarkerRef.current = new goongjs.Marker({ element: el }).setLngLat([coords.lng, coords.lat]).addTo(gMapRef.current);
   }, [mapReady, coords]);
+
+  /* ── Update radius circle on map when coords or radius changes ────── */
+  useEffect(() => {
+    if (!mapReady || !gMapRef.current) return;
+    const map = gMapRef.current;
+    if (!map.getSource('radius-circle')) return;
+
+    const center = coords ?? FALLBACK_CENTER;
+    // Build a GeoJSON Polygon circle (64 points) for accurate km radius
+    const radiusKm = searchRadius / 1000;
+    const points = 64;
+    const coords2Rad = (deg) => deg * Math.PI / 180;
+    const distanceX = radiusKm / (111.32 * Math.cos(coords2Rad(center.lat)));
+    const distanceY = radiusKm / 110.574;
+    const circleCoords = [];
+    for (let i = 0; i <= points; i++) {
+      const angle = (i / points) * 2 * Math.PI;
+      circleCoords.push([
+        center.lng + distanceX * Math.cos(angle),
+        center.lat + distanceY * Math.sin(angle),
+      ]);
+    }
+
+    // Swap source to Polygon-based for accurate km display
+    try {
+      if (!map.getLayer('radius-border')) {
+        // Re-add as fill layer if not present
+        map.removeLayer('radius-fill');
+        map.removeSource('radius-circle');
+        map.addSource('radius-circle', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: { type: 'Polygon', coordinates: [circleCoords] }
+          }
+        });
+        map.addLayer({
+          id: 'radius-fill', type: 'fill', source: 'radius-circle',
+          paint: { 'fill-color': '#2563eb', 'fill-opacity': 0.06 }
+        }, 'route-line');
+        map.addLayer({
+          id: 'radius-border', type: 'line', source: 'radius-circle',
+          paint: {
+            'line-color': '#2563eb',
+            'line-width': 2,
+            'line-opacity': 0.45,
+            'line-dasharray': [4, 3]
+          }
+        }, 'route-line');
+      } else {
+        // Just update data
+        map.getSource('radius-circle').setData({
+          type: 'Feature',
+          geometry: { type: 'Polygon', coordinates: [circleCoords] }
+        });
+      }
+    } catch { /* map not ready */ }
+  }, [mapReady, coords, searchRadius]);
+
+
 
   /* ── Custom Place Marker ────────────────────────────────────────── */
   useEffect(() => {
@@ -335,11 +461,12 @@ export default function AtmMapPage({ embedded = false }) {
       const lat = atm.lat ?? atm.latitude;
       const lng = atm.lng ?? atm.longitude;
       if (!lat || !lng) return;
+      const atmKey = atm.placeId ?? atm.id; // ← stable unique key
       bounds.push([lng, lat]);
-      const isNearest = atm.id === nearestAtmId;
+      const isNearest = atmKey === nearestAtmId;
       const meta = BANK_META[atm.bankKey] ?? { color: '#64748b', short: 'ATM' };
       const color = atm.status !== 'closed' ? meta.color : '#9ca3af';
-      const label = atm.type === 'Ngân hàng' ? '🏛' : meta.short;
+      const label = atm.type === 'Ngân hàng' ? '🏦' : (meta.short ?? 'ATM');
       const el = createMarkerEl(color, label, false);
       if (isNearest) {
         el.style.animation = 'pulseNearest 2s ease-in-out infinite';
@@ -347,10 +474,9 @@ export default function AtmMapPage({ embedded = false }) {
       }
       const marker = new goongjs.Marker({ element: el }).setLngLat([lng, lat]).addTo(gMapRef.current);
       el.addEventListener('click', (e) => { e.stopPropagation(); handleSelectAtm(atm); });
-      // Hover sync: mouseenter on marker scales it
-      el.addEventListener('mouseenter', () => setHoveredAtmId(atm.id));
+      el.addEventListener('mouseenter', () => setHoveredAtmId(atmKey));
       el.addEventListener('mouseleave', () => setHoveredAtmId(null));
-      markersRef.current[atm.id] = { marker, el, atm };
+      markersRef.current[atmKey] = { marker, el, atm };
     });
 
     // ── DOM-based clustering for >20 markers ──
@@ -359,7 +485,7 @@ export default function AtmMapPage({ embedded = false }) {
       const updateClusters = () => {
         clustersRef.current.forEach(c => c.remove());
         clustersRef.current = [];
-        const GRID = 60; // px grid size for clustering
+        const GRID = 60;
         const cells = {};
         Object.values(markersRef.current).forEach(({ marker, el, atm }) => {
           if (el.style.display === 'none') return;
@@ -373,16 +499,13 @@ export default function AtmMapPage({ embedded = false }) {
             group.forEach(g => { g.el.style.display = ''; });
             return;
           }
-          // Hide individual markers, show cluster
           let avgLng = 0, avgLat = 0;
           group.forEach(g => {
             g.el.style.display = 'none';
             const ll = g.marker.getLngLat();
-            avgLng += ll.lng;
-            avgLat += ll.lat;
+            avgLng += ll.lng; avgLat += ll.lat;
           });
-          avgLng /= group.length;
-          avgLat /= group.length;
+          avgLng /= group.length; avgLat /= group.length;
           const clEl = document.createElement('div');
           clEl.style.cssText = `width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;font-weight:800;font-size:15px;border:3px solid white;box-shadow:0 4px 16px rgba(37,99,235,.35);cursor:pointer;transition:all .2s;`;
           clEl.textContent = group.length;
@@ -398,12 +521,9 @@ export default function AtmMapPage({ embedded = false }) {
       map.on('zoom', updateClusters);
       map.on('move', updateClusters);
       updateClusters();
-      // Cleanup listeners on next render
       const cleanup = () => { map.off('zoom', updateClusters); map.off('move', updateClusters); };
       markersRef.current._clusterCleanup = cleanup;
     }
-
-    // Đã bỏ auto fitBounds ở đây để map không bị giật lùi sau khi GPS lock đã zoom sát.
 
     return () => {
       if (markersRef.current._clusterCleanup) markersRef.current._clusterCleanup();
@@ -414,13 +534,16 @@ export default function AtmMapPage({ embedded = false }) {
   /* ── Highlight selected / hovered marker ────────────────────────── */
   useEffect(() => {
     if (!mapReady) return;
+    const selKey = selectedAtm ? (selectedAtm.placeId ?? selectedAtm.id) : null;
     Object.values(markersRef.current).forEach(({ el, atm }) => {
-      const isSel = atm.id === selectedAtm?.id;
-      const isHov = atm.id === hoveredAtmId;
-      const isNearest = atm.id === nearestAtmId;
+      if (!atm) return;
+      const atmKey = atm.placeId ?? atm.id;
+      const isSel = atmKey === selKey;
+      const isHov = atmKey === hoveredAtmId;
+      const isNearest = atmKey === nearestAtmId;
       const meta = BANK_META[atm.bankKey] ?? { color: '#64748b', short: 'ATM' };
       const color = atm.status !== 'closed' ? meta.color : '#9ca3af';
-      const label = atm.type === 'Ngân hàng' ? '🏛' : meta.short;
+      const label = atm.type === 'Ngân hàng' ? '🏦' : (meta.short ?? 'ATM');
       const size = isSel ? 52 : isHov ? 48 : 40;
       el.style.width = `${size}px`;
       el.style.height = `${size * 1.25}px`;
@@ -429,6 +552,7 @@ export default function AtmMapPage({ embedded = false }) {
       el.innerHTML = createMarkerEl(color, label, isSel).innerHTML;
     });
   }, [mapReady, selectedAtm, hoveredAtmId, nearestAtmId]);
+
 
   /* ── Filter ATMs ──────────────────────────────────────────────── */
   const filtered = atms.filter(a => {
@@ -443,29 +567,50 @@ export default function AtmMapPage({ embedded = false }) {
 
   useEffect(() => {
     if (!mapReady) return;
-    const ids = new Set(filtered.map(a => a.id));
+    const keys = new Set(filtered.map(a => a.placeId ?? a.id));
     Object.values(markersRef.current).forEach(({ marker, atm }) => {
-      marker.getElement().style.display = ids.has(atm.id) ? '' : 'none';
+      const atmKey = atm?.placeId ?? atm?.id;
+      marker.getElement().style.display = keys.has(atmKey) ? '' : 'none';
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtered, mapReady]);
 
+
+
   /* ════════════════════════════════════════════════════════════════════
      Handlers
   ════════════════════════════════════════════════════════════════════ */
-  const handleSelectAtm = useCallback((atm) => {
-    setSelectedAtm(atm);
+  const handleSelectAtm = useCallback(async (atm) => {
     setRouteInfo(null);
-    // NOTE: do NOT setSearch here — it triggers dropdown and resets context
     setShowSuggestions(false);
-    if (window.innerWidth <= 768) {
-      setShowLeftPanel(false);
-    }
+    if (window.innerWidth <= 768) setShowLeftPanel(false);
     if (gMapRef.current?.getSource?.('route')) {
       gMapRef.current.getSource('route').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: [] } });
     }
-    const lat = atm.lat ?? atm.latitude, lng = atm.lng ?? atm.longitude;
-    if (gMapRef.current) {
+
+    // ── Enrich lat/lng if missing (ATM from AutoComplete only) ──
+    let enrichedAtm = atm;
+    if ((atm.lat == null || atm.lng == null) && atm.placeId) {
+      try {
+        const res = await atmApi.getPlaceDetail(atm.placeId);
+        const loc = res.data?.data?.geometry?.location ?? res.data?.data;
+        const lat = loc?.lat;
+        const lng = loc?.lng;
+        if (lat && lng) {
+          enrichedAtm = { ...atm, lat, lng };
+          // Update the atm in the list state too
+          setAtms(prev => prev.map(a =>
+            a.placeId === atm.placeId ? { ...a, lat, lng } : a
+          ));
+        }
+      } catch { /* fallback: use atm as-is */ }
+    }
+
+    setSelectedAtm(enrichedAtm);
+
+    const lat = enrichedAtm.lat ?? enrichedAtm.latitude;
+    const lng = enrichedAtm.lng ?? enrichedAtm.longitude;
+    if (gMapRef.current && lat && lng) {
       if (window.innerWidth <= 768) {
         gMapRef.current.flyTo({ center: [lng, lat], zoom: 16, speed: 1.1, offset: [0, -100] });
       } else {
@@ -473,9 +618,8 @@ export default function AtmMapPage({ embedded = false }) {
       }
     }
 
-    // Scroll list to this item
     setTimeout(() => {
-      const el = listRef.current?.querySelector(`[data-id="${atm.id}"]`);
+      const el = listRef.current?.querySelector(`[data-id="${enrichedAtm.id}"]`);
       el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 100);
   }, []);
@@ -846,8 +990,8 @@ export default function AtmMapPage({ embedded = false }) {
               type="range"
               className="radius-slider"
               min={1000}
-              max={10000}
-              step={500}
+              max={20000}
+              step={1000}
               value={searchRadius}
               onChange={e => handleRadiusChange(Number(e.target.value))}
             />
@@ -1006,6 +1150,21 @@ export default function AtmMapPage({ embedded = false }) {
       {/* ══ RIGHT: Goong Map ════════════════════════════════════════ */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         <div ref={mapDivRef} style={{ width: '100%', height: '100%' }} />
+
+        {/* Pan re-fetch loading badge */}
+        {panLoading && (
+          <div style={{
+            position: 'absolute', top: 74, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 30, background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)',
+            borderRadius: 20, padding: '6px 16px', boxShadow: '0 4px 16px rgba(0,0,0,.12)',
+            display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600,
+            color: '#2563eb', animation: 'fadeIn .2s',
+            border: '1px solid rgba(37,99,235,0.15)'
+          }}>
+            <span style={{ display: 'inline-block', animation: 'spinR 1s linear infinite' }}>🔄</span>
+            Đang tải ATM khu vực này...
+          </div>
+        )}
 
         {/* FAB cluster */}
         <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 10, zIndex: 15, transition: 'transform 0.3s' }}
