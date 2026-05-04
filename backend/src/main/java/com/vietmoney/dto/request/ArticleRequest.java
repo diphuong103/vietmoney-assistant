@@ -13,5 +13,4 @@ public class ArticleRequest {
     private String tags;
     private String mediaUrl;
     private String mediaType;
-    private String category;
 }

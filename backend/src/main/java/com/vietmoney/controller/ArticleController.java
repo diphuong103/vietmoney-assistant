@@ -83,7 +83,7 @@ public class ArticleController {
                 articleService.rejectArticle(id, reason)));
     }
 
-    // User: toggle like bài — trả về liked/saved/likeCount
+    // User: like/lưu bài
     @PostMapping("/{id}/like")
     public ResponseEntity<ApiResponse<ArticleStatusResponse>> like(
             @PathVariable Long id,
@@ -108,8 +108,8 @@ public class ArticleController {
     public ResponseEntity<ApiResponse<ArticleStatusResponse>> getStatus(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
-        ArticleStatusResponse status = articleService.getArticleStatus(userDetails.getUsername(), id);
-        return ResponseEntity.ok(ApiResponse.success(status));
+        articleService.toggleLikeArticle(userDetails.getUsername(), id);
+        return ResponseEntity.ok(ApiResponse.success("Đã thả tym", null));
     }
 
     // Admin: xoá bài
@@ -119,4 +119,5 @@ public class ArticleController {
         articleService.deleteArticle(id);
         return ResponseEntity.ok(ApiResponse.success("Xoá bài viết thành công", null));
     }
+
 }

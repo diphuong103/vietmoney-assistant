@@ -43,6 +43,7 @@ public class Article {
 
     private String mediaUrl;
     private String mediaType;
+
     @Builder.Default
     private Long likeCount = 0L;
 

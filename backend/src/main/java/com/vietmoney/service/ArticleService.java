@@ -11,6 +11,7 @@ import com.vietmoney.repository.ArticleRepository;
 import com.vietmoney.repository.ArticleLikeRepository;
 import com.vietmoney.repository.SavedArticleRepository;
 import com.vietmoney.repository.UserRepository;
+import com.vietmoney.repository.ArticleLikeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -53,10 +54,12 @@ public class ArticleService {
                                 .title(request.getTitle())
                                 .content(request.getContent())
                                 .thumbnailUrl(request.getThumbnailUrl())
-                                .tags(request.getTags())
                                 .mediaUrl(request.getMediaUrl())
                                 .mediaType(request.getMediaType())
+                                .tags(request.getTags())
                                 .status(ArticleStatus.PENDING)
+                                .likeCount(0L)
+                                .viewCount(0L)
                                 .build();
                 return articleRepository.save(article);
         }
@@ -78,76 +81,44 @@ public class ArticleService {
                 return articleRepository.save(article);
         }
 
-        /** Toggle like: returns updated status */
         @Transactional
-        public ArticleStatusResponse toggleLike(String username, Long articleId) {
+        public void saveArticle(String username, Long articleId) {
                 User user = userRepository.findByUsername(username)
                                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
                 Article article = articleRepository.findById(articleId)
                                 .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
 
-                Long currentCount = java.util.Optional.ofNullable(article.getLikeCount()).orElse(0L);
+                com.vietmoney.domain.entity.SavedArticle savedArticle = com.vietmoney.domain.entity.SavedArticle
+                                .builder()
+                                .user(user)
+                                .article(article)
+                                .build();
+                savedArticleRepository.save(savedArticle);
+        }
 
-                boolean liked = articleLikeRepository.findByUserAndArticle(user, article).map(like -> {
-                        articleLikeRepository.delete(like);
-                        article.setLikeCount(Math.max(0, currentCount - 1));
-                        return false;
-                }).orElseGet(() -> {
-                        articleLikeRepository.save(com.vietmoney.domain.entity.ArticleLike.builder()
-                                        .user(user).article(article).build());
-                        article.setLikeCount(currentCount + 1);
-                        return true;
-                });
+        @Transactional
+        public void toggleLikeArticle(String username, Long articleId) {
+                User user = userRepository.findByUsername(username)
+                                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                Article article = articleRepository.findById(articleId)
+                                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
 
+                java.util.Optional<com.vietmoney.domain.entity.ArticleLike> existingLike = articleLikeRepository
+                                .findByUserAndArticle(user, article);
+
+                if (existingLike.isPresent()) {
+                        articleLikeRepository.delete(existingLike.get());
+                        article.setLikeCount(Math.max(0, article.getLikeCount() - 1));
+                } else {
+                        com.vietmoney.domain.entity.ArticleLike newLike = com.vietmoney.domain.entity.ArticleLike
+                                        .builder()
+                                        .user(user)
+                                        .article(article)
+                                        .build();
+                        articleLikeRepository.save(newLike);
+                        article.setLikeCount(article.getLikeCount() + 1);
+                }
                 articleRepository.save(article);
-
-                boolean saved = savedArticleRepository.findByUserAndArticle(user, article).isPresent();
-                return ArticleStatusResponse.builder()
-                                .liked(liked)
-                                .saved(saved)
-                                .likeCount(article.getLikeCount())
-                                .build();
-        }
-
-        /** Toggle save: add/remove saved article */
-        @Transactional
-        public ArticleStatusResponse toggleSave(String username, Long articleId) {
-                User user = userRepository.findByUsername(username)
-                                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-                Article article = articleRepository.findById(articleId)
-                                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
-
-                boolean saved = savedArticleRepository.findByUserAndArticle(user, article).map(s -> {
-                        savedArticleRepository.delete(s);
-                        return false;
-                }).orElseGet(() -> {
-                        savedArticleRepository.save(com.vietmoney.domain.entity.SavedArticle.builder()
-                                        .user(user).article(article).build());
-                        return true;
-                });
-
-                boolean liked = articleLikeRepository.findByUserAndArticle(user, article).isPresent();
-                return ArticleStatusResponse.builder()
-                                .liked(liked)
-                                .saved(saved)
-                                .likeCount(java.util.Optional.ofNullable(article.getLikeCount()).orElse(0L))
-                                .build();
-        }
-
-        /** Get like/save status for current user */
-        public ArticleStatusResponse getArticleStatus(String username, Long articleId) {
-                User user = userRepository.findByUsername(username)
-                                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-                Article article = articleRepository.findById(articleId)
-                                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
-
-                boolean liked = articleLikeRepository.findByUserAndArticle(user, article).isPresent();
-                boolean saved = savedArticleRepository.findByUserAndArticle(user, article).isPresent();
-                return ArticleStatusResponse.builder()
-                                .liked(liked)
-                                .saved(saved)
-                                .likeCount(java.util.Optional.ofNullable(article.getLikeCount()).orElse(0L))
-                                .build();
         }
 
         public Page<Article> getMyArticles(String username, int page, int size) {
@@ -165,19 +136,5 @@ public class ArticleService {
         @Transactional
         public void deleteArticle(Long id) {
                 articleRepository.deleteById(id);
-        }
-
-        // Legacy save (kept for backward compat, delegates to toggle)
-        @Transactional
-        public void saveArticleUser(String username, Long articleId) {
-                User user = userRepository.findByUsername(username)
-                                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-                Article article = articleRepository.findById(articleId)
-                                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
-
-                if (savedArticleRepository.findByUserAndArticle(user, article).isEmpty()) {
-                        savedArticleRepository.save(com.vietmoney.domain.entity.SavedArticle.builder()
-                                        .user(user).article(article).build());
-                }
         }
 }

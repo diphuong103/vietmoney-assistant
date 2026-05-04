@@ -11,4 +11,6 @@ import java.util.Optional;
 @Repository
 public interface ArticleLikeRepository extends JpaRepository<ArticleLike, Long> {
     Optional<ArticleLike> findByUserAndArticle(User user, Article article);
+
+    boolean existsByUserAndArticle(User user, Article article);
 }

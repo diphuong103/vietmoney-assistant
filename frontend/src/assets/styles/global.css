@@ -1845,7 +1845,7 @@ select {
   --r3: 22px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.04);
   --shadow2: 0 4px 16px rgba(0, 0, 0, 0.09), 0 12px 32px rgba(0, 0, 0, 0.06);
-  --nav-bg: rgba(255, 255, 255, 0.97);
+  --nav-bg: rgba(255, 255, 255, 0.7);
   --font: 'Be Vietnam Pro', sans-serif;
   --mono: 'JetBrains Mono', monospace;
 }
@@ -1872,7 +1872,7 @@ html.dark {
   --blue-lt: rgba(107, 168, 240, 0.12);
   --shadow: 0 1px 4px rgba(0, 0, 0, 0.35), 0 4px 16px rgba(0, 0, 0, 0.22);
   --shadow2: 0 4px 20px rgba(0, 0, 0, 0.45), 0 12px 36px rgba(0, 0, 0, 0.3);
-  --nav-bg: rgba(25, 28, 24, 0.97);
+  --nav-bg: rgba(25, 28, 24, 0.7);
 }
 
 /* Smooth theme transition */
