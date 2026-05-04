@@ -1,29 +1,30 @@
 import axiosClient from './axiosClient';
 
 const budgetApi = {
-  getTransactions: (params) =>
-    axiosClient.get('/budget/transactions', { params }),
+  getBudgets: async () => {
+    const res = await axiosClient.get('/budgets');
+    return res?.data ?? res;
+  },
 
-  addTransaction: (data) =>
-    axiosClient.post('/budget/transactions', data),
+  getDailyBudget: async () => {
+    const res = await axiosClient.get('/budgets/daily');
+    return res?.data ?? res;
+  },
 
-  deleteTransaction: (id) =>
-    axiosClient.delete(`/budget/transactions/${id}`),
+  createBudget: async (data) => {
+    const res = await axiosClient.post('/budgets', data);
+    return res?.data ?? res;
+  },
 
-  getCategories: () =>
-    axiosClient.get('/budget/categories'),
+  updateBudget: async (id, data) => {
+    const res = await axiosClient.put(`/budgets/${id}`, data);
+    return res?.data ?? res;
+  },
 
-  addCategory: (data) =>
-    axiosClient.post('/budget/categories', data),
-
-  deleteCategory: (id) =>
-    axiosClient.delete(`/budget/categories/${id}`),
-
-  getDailyBudget: () =>
-    axiosClient.get('/budget/daily'),
-
-  setDailyBudget: (amount) =>
-    axiosClient.put('/budget/daily', { amount }),
+  deleteBudget: async (id) => {
+    const res = await axiosClient.delete(`/budgets/${id}`);
+    return res?.data ?? res;
+  },
 };
 
 export default budgetApi;

@@ -3,6 +3,8 @@ package com.vietmoney.controller;
 import com.vietmoney.domain.entity.Budget;
 import com.vietmoney.dto.request.BudgetRequest;
 import com.vietmoney.dto.response.ApiResponse;
+import com.vietmoney.dto.response.BudgetResponse;
+import com.vietmoney.dto.response.DailyBudgetResponse;
 import com.vietmoney.service.BudgetService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,10 +13,12 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/budget")
+@RequestMapping("/api/v1/budgets")
 @RequiredArgsConstructor
 public class BudgetController {
 
@@ -27,35 +31,28 @@ public class BudgetController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Budget>> create(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @Valid @RequestBody BudgetRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Tạo ngân sách thành công",
-                budgetService.createBudget(userDetails.getUsername(), request)));
+    public BudgetResponse create(@RequestBody BudgetRequest request) {
+        return budgetService.create(request);
+    }
+
+    @GetMapping
+    public List<BudgetResponse> getMyBudgets() {
+        return budgetService.getMyBudgets();
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Budget>> update(@PathVariable Long id,
-            @Valid @RequestBody BudgetRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(budgetService.updateBudget(id, request)));
+    public BudgetResponse update(@PathVariable Long id,
+                                 @RequestBody BudgetRequest request) {
+        return budgetService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-        budgetService.deleteBudget(id);
-        return ResponseEntity.ok(ApiResponse.success("Xóa thành công", null));
+    public void delete(@PathVariable Long id) {
+        budgetService.delete(id);
     }
 
     @GetMapping("/daily")
-    public ResponseEntity<ApiResponse<Budget>> getDailyBudget(@AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(ApiResponse.success(budgetService.getDailyBudget(userDetails.getUsername())));
-    }
-
-    @PutMapping("/daily")
-    public ResponseEntity<ApiResponse<Budget>> setDailyBudget(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody java.util.Map<String, java.math.BigDecimal> request) {
-        return ResponseEntity.ok(ApiResponse.success(
-                budgetService.setDailyBudget(userDetails.getUsername(), request.get("amount"))));
+    public ResponseEntity<DailyBudgetResponse> getDailyBudget() {
+        return ResponseEntity.ok(budgetService.getDailyBudget());
     }
 }

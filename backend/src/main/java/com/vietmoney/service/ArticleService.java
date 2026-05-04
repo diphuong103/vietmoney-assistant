@@ -26,10 +26,10 @@ public class ArticleService {
         private final SavedArticleRepository savedArticleRepository;
         private final ArticleLikeRepository articleLikeRepository;
 
-        public Page<Article> getApprovedArticles(int page, int size) {
-                return articleRepository.findByStatus(ArticleStatus.APPROVED,
-                                PageRequest.of(page, size, Sort.by("createdAt").descending()));
-        }
+    public Page<Article> getApprovedArticles(int page, int size) {
+        return articleRepository.findByStatus(ArticleStatus.APPROVED,
+                PageRequest.of(page, size, Sort.by("createdAt").descending()));
+    }
 
         public Page<Article> getPendingArticles(int page, int size) {
                 return articleRepository.findByStatus(ArticleStatus.PENDING,
@@ -64,22 +64,22 @@ public class ArticleService {
                 return articleRepository.save(article);
         }
 
-        @Transactional
-        public Article approveArticle(Long id) {
-                Article article = articleRepository.findById(id)
-                                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
-                article.setStatus(ArticleStatus.APPROVED);
-                return articleRepository.save(article);
-        }
+    @Transactional
+    public Article approveArticle(Long id) {
+        Article article = articleRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
+        article.setStatus(ArticleStatus.APPROVED);
+        return articleRepository.save(article);
+    }
 
-        @Transactional
-        public Article rejectArticle(Long id, String reason) {
-                Article article = articleRepository.findById(id)
-                                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
-                article.setStatus(ArticleStatus.REJECTED);
-                article.setRejectionReason(reason);
-                return articleRepository.save(article);
-        }
+    @Transactional
+    public Article rejectArticle(Long id, String reason) {
+        Article article = articleRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
+        article.setStatus(ArticleStatus.REJECTED);
+        article.setRejectionReason(reason);
+        return articleRepository.save(article);
+    }
 
         @Transactional
         public void saveArticle(String username, Long articleId) {

@@ -7,7 +7,6 @@ const BASE = import.meta.env.VITE_API_BASE_URL
 
 const axiosClient = axios.create({
     baseURL: BASE,
-    timeout: 60_000,
     headers: { 'Content-Type': 'application/json' },
     withCredentials: false,             // không dùng cookie, dùng Bearer token
 });

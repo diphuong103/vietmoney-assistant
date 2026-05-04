@@ -1,21 +1,21 @@
 package com.vietmoney.domain.entity;
 
+import com.vietmoney.domain.enums.CategoryType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "budgets")
+@Table(name = "categories")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Budget {
+public class Category {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,19 +25,23 @@ public class Budget {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(name = "total_amount")
-    private BigDecimal totalAmount;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CategoryType type;
 
-    @Column(name = "spent_amount")
-    private BigDecimal spentAmount = BigDecimal.ZERO;
+    private String icon;
 
-    private String currency;
+    private String color;
 
-    private LocalDate startDate;
-    private LocalDate endDate;
+    @Column(name = "is_default")
+    private Boolean isDefault = false;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
 }
