@@ -24,12 +24,6 @@ public class BudgetController {
 
     private final BudgetService budgetService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<Budget>>> getMyBudgets(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(ApiResponse.success(budgetService.getUserBudgets(userDetails.getUsername())));
-    }
-
     @PostMapping
     public BudgetResponse create(@RequestBody BudgetRequest request) {
         return budgetService.create(request);

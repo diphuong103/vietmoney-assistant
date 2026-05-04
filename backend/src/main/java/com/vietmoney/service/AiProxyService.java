@@ -32,18 +32,20 @@ public class AiProxyService {
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class PythonPredictResponse {
-        private String denomination;       // "₫100,000"
-        private Long valueVnd;             // 100000  (null nếu không phải VND)
+        private String denomination; // "₫100,000"
+        private Long valueVnd; // 100000 (null nếu không phải VND)
         private Double confidence;
         private String imageUrl;
-        private String className;          // "VN_100000"
-        private String currencyType;       // "VND"
-        private String authenticity;       // "real" | "fake"
+        private String className; // "VN_100000"
+        private String currencyType; // "VND"
+        private String authenticity; // "real" | "fake"
         private Boolean isFake;
         private String warningMessage;
 
         @JsonProperty("currencyType")
-        public void setCurrencyType(String v) { this.currencyType = v; }
+        public void setCurrencyType(String v) {
+            this.currencyType = v;
+        }
     }
 
     // ─── Gọi Python FastAPI POST /recognize ─────────────────────────────────
@@ -57,12 +59,13 @@ public class AiProxyService {
             @Override
             public String getFilename() {
                 return image.getOriginalFilename() != null
-                        ? image.getOriginalFilename() : "scan.jpg";
+                        ? image.getOriginalFilename()
+                        : "scan.jpg";
             }
         });
 
         HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<ScanResultResponse> response = restTemplate.postForEntity(
+        ResponseEntity<ScanResultResponse> scanResponse = restTemplate.postForEntity(
                 aiServiceUrl + "/recognize", request, ScanResultResponse.class);
 
         // Python app.include_router(recognize.router, prefix="/recognize")
@@ -72,8 +75,7 @@ public class AiProxyService {
 
         try {
             ResponseEntity<PythonPredictResponse> response = restTemplate.postForEntity(
-                    url, request, PythonPredictResponse.class
-            );
+                    url, request, PythonPredictResponse.class);
 
             PythonPredictResponse python = response.getBody();
             if (python == null) {

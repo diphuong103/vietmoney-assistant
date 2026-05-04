@@ -8,10 +8,14 @@ import java.math.BigDecimal;
 @Data
 public class TransactionRequest {
     private Long budgetId;
-    @NotNull private TransactionType type;
-    @NotNull @Positive private BigDecimal amount;
-    @NotBlank private String currency;
-    private String category;
+    @NotNull
+    private TransactionType type;
+    @NotNull
+    @Positive
+    private BigDecimal amount;
+    @NotBlank
+    private String currency;
+    private Long categoryId;
     private String note;
     private String imageUrl;
 }

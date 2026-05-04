@@ -2,6 +2,7 @@ package com.vietmoney.service.impl;
 
 import com.vietmoney.domain.entity.*;
 import com.vietmoney.domain.enums.CategoryType;
+import com.vietmoney.domain.enums.TransactionType;
 import com.vietmoney.dto.request.TransactionRequest;
 import com.vietmoney.dto.response.TransactionResponse;
 import com.vietmoney.exception.AppException;
@@ -61,14 +62,13 @@ public class TransactionServiceImpl implements TransactionService {
 
         Transaction saved = transactionRepository.save(txn);
 
-        if (budget != null && request.getType() == CategoryType.EXPENSE) {
+        if (budget != null && request.getType() == TransactionType.EXPENSE) {
             if (budget.getSpentAmount() == null) {
                 budget.setSpentAmount(BigDecimal.ZERO);
             }
 
             budget.setSpentAmount(
-                    budget.getSpentAmount().add(request.getAmount())
-            );
+                    budget.getSpentAmount().add(request.getAmount()));
             budgetRepository.save(budget);
         }
 
@@ -101,11 +101,10 @@ public class TransactionServiceImpl implements TransactionService {
             throw new AppException(ErrorCode.FORBIDDEN);
         }
 
-        if (txn.getBudget() != null && txn.getType() == CategoryType.EXPENSE) {
+        if (txn.getBudget() != null && txn.getType() == TransactionType.EXPENSE) {
             Budget oldBudget = txn.getBudget();
             oldBudget.setSpentAmount(
-                    oldBudget.getSpentAmount().subtract(txn.getAmount())
-            );
+                    oldBudget.getSpentAmount().subtract(txn.getAmount()));
             budgetRepository.save(oldBudget);
         }
 
@@ -129,11 +128,10 @@ public class TransactionServiceImpl implements TransactionService {
 
         Transaction saved = transactionRepository.save(txn);
 
-        if (budget != null && request.getType() == CategoryType.EXPENSE) {
+        if (budget != null && request.getType() == TransactionType.EXPENSE) {
             budget.setSpentAmount(
                     (budget.getSpentAmount() == null ? BigDecimal.ZERO : budget.getSpentAmount())
-                            .add(request.getAmount())
-            );
+                            .add(request.getAmount()));
             budgetRepository.save(budget);
         }
 

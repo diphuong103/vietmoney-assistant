@@ -137,4 +137,80 @@ public class ArticleService {
         public void deleteArticle(Long id) {
                 articleRepository.deleteById(id);
         }
+
+    @Transactional
+    public ArticleStatusResponse toggleLike(String username, Long articleId) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Article article = articleRepository.findById(articleId)
+                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
+
+        boolean liked;
+        java.util.Optional<com.vietmoney.domain.entity.ArticleLike> existingLike =
+                articleLikeRepository.findByUserAndArticle(user, article);
+
+        if (existingLike.isPresent()) {
+            articleLikeRepository.delete(existingLike.get());
+            article.setLikeCount(Math.max(0, article.getLikeCount() - 1));
+            liked = false;
+        } else {
+            articleLikeRepository.save(
+                    com.vietmoney.domain.entity.ArticleLike.builder()
+                            .user(user).article(article).build());
+            article.setLikeCount(article.getLikeCount() + 1);
+            liked = true;
+        }
+        articleRepository.save(article);
+
+        boolean saved = savedArticleRepository.existsByUserAndArticle(user, article);
+        return ArticleStatusResponse.builder()
+                .liked(liked)
+                .saved(saved)
+                .likeCount(article.getLikeCount())
+                .build();
+    }
+
+    @Transactional
+    public ArticleStatusResponse toggleSave(String username, Long articleId) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Article article = articleRepository.findById(articleId)
+                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
+
+        boolean saved;
+        java.util.Optional<com.vietmoney.domain.entity.SavedArticle> existing =
+                savedArticleRepository.findByUserAndArticle(user, article);
+
+        if (existing.isPresent()) {
+            savedArticleRepository.delete(existing.get());
+            saved = false;
+        } else {
+            savedArticleRepository.save(
+                    com.vietmoney.domain.entity.SavedArticle.builder()
+                            .user(user).article(article).build());
+            saved = true;
+        }
+
+        boolean liked = articleLikeRepository.findByUserAndArticle(user, article).isPresent();
+        return ArticleStatusResponse.builder()
+                .liked(liked)
+                .saved(saved)
+                .likeCount(article.getLikeCount())
+                .build();
+    }
+
+    public ArticleStatusResponse getArticleStatus(String username, Long articleId) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Article article = articleRepository.findById(articleId)
+                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
+
+        boolean liked = articleLikeRepository.findByUserAndArticle(user, article).isPresent();
+        boolean saved = savedArticleRepository.existsByUserAndArticle(user, article);
+        return ArticleStatusResponse.builder()
+                .liked(liked)
+                .saved(saved)
+                .likeCount(article.getLikeCount())
+                .build();
+    }
 }

@@ -1,17 +1,38 @@
 import { create } from 'zustand';
 
+import budgetApi from '../api/budgetApi';
+
 export const useBudgetStore = create((set, get) => ({
   transactions: [],
   dailyBudget: 2_000_000,
+  spentToday: 0,
+  remaining: 2_000_000,
+  percentUsed: 0,
   categories: [
-    { emoji: '🍜', name: 'Food',      color: '#C8F23D' },
+    { emoji: '🍜', name: 'Food', color: '#C8F23D' },
     { emoji: '🛺', name: 'Transport', color: '#3DF2C8' },
-    { emoji: '🏨', name: 'Hotel',     color: '#3D8FF2' },
-    { emoji: '🎭', name: 'Activity',  color: '#F2C43D' },
+    { emoji: '🏨', name: 'Hotel', color: '#3D8FF2' },
+    { emoji: '🎭', name: 'Activity', color: '#F2C43D' },
     { emoji: '🛍️', name: 'Shopping', color: '#F23D6E' },
   ],
 
   setDailyBudget: (budget) => set({ dailyBudget: budget }),
+
+  fetchDailyBudget: async () => {
+    try {
+      const data = await budgetApi.getDailyBudget();
+      if (data) {
+        set({
+          dailyBudget: data.dailyBudget ?? 0,
+          spentToday: data.spentToday ?? 0,
+          remaining: data.remaining ?? 0,
+          percentUsed: data.percentUsed ?? 0
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  },
 
   addTransaction: (txn) =>
     set((state) => ({ transactions: [txn, ...state.transactions] })),

@@ -473,8 +473,8 @@ export default function DashboardPage() {
               <span className="lp-budget-badge">This Week</span>
             </div>
             <div className="lp-chart-wrap" style={{ position: 'relative' }}>
-              <ResponsiveContainer width={200} height={200}>
-                <PieChart>
+              <div style={{ position: 'relative', width: 200, height: 200 }}>
+                <PieChart width={200} height={200}>
                   <Pie
                     data={BUDGET_DATA}
                     cx="50%"
@@ -488,11 +488,11 @@ export default function DashboardPage() {
                     endAngle={-270}
                   >
                     {BUDGET_DATA.map((_, idx) => (
-                      <Cell key={idx} fill={CHART_COLORS[idx]} />
+                      <Cell key={`budget-cell-${idx}`} fill={CHART_COLORS[idx]} />
                     ))}
                   </Pie>
                 </PieChart>
-              </ResponsiveContainer>
+              </div>
               <div style={{ position: 'absolute', textAlign: 'center' }}>
                 <div style={{ fontSize: 12, color: 'var(--lp-muted)', fontWeight: 500 }}>Remaining</div>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 800, color: 'var(--lp-emerald)' }}>65%</div>

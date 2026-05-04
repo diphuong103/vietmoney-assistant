@@ -11,10 +11,14 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "transactions")
-@Data @Builder @NoArgsConstructor @AllArgsConstructor
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 public class Transaction {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -30,7 +34,9 @@ public class Transaction {
 
     private BigDecimal amount;
     private String currency;
-    private String category;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
     private String note;
     private String imageUrl;
 

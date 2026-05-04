@@ -1090,8 +1090,9 @@ export default function AtmMapPage({ embedded = false }) {
             const isSel = selectedAtm?.id === atm.id;
             const isNearest = atm.id === nearestAtmId;
             const isHov = atm.id === hoveredAtmId;
+            const itemKey = atm.placeId || atm.id || `atm-${idx}`;
             return (
-              <div key={atm.id} data-id={atm.id}
+              <div key={itemKey} data-id={itemKey}
                 className={`atm-card${isSel ? ' sel' : ''}${isNearest ? ' nearest' : ''}`}
                 style={{ animation: `staggerIn .3s cubic-bezier(.34,1.56,.64,1) ${idx * 0.04}s both`, background: isHov && !isSel ? '#f0f9ff' : undefined }}
                 onClick={() => handleSelectAtm(atm)}
