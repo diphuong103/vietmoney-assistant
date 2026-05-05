@@ -1,22 +1,22 @@
 package com.vietmoney.domain.entity;
 
-import com.vietmoney.domain.enums.TransactionType;
+import com.vietmoney.domain.enums.CategoryType;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "transactions")
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EntityListeners(AuditingEntityListener.class)
+@Builder
 public class Transaction {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,17 +29,17 @@ public class Transaction {
     @JoinColumn(name = "budget_id")
     private Budget budget;
 
-    @Enumerated(EnumType.STRING)
-    private TransactionType type;
-
-    private BigDecimal amount;
-    private String currency;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
-    private String note;
-    private String imageUrl;
 
-    @CreatedDate
+    @Enumerated(EnumType.STRING)
+    private CategoryType type;
+
+    private BigDecimal amount;
+
+    private String note;
+
+    @CreationTimestamp
     private LocalDateTime createdAt;
 }
