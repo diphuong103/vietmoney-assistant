@@ -111,12 +111,22 @@ public class BudgetServiceImpl implements BudgetService {
         User user = getCurrentUser();
         LocalDate today = LocalDate.now();
 
-        Budget activeBudget = budgetRepository
+        java.util.Optional<Budget> activeBudgetOpt = budgetRepository
                 .findFirstByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
                         user.getId(),
                         today,
-                        today)
-                .orElseThrow(() -> new AppException(ErrorCode.BUDGET_NOT_FOUND));
+                        today);
+
+        if (activeBudgetOpt.isEmpty()) {
+            return DailyBudgetResponse.builder()
+                    .dailyLimit(BigDecimal.ZERO)
+                    .spentToday(BigDecimal.ZERO)
+                    .remaining(BigDecimal.ZERO)
+                    .percentUsed(0.0)
+                    .build();
+        }
+
+        Budget activeBudget = activeBudgetOpt.get();
 
         // số ngày budget
         long totalDays = ChronoUnit.DAYS.between(

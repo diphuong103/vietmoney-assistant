@@ -30,7 +30,16 @@ export const useBudgetStore = create((set, get) => ({
         });
       }
     } catch (e) {
-      console.error(e);
+      if (e.response?.status === 404) {
+        set({
+          dailyBudget: 0,
+          spentToday: 0,
+          remaining: 0,
+          percentUsed: 0
+        });
+      } else {
+        console.error(e);
+      }
     }
   },
 

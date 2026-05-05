@@ -46,11 +46,12 @@ public class SecurityConfig {
     // ── Public GET endpoints ──────────────────────────────
     private static final String[] PUBLIC_GET = {
             "/api/v1/articles",
+            "/api/v1/budgets/**",
             "/api/v1/tourist-spots",
             "/api/v1/tourist-spots/search",
             "/api/v1/tourist-spots/{id}",
             "/api/v1/tourist-spots/nearby",
-            "/api/v1/tourist-spots/**",          // ✅ dùng ** thay {id}
+            "/api/v1/tourist-spots/**",
             "/api/v1/exchange-rates",
             "/api/v1/exchange-rates/convert",
             "/api/v1/wiki/**",

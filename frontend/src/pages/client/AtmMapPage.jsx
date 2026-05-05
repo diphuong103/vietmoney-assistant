@@ -290,6 +290,16 @@ export default function AtmMapPage({ embedded = false }) {
     });
 
     map.addControl(new goongjs.NavigationControl(), 'bottom-right');
+
+    map.on('styleimagemissing', (e) => {
+      try {
+        const id = e.id;
+        const w = 1, h = 1;
+        const data = new Uint8Array(w * h * 4);
+        map.addImage(id, { width: w, height: h, data });
+      } catch (err) { }
+    });
+
     map.on('load', () => {
       map.addSource('route', {
         type: 'geojson',
