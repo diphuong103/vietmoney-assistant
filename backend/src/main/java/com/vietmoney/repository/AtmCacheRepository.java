@@ -2,38 +2,48 @@ package com.vietmoney.repository;
 
 import com.vietmoney.domain.entity.AtmCache;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public interface AtmCacheRepository extends JpaRepository<AtmCache, Long> {
 
     Optional<AtmCache> findByPlaceId(String placeId);
 
-    List<AtmCache> findByGridKey(String gridKey);
-
-    /** Kiểm tra khu vực đã scan và còn TTL */
-    boolean existsByGridKeyAndScannedAtAfter(String gridKey, LocalDateTime after);
-
     /**
-     * Bounding box query: lấy ATM có lat/lng trong hình chữ nhật và còn TTL.
-     * Java-side sẽ tiếp tục lọc chính xác bằng Haversine.
+     * Fast bounding-box query using lat/lng index.
+     * Caller must do Haversine filtering afterwards for exact radius.
      */
-    @Query("SELECT a FROM AtmCache a WHERE " +
-            "a.lat IS NOT NULL AND a.lng IS NOT NULL AND " +
-            "a.lat BETWEEN :minLat AND :maxLat AND " +
-            "a.lng BETWEEN :minLng AND :maxLng AND " +
-            "a.scannedAt > :after")
-    List<AtmCache> findByBoundingBoxAndTtl(
-            @Param("minLat") double minLat, @Param("maxLat") double maxLat,
-            @Param("minLng") double minLng, @Param("maxLng") double maxLng,
-            @Param("after") LocalDateTime after);
+    @Query("""
+        SELECT a FROM AtmCache a
+        WHERE a.lat BETWEEN :minLat AND :maxLat
+          AND a.lng BETWEEN :minLng AND :maxLng
+          AND a.lat IS NOT NULL
+          AND a.lng IS NOT NULL
+        """)
+    List<AtmCache> findByBoundingBox(
+            double minLat, double maxLat,
+            double minLng, double maxLng
+    );
 
-    /**
-     * Lấy tất cả ATM chưa có tọa độ trong grid key (để enrich).
-     */
-    List<AtmCache> findByGridKeyAndLatIsNull(String gridKey);
+    /** Count ATMs in a bounding box (used to verify scan coverage) */
+    @Query("""
+        SELECT COUNT(a) FROM AtmCache a
+        WHERE a.lat BETWEEN :minLat AND :maxLat
+          AND a.lng BETWEEN :minLng AND :maxLng
+          AND a.lat IS NOT NULL
+        """)
+    long countByBoundingBox(double minLat, double maxLat, double minLng, double maxLng);
+
+    /** Delete stale entries older than cutoff */
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM AtmCache a WHERE a.scannedAt < :cutoff AND a.scannedAt IS NOT NULL")
+    int deleteByScannedAtBefore(LocalDateTime cutoff);
 }

@@ -108,8 +108,8 @@ public class ArticleController {
     public ResponseEntity<ApiResponse<ArticleStatusResponse>> getStatus(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
-        articleService.toggleLikeArticle(userDetails.getUsername(), id);
-        return ResponseEntity.ok(ApiResponse.success("Đã thả tym", null));
+        return ResponseEntity.ok(ApiResponse.success("Trạng thái bài viết",
+                articleService.getArticleStatus(userDetails.getUsername(), id)));
     }
 
     // Admin: xoá bài

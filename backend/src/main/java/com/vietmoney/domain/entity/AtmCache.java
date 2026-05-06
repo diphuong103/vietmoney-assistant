@@ -5,53 +5,60 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * Cache ATM từ Goong API — unique theo placeId.
- * gridKey dùng để đánh dấu khu vực đã scan (tránh spam API).
+ * Cached ATM / bank branch data fetched from Goong API.
+ * Once stored here, subsequent requests are served entirely from DB.
  */
 @Entity
-@Table(name = "atm_cache", indexes = {
-        @Index(name = "idx_atm_cache_place_id", columnList = "place_id", unique = true),
-        @Index(name = "idx_atm_cache_grid_key", columnList = "grid_key"),
-        @Index(name = "idx_atm_cache_scanned_at", columnList = "scanned_at"),
-        @Index(name = "idx_atm_cache_lat_lng", columnList = "lat, lng")
-})
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "atm_cache",
+        indexes = {
+                @Index(name = "idx_atm_place_id", columnList = "place_id", unique = true),
+                @Index(name = "idx_atm_lat_lng",  columnList = "lat,lng"),
+                @Index(name = "idx_atm_scanned",  columnList = "scanned_at")
+        })
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class AtmCache {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "place_id", nullable = false, unique = true, length = 512)
+    @Column(name = "place_id", length = 512)
     private String placeId;
 
-    @Column(name = "name", length = 256)
+    @Column(nullable = false, length = 512)
     private String name;
 
-    @Column(name = "address", length = 512)
+    @Column(length = 1024)
     private String address;
 
-    @Column(name = "lat")
+    @Column(precision = 10)
     private Double lat;
 
-    @Column(name = "lng")
+    @Column(precision = 10)
     private Double lng;
 
+    /** Bank identifier key matching BANK_META on frontend */
     @Column(name = "bank_key", length = 64)
     private String bankKey;
 
-    @Column(name = "type", length = 32)
+    /** "Cây ATM" or "Ngân hàng" */
+    @Column(length = 64)
     private String type;
 
-    /** Grid cell key — format: "gridLat_gridLng" (0.01° steps) */
-    @Column(name = "grid_key", length = 32)
+    /** "open" / "closed" */
+    @Column(length = 32)
+    private String status;
+
+    @Column(precision = 3)
+    private Double rating;
+
+    @Column(name = "phone", length = 32)
+    private String phone;
+
+    /** Grid cell key "lat_lng" for grouping */
+    @Column(name = "grid_key", length = 64)
     private String gridKey;
 
-    /** Thời điểm lần cuối scan từ Goong */
     @Column(name = "scanned_at")
     private LocalDateTime scannedAt;
 }
