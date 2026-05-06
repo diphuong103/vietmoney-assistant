@@ -288,9 +288,10 @@ export default function BudgetPage() {
   }, []);
 
   const refresh = useCallback(() => {
+    fetchTransactions(); // ← thêm dòng này
     fetchDailyBudget().catch(()=>{});
     loadBudgets();
-  }, [fetchDailyBudget, loadBudgets]);
+  }, [fetchTransactions, fetchDailyBudget, loadBudgets]);
 
   // ── Category resolver (stable per categories array) ──
   const resolveCat = useCallback((t) =>
@@ -477,30 +478,230 @@ export default function BudgetPage() {
           </>
         }
       />
-      <div style={{ height: 8 }} />
 
       {/* ── HERO CARD ── */}
-      <div style={{ padding:'12px 20px 0' }}>
-        <div className="greeting-card" style={{ borderRadius:20, padding:'18px 20px', position:'relative', overflow:'hidden' }}>
-          <div style={{ position:'absolute', right:-20, top:-20, width:120, height:120, borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none' }}/>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
+      <div style={{ padding: '12px 20px 0' }}>
+        <div style={{
+          background: 'linear-gradient(135deg, #0f1923 0%, #1a2d3f 100%)',
+          borderRadius: 20,
+          padding: '20px 20px 16px',
+          position: 'relative',
+          overflow: 'hidden',
+          border: '0.5px solid rgba(55,138,221,0.25)',
+        }}>
+          {/* rings */}
+          <div style={{ position:'absolute', top:-40, right:-40, width:160, height:160, borderRadius:'50%', border:'1px solid rgba(55,138,221,0.1)', pointerEvents:'none' }}/>
+          <div style={{ position:'absolute', top:25,  right:25,  width:80,  height:80,  borderRadius:'50%', border:'1px solid rgba(55,138,221,0.07)', pointerEvents:'none' }}/>
+          <div style={{ position:'absolute', bottom:-55, left:-30, width:120, height:120, borderRadius:'50%', border:'1px solid rgba(55,138,221,0.06)', pointerEvents:'none' }}/>
+
+          {/* top row */}
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
             <div>
-              <div style={{ fontSize:12, opacity:0.7, marginBottom:4, fontWeight:500, letterSpacing:'.04em', textTransform:'uppercase' }}>Wallet Balance</div>
-              <div style={{ fontSize:32, fontWeight:700, lineHeight:1.1, letterSpacing:'-0.02em' }}>₫{fmtM(Math.max(0,walletBalance))}</div>
-              {walletBalance<0 && <div style={{ fontSize:12, color:'#f99', marginTop:3 }}>⚠ Negative balance</div>}
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:2 }}>
+                <div style={{ width:6, height:6, borderRadius:'50%', background:'#378ADD' }}/>
+                <span style={{ fontSize:10, color:'rgba(255,255,255,0.4)', fontWeight:500, textTransform:'uppercase', letterSpacing:'0.07em' }}>
+                  Wallet Balance
+                </span>
+              </div>
+              <div style={{ fontSize:34, fontWeight:600, color:'#fff', letterSpacing:'-0.02em', lineHeight:1.1, marginTop:2 }}>
+                ₫{fmtM(Math.max(0, walletBalance))}
+              </div>
+              <div style={{ fontSize:12, color:'rgba(255,255,255,0.28)', marginTop:4, fontFamily:'DM Mono,monospace' }}>
+                ≈ ${(Math.max(0, walletBalance) / USD_RATE).toFixed(2)} USD
+              </div>
+              {walletBalance < 0 && (
+                <div style={{ fontSize:12, color:'#f99', marginTop:3 }}>
+                  ⚠ Negative balance
+                </div>
+              )}
             </div>
+
             {activeBudget && (
-              <div style={{ textAlign:'right' }}>
-                <div style={{ fontSize:11, opacity:0.65, marginBottom:3 }}>{activeBudget.name}</div>
-                <Badge variant="blue">{daysLeft(activeBudget.endDate)} days left</Badge>
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, marginTop:2 }}>
+                {/* plan name */}
+                <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(55,138,221,0.12)', border:'0.5px solid rgba(55,138,221,0.3)', borderRadius:20, padding:'3px 9px' }}>
+                  <div style={{ width:5, height:5, borderRadius:'50%', background:'#378ADD' }}/>
+                  <span style={{ fontSize:11, color:'#85B7EB', fontWeight:600 }}>
+                    {activeBudget.name}
+                  </span>
+                </div>
+
+                {/* days left — red if ≤ 5 days */}
+                <div style={{
+                  display:'inline-flex', alignItems:'center', gap:5, borderRadius:20, padding:'3px 9px',
+                  background: daysLeft(activeBudget.endDate) <= 5 ? 'rgba(226,75,74,0.15)' : 'rgba(239,159,39,0.12)',
+                  border: `0.5px solid ${daysLeft(activeBudget.endDate) <= 5 ? 'rgba(226,75,74,0.4)' : 'rgba(239,159,39,0.3)'}`
+                }}>
+                  <div style={{
+                    width:5,
+                    height:5,
+                    borderRadius:'50%',
+                    background: daysLeft(activeBudget.endDate) <= 5 ? '#E24B4A' : '#EF9F27'
+                  }}/>
+                  <span style={{
+                    fontSize:11,
+                    fontWeight:600,
+                    color: daysLeft(activeBudget.endDate) <= 5 ? '#F09595' : '#EF9F27'
+                  }}>
+                    {daysLeft(activeBudget.endDate)} days left
+                  </span>
+                </div>
               </div>
             )}
           </div>
-          <div className="greeting-meta" style={{ display:'flex', gap:20 }}>
-            <div className="meta-item"><strong>₫{fmtM(totalIncome)}</strong><span> income</span></div>
-            <div className="meta-item"><strong>₫{fmtM(totalExpense)}</strong><span> spent</span></div>
-            <div className="meta-item"><strong>₫{fmtM(totalBudget)}</strong><span> budget</span></div>
+
+          {/* divider */}
+          <div style={{ height:'0.5px', background:'rgba(255,255,255,0.08)', margin:'14px 0' }}/>
+
+          {/* stat grid */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:8 }}>
+            {[
+              { label:'Income', value:`₫${fmtM(totalIncome)}`,  dot:'#1D9E75', dotBg:'rgba(29,158,117,0.2)', color:'#5DCAA5' },
+              { label:'Spent', value:`₫${fmtM(totalExpense)}`, dot:'#E24B4A', dotBg:'rgba(226,75,74,0.2)', color:'#F09595' },
+              { label:'Budget', value:`₫${fmtM(totalBudget)}`, dot:'#378ADD', dotBg:'rgba(55,138,221,0.2)', color:'#85B7EB' },
+            ].map(({ label, value, dot, dotBg, color }) => (
+              <div key={label} style={{
+                background:'rgba(255,255,255,0.05)',
+                border:'0.5px solid rgba(255,255,255,0.09)',
+                borderRadius:12,
+                padding:'10px 12px'
+              }}>
+                <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:4 }}>
+                  <div style={{
+                    width:14,
+                    height:14,
+                    borderRadius:'50%',
+                    background:dotBg,
+                    display:'flex',
+                    alignItems:'center',
+                    justifyContent:'center'
+                  }}>
+                    <div style={{ width:5, height:5, borderRadius:'50%', background:dot }}/>
+                  </div>
+                  <span style={{
+                    fontSize:10,
+                    color:'rgba(255,255,255,0.4)',
+                    fontWeight:500,
+                    textTransform:'uppercase',
+                    letterSpacing:'0.05em'
+                  }}>
+                    {label}
+                  </span>
+                </div>
+                <div style={{ fontSize:14, fontWeight:500, color, fontFamily:'DM Mono,monospace' }}>
+                  {value}
+                </div>
+              </div>
+            ))}
           </div>
+
+          {/* progress bar */}
+          {totalBudget > 0 && (() => {
+            const pct = pctOf(totalExpense, totalBudget);
+            const barColor = pct >= 90 ? '#E24B4A' : pct >= 70 ? '#EF9F27' : '#378ADD';
+
+            return (
+              <div style={{ marginTop:14 }}>
+                <div style={{
+                  display:'flex',
+                  justifyContent:'space-between',
+                  fontSize:11,
+                  color:'rgba(255,255,255,0.3)',
+                  marginBottom:6
+                }}>
+                  <span>{pct}% used</span>
+                  <span>Remaining ₫{fmtM(Math.max(0, totalBudget - totalExpense))}</span>
+                </div>
+
+                <div style={{
+                  height:4,
+                  background:'rgba(255,255,255,0.08)',
+                  borderRadius:99,
+                  overflow:'hidden'
+                }}>
+                  <div style={{
+                    width:`${pct}%`,
+                    height:'100%',
+                    background:barColor,
+                    borderRadius:99,
+                    transition:'width .6s cubic-bezier(.4,0,.2,1)'
+                  }}/>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* smart alert bar */}
+          {totalBudget > 0 && (() => {
+            const pct = pctOf(totalExpense, totalBudget);
+            const remaining = fmtM(Math.max(0, totalBudget - totalExpense));
+
+            if (walletBalance < 0)
+              return (
+                <div style={{
+                  display:'flex',
+                  alignItems:'center',
+                  gap:8,
+                  background:'rgba(226,75,74,0.12)',
+                  border:'0.5px solid rgba(226,75,74,0.3)',
+                  borderRadius:10,
+                  padding:'8px 12px',
+                  marginTop:12,
+                  fontSize:12,
+                  fontWeight:500,
+                  color:'#F09595'
+                }}>
+                  <span style={{ fontSize:14 }}>⚠</span>
+                  <span>Wallet balance is negative — top up immediately!</span>
+                </div>
+              );
+
+            if (pct >= 90)
+              return (
+                <div style={{
+                  display:'flex',
+                  alignItems:'center',
+                  gap:8,
+                  background:'rgba(226,75,74,0.12)',
+                  border:'0.5px solid rgba(226,75,74,0.3)',
+                  borderRadius:10,
+                  padding:'8px 12px',
+                  marginTop:12,
+                  fontSize:12,
+                  fontWeight:500,
+                  color:'#F09595'
+                }}>
+                  <span style={{ fontSize:14 }}>⚠</span>
+                  <span>
+                    {pct}% of budget used — only ₫{remaining} left in <strong>{activeBudget?.name}</strong>.
+                  </span>
+                </div>
+              );
+
+            if (pct >= 70)
+              return (
+                <div style={{
+                  display:'flex',
+                  alignItems:'center',
+                  gap:8,
+                  background:'rgba(239,159,39,0.10)',
+                  border:'0.5px solid rgba(239,159,39,0.3)',
+                  borderRadius:10,
+                  padding:'8px 12px',
+                  marginTop:12,
+                  fontSize:12,
+                  fontWeight:500,
+                  color:'#EF9F27'
+                }}>
+                  <span style={{ fontSize:14 }}>⚠</span>
+                  <span>
+                    {pct}% of budget used — ₫{remaining} remaining in <strong>{activeBudget?.name}</strong>.
+                  </span>
+                </div>
+              );
+
+            return null;
+          })()}
         </div>
       </div>
 

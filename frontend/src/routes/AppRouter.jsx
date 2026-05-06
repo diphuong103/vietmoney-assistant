@@ -29,6 +29,7 @@ import ProfilePage from '../pages/client/ProfilePage';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import ArticleApprovalPage from '../pages/admin/ArticleApprovalPage';
 import UserManagementPage from '../pages/admin/UserManagementPage';
+import PriceWikiAdmin from '../pages/admin/PriceWikiAdmin';
 
 export default function AppRouter() {
   return (
@@ -75,6 +76,7 @@ export default function AppRouter() {
           <Route index element={<AdminDashboardPage />} />
           <Route path="articles" element={<ArticleApprovalPage />} />
           <Route path="users" element={<UserManagementPage />} />
+          <Route path="wiki" element={<PriceWikiAdmin />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

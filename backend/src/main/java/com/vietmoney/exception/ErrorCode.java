@@ -18,6 +18,19 @@ public enum ErrorCode {
     BUDGET_NOT_FOUND(404, "Ngân sách không tồn tại", HttpStatus.NOT_FOUND),
     CATEGORY_ALREADY_EXISTS(409, "Danh mục đã tồn tại", HttpStatus.CONFLICT),
     CATEGORY_NOT_FOUND(404, "Danh mục không tồn tại", HttpStatus.NOT_FOUND),
+
+    // NEW - PRICE UNIT
+    UNIT_ALREADY_EXISTS(409, "Đơn vị đã tồn tại", HttpStatus.CONFLICT),
+    UNIT_NOT_FOUND(404, "Đơn vị không tồn tại", HttpStatus.NOT_FOUND),
+
+    // COUNTRY
+    COUNTRY_ALREADY_EXISTS(409, "Quốc gia đã tồn tại", HttpStatus.CONFLICT),
+    COUNTRY_NOT_FOUND(404, "Quốc gia không tồn tại", HttpStatus.NOT_FOUND),
+
+    // CITY
+    CITY_ALREADY_EXISTS(409, "Thành phố đã tồn tại", HttpStatus.CONFLICT),
+    CITY_NOT_FOUND(404, "Thành phố không tồn tại", HttpStatus.NOT_FOUND),
+
     DEFAULT_CATEGORY_CANNOT_DELETE(400, "Không thể xóa danh mục mặc định", HttpStatus.BAD_REQUEST),
     INVALID_DATE_RANGE(400, "Khoảng thời gian không hợp lệ", HttpStatus.BAD_REQUEST),
     INVALID_REQUEST(400, "Yêu cầu không hợp lệ", HttpStatus.BAD_REQUEST),
@@ -30,7 +43,8 @@ public enum ErrorCode {
 
     // Chỉ thêm 2 dòng này vào phần // Resources
     SCAN_NOT_FOUND(404, "Bản ghi scan không tồn tại", HttpStatus.NOT_FOUND),
-    PLAN_NOT_FOUND(404, "Kế hoạch du lịch không tồn tại", HttpStatus.NOT_FOUND);
+    PLAN_NOT_FOUND(404, "Kế hoạch du lịch không tồn tại", HttpStatus.NOT_FOUND),
+    WIKI_PRICE_NOT_FOUND(404, "Không tìm thấy dữ liệu giá", HttpStatus.NOT_FOUND);
 
     private final int code;
     private final String message;

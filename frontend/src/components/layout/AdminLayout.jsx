@@ -5,6 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 const ADMIN_NAV = [
   { to: '/admin', label: '📊 Dashboard' },
   { to: '/admin/articles', label: '📝 Quản lý bài viết' },
+  { to: '/admin/wiki', label: '💰 Quản lý Price Wiki' },
   { to: '/admin/users', label: '👥 Quản lý người dùng' },
 ];
 
