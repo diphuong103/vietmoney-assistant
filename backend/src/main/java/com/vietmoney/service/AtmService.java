@@ -41,7 +41,6 @@ public class AtmService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-
     @Value("${app.goong.api-key:}")
     private String goongApiKey;
 
@@ -55,23 +54,90 @@ public class AtmService {
      *   Text Search trả lat/lng ngay trong response → không cần gọi Detail riêng.
      *   Docs: https://docs.goong.io/rest/place/#place-search-api
      */
-    private static final String GOONG_TEXTSEARCH_URL   = "https://rsapi.goong.io/Place/Search";
+    private static final String GOONG_TEXTSEARCH_URL = "https://rsapi.goong.io/Place/Search";
 
     // ── Pre-scan strategy constants ────────────────────────────────────────────
     /**
-     * Bán kính scan mỗi ô (metres). Text Search hỗ trợ tối đa 50_000m.
-     * Giảm xuống 20_000 để kết quả sát thực tế hơn (50km thường trả ATM ở tỉnh khác).
+     * Bán kính scan mỗi sub-ô (metres).
+     * Nhỏ hơn = Goong trả kết quả sát vị trí center hơn, ít bị cắt bởi limit 10.
+     * 3_000m ≈ bán kính một phường/quận nhỏ → phù hợp mật độ ATM đô thị VN.
      */
-    private static final int    SCAN_RADIUS_M   = 20_000;
+    private static final int    SCAN_RADIUS_M   = 3_000;
 
     /**
-     * Kích thước ô lưới (độ). ~22km/ô phù hợp với SCAN_RADIUS_M=20_000.
-     * Mỗi hàng ScannedRegion đại diện một ô.
+     * Kích thước ô lưới chính (độ). ~5.5 km/ô.
+     * Mỗi ô được chia thành sub-grid 2×2 khi scan để tăng coverage.
      */
-    private static final double SCAN_CELL_DEG   = 0.20;   // ≈ 22 km
+    private static final double SCAN_CELL_DEG   = 0.05;   // ≈ 5.5 km
 
     /** TTL cache — rescan sau bao nhiêu giờ */
     private static final int    CACHE_TTL_HOURS = 72;
+
+    /**
+     * ✦ CORE FIX: Query từng tên ngân hàng cụ thể thay vì chỉ "ATM"/"ngân hàng".
+     *
+     * Vấn đề cũ: Goong Text Search chỉ trả tối đa 10 kết quả/request.
+     * Với keyword chung như "ATM" → chỉ lấy được ~10 địa điểm, bỏ sót hàng chục ngân hàng.
+     *
+     * Giải pháp: Query riêng từng ngân hàng lớn + query chung để bắt phần còn lại.
+     * Mỗi query trả ~10 kết quả × 20 queries = ~200 ATM/ô → coverage tốt hơn nhiều.
+     *
+     * Thứ tự: ngân hàng lớn (nhiều ATM) trước để ưu tiên khi hit rate limit.
+     */
+    private static final String[] SCAN_KEYWORDS = {
+            // ── Ngân hàng quốc doanh ──────────────────────────────────────────────
+            "Agribank ATM", "Vietcombank ATM", "BIDV ATM", "VietinBank ATM",
+            // ── TMCP lớn — dùng tên thương hiệu phổ biến nhất trên Goong ─────────
+            "MB Smartbank",          // ✦ MBBank dùng brand "MB Smartbank" cho kiosk/ATM
+            "MBBank ATM",            // chi nhánh truyền thống
+            "Techcombank ATM", "VPBank ATM", "TPBank ATM",
+            "ACB ATM", "Sacombank ATM", "HDBank ATM", "VIB ATM",
+            // ── TMCP vừa ──────────────────────────────────────────────────────────
+            "MSB ATM", "SeABank ATM", "OCB ATM", "SHB ATM",
+            "Eximbank ATM", "LienVietPostBank ATM", "BacABank ATM",
+            "NamABank ATM", "KienlongBank ATM", "PGBank ATM",
+            // ── Ngân hàng nước ngoài phổ biến tại VN ──────────────────────────────
+            "Shinhan ATM", "HSBC ATM", "Standard Chartered ATM",
+            // ── Brand đặc biệt / kiosk không mang tên ngân hàng rõ ───────────────
+            "Napas ATM",             // nhiều ATM liên ngân hàng chỉ gắn logo Napas
+            "cây ATM",               // catch-all cho các máy không gắn tên ngân hàng
+            "ATM ngân hàng",
+    };
+
+    /**
+     * Alias map: từ khoá người dùng gõ → bankKey chuẩn trong hệ thống.
+     * Dùng cho detectBankKeyFromQuery() để normalize tên tìm kiếm.
+     *
+     * Ví dụ: user gõ "smartbank" → resolve về "MBBank"
+     */
+    private static final Map<String, String> BANK_ALIASES = Map.ofEntries(
+            Map.entry("vcb",          "Vietcombank"),
+            Map.entry("vietcombank",  "Vietcombank"),
+            Map.entry("tcb",          "Techcombank"),
+            Map.entry("techcom",      "Techcombank"),
+            Map.entry("bidv",         "BIDV"),
+            Map.entry("mb",           "MBBank"),
+            Map.entry("mbbank",       "MBBank"),
+            Map.entry("smartbank",    "MBBank"),   // ✦ MB Smartbank → MBBank
+            Map.entry("agr",          "Agribank"),
+            Map.entry("agribank",     "Agribank"),
+            Map.entry("tpbank",       "TPBank"),
+            Map.entry("vpbank",       "VPBank"),
+            Map.entry("hdbank",       "HDBank"),
+            Map.entry("acb",          "ACB"),
+            Map.entry("sacombank",    "Sacombank"),
+            Map.entry("stb",          "Sacombank"),
+            Map.entry("vib",          "VIB"),
+            Map.entry("msb",          "MSB"),
+            Map.entry("seabank",      "SeABank"),
+            Map.entry("ocb",          "OCB"),
+            Map.entry("vietinbank",   "VietinBank"),
+            Map.entry("vietin",       "VietinBank"),
+            Map.entry("ctg",          "VietinBank"),
+            Map.entry("shb",          "SHB"),
+            Map.entry("shinhan",      "Shinhan"),
+            Map.entry("hsbc",         "HSBC")
+    );
 
     // ── Rate limiting ──────────────────────────────────────────────────────────
     /**
@@ -79,9 +145,15 @@ public class AtmService {
      * Không dùng để bảo vệ token bucket — chỉ giới hạn concurrent Goong calls.
      */
     private final Semaphore     apiSemaphore    = new Semaphore(3, true);
-    private final AtomicInteger globalTokens    = new AtomicInteger(10);
+    /**
+     * Token bucket: số API calls tối đa trong TOKEN_WINDOW_MS.
+     * Tăng lên 80 vì mỗi cell scan giờ có thể cần tới:
+     *   4 sub-centers × 20 keywords = 80 calls/cell
+     * Goong free tier giới hạn ~100 req/phút → 80 để có buffer.
+     */
+    private final AtomicInteger globalTokens    = new AtomicInteger(80);
     private volatile long       lastTokenReset  = System.currentTimeMillis();
-    private static final int    GLOBAL_RPS      = 10;
+    private static final int    GLOBAL_RPS      = 80;
     private static final long   TOKEN_WINDOW_MS = 60_000;
 
     // ── Per-user cooldown ──────────────────────────────────────────────────────
@@ -163,89 +235,117 @@ public class AtmService {
     //                    "geometry": { "location": { "lat", "lng" } } } ] }
     // ══════════════════════════════════════════════════════════════════════════
     private void scanCell(int gridLat, int gridLng) {
-        double centerLat = gridLat * SCAN_CELL_DEG;
-        double centerLng = gridLng * SCAN_CELL_DEG;
-        String cellKey   = gridLat + "_" + gridLng;
+        double cellOriginLat = gridLat * SCAN_CELL_DEG;
+        double cellOriginLng = gridLng * SCAN_CELL_DEG;
+        String cellKey       = gridLat + "_" + gridLng;
 
-        log.info("🔍 Scanning cell {} (center {},{}) r={}m", cellKey, centerLat, centerLng, SCAN_RADIUS_M);
+        log.info("🔍 Scanning cell {} (origin {},{}) r={}m", cellKey, cellOriginLat, cellOriginLng, SCAN_RADIUS_M);
 
-        // Dùng Set để dedup theo placeId
+        // Global dedup map: placeId → ATM data
         Map<String, Map<String, Object>> atmByPlaceId = new LinkedHashMap<>();
 
-        // Các từ khóa để tối đa kết quả. Text Search trả lat/lng → không cần enrich.
-        String[] keywords = {"ATM", "ngân hàng", "cây ATM ngân hàng"};
+        /*
+         * ✦ Sub-grid strategy:
+         *   Chia ô lưới thành 4 điểm (2×2) cách nhau SCAN_CELL_DEG/2.
+         *   Mỗi điểm là center của một vùng scan bán kính SCAN_RADIUS_M.
+         *   Vùng phủ chồng nhau ~50% → bắt được ATM ở rìa ô không bị bỏ sót.
+         *
+         *   origin ──┬── sub[0,0]  sub[0,1]
+         *            └── sub[1,0]  sub[1,1]
+         */
+        double half = SCAN_CELL_DEG / 2.0;
+        double[][] subCenters = {
+                { cellOriginLat,        cellOriginLng        },
+                { cellOriginLat,        cellOriginLng + half },
+                { cellOriginLat + half, cellOriginLng        },
+                { cellOriginLat + half, cellOriginLng + half },
+        };
 
-        for (String kw : keywords) {
-            if (!acquireGlobalToken()) {
-                log.warn("Rate limit hit, stopping keyword loop for cell {}", cellKey);
-                break;
-            }
-            try {
-                String url = UriComponentsBuilder.fromHttpUrl(GOONG_TEXTSEARCH_URL)
-                        .queryParam("input", kw)
-                        .queryParam("location", centerLat + "," + centerLng)
-                        .queryParam("radius", SCAN_RADIUS_M)
-                        .queryParam("api_key", goongApiKey)
-                        .toUriString();
+        for (double[] center : subCenters) {
+            double cLat = center[0], cLng = center[1];
 
-                String body = callGoongWithBackoff(url);
-                if (body == null) continue;
-
-                JsonNode root = objectMapper.readTree(body);
-                // Text Search trả lỗi qua status != OK
-                String status = root.path("status").asText("");
-                if (!"OK".equalsIgnoreCase(status) && !status.isBlank()) {
-                    log.warn("Text Search status={} kw='{}' cell={}", status, kw, cellKey);
-                    continue;
+            for (String kw : SCAN_KEYWORDS) {
+                if (!acquireGlobalToken()) {
+                    log.warn("Rate limit hit — stopping scan for cell {}", cellKey);
+                    // Thoát cả hai vòng lặp
+                    saveAndMarkCell(atmByPlaceId, cellKey, gridLat, gridLng, cellOriginLat, cellOriginLng);
+                    return;
                 }
+                try {
+                    String url = UriComponentsBuilder.fromHttpUrl(GOONG_TEXTSEARCH_URL)
+                            .queryParam("input",    kw)
+                            .queryParam("location", cLat + "," + cLng)
+                            .queryParam("radius",   SCAN_RADIUS_M)
+                            .queryParam("api_key",  goongApiKey)
+                            .toUriString();
 
-                JsonNode results = root.path("result"); // Text Search dùng "result" (không có "s")
-                if (!results.isArray() || results.isEmpty()) continue;
+                    String body = callGoongWithBackoff(url);
+                    if (body == null) continue;
 
-                for (JsonNode place : results) {
-                    String placeId = place.path("place_id").asText("");
-                    if (placeId.isBlank() || atmByPlaceId.containsKey(placeId)) continue;
+                    JsonNode root   = objectMapper.readTree(body);
+                    String   status = root.path("status").asText("");
 
-                    // ✦ lat/lng có sẵn — không cần gọi Detail thêm
-                    JsonNode loc = place.path("geometry").path("location");
-                    double pLat  = loc.path("lat").asDouble(0);
-                    double pLng  = loc.path("lng").asDouble(0);
-                    if (pLat == 0 && pLng == 0) continue; // skip nếu thiếu coords
+                    // Goong trả ZERO_RESULTS khi khu vực không có kết quả — bình thường, không phải lỗi
+                    if ("ZERO_RESULTS".equalsIgnoreCase(status)) continue;
+                    if (!status.isBlank() && !"OK".equalsIgnoreCase(status)) {
+                        log.warn("Text Search status={} kw='{}' sub=({},{}) cell={}", status, kw, cLat, cLng, cellKey);
+                        continue;
+                    }
 
-                    String name    = place.path("name").asText("");
-                    String address = place.path("formatted_address").asText("");
-                    if (name.isBlank()) name = address;
+                    // Goong Text Search dùng key "result" (không phải "results")
+                    JsonNode results = root.path("result");
+                    if (!results.isArray() || results.isEmpty()) continue;
 
-                    String bankKey = detectBankKey(name);
-                    String type    = resolveType(kw, name);
+                    for (JsonNode place : results) {
+                        String placeId = place.path("place_id").asText("");
+                        if (placeId.isBlank() || atmByPlaceId.containsKey(placeId)) continue;
 
-                    Map<String, Object> atm = new LinkedHashMap<>();
-                    atm.put("placeId",  placeId);
-                    atm.put("name",     name);
-                    atm.put("address",  address);
-                    atm.put("lat",      pLat);
-                    atm.put("lng",      pLng);
-                    atm.put("bankKey",  bankKey);
-                    atm.put("type",     type);
-                    atm.put("status",   "open");
-                    atm.put("rating",   4.5);
-                    atm.put("gridKey",  cellKey);
-                    atmByPlaceId.put(placeId, atm);
+                        JsonNode loc  = place.path("geometry").path("location");
+                        double   pLat = loc.path("lat").asDouble(0);
+                        double   pLng = loc.path("lng").asDouble(0);
+                        if (pLat == 0 && pLng == 0) continue;
+
+                        String name    = place.path("name").asText("");
+                        String address = place.path("formatted_address").asText("");
+                        if (name.isBlank()) name = address;
+
+                        Map<String, Object> atm = new LinkedHashMap<>();
+                        atm.put("placeId",  placeId);
+                        atm.put("name",     name);
+                        atm.put("address",  address);
+                        atm.put("lat",      pLat);
+                        atm.put("lng",      pLng);
+                        atm.put("bankKey",  detectBankKey(name));
+                        atm.put("type",     resolveType(kw, name));
+                        atm.put("status",   "open");
+                        atm.put("rating",   4.5);
+                        atm.put("gridKey",  cellKey);
+                        atmByPlaceId.put(placeId, atm);
+                    }
+
+                } catch (Exception e) {
+                    log.warn("Text Search error kw='{}' sub=({},{}) cell={}: {}", kw, cLat, cLng, cellKey, e.getMessage());
                 }
-
-            } catch (Exception e) {
-                log.warn("Text Search error kw='{}' cell={}: {}", kw, cellKey, e.getMessage());
             }
         }
 
+        saveAndMarkCell(atmByPlaceId, cellKey, gridLat, gridLng, cellOriginLat, cellOriginLng);
+    }
+
+    /**
+     * Lưu batch ATMs và đánh dấu ô đã scan.
+     * Tách ra để dùng chung cho cả luồng hoàn thành lẫn luồng bị rate-limit ngắt sớm.
+     */
+    private void saveAndMarkCell(Map<String, Map<String, Object>> atmByPlaceId,
+                                 String cellKey, int gridLat, int gridLng,
+                                 double centerLat, double centerLng) {
         List<Map<String, Object>> allResults = new ArrayList<>(atmByPlaceId.values());
-        log.info("Cell {} → {} ATMs with coords (no enrich needed)", cellKey, allResults.size());
+        log.info("Cell {} → {} unique ATMs found", cellKey, allResults.size());
 
         if (!allResults.isEmpty()) {
             saveAtmCacheBatch(allResults, cellKey);
         }
 
-        // Đánh dấu ô đã scan dù kết quả rỗng (tránh spam API)
         ScannedRegion region = scannedRegionRepository
                 .findByGridLatAndGridLng(gridLat, gridLng)
                 .orElseGet(ScannedRegion::new);
@@ -257,7 +357,7 @@ public class AtmService {
         region.setScannedAt(LocalDateTime.now());
         scannedRegionRepository.save(region);
 
-        log.info("✅ Cell {} done: {} ATMs saved", cellKey, allResults.size());
+        log.info("✅ Cell {} done: {} ATMs saved to cache", cellKey, allResults.size());
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -702,24 +802,36 @@ public class AtmService {
     private String detectBankKey(String name) {
         if (name == null) return null;
         String lower = name.toLowerCase();
-        if (lower.contains("vietcombank") || lower.contains("vcb"))                         return "Vietcombank";
-        if (lower.contains("techcombank") || lower.contains("tcb"))                         return "Techcombank";
-        if (lower.contains("bidv"))                                                          return "BIDV";
-        if (lower.contains("mbbank") || lower.contains("mb bank") || lower.contains(" mb ")) return "MBBank";
-        if (lower.contains("agribank") || lower.contains("agr"))                            return "Agribank";
-        if (lower.contains("tpbank") || lower.contains("tp bank"))                          return "TPBank";
-        if (lower.contains("vpbank") || lower.contains("vp bank"))                          return "VPBank";
-        if (lower.contains("hdbank") || lower.contains("hd bank"))                          return "HDBank";
-        if (lower.contains("acb"))                                                           return "ACB";
-        if (lower.contains("sacombank"))                                                     return "Sacombank";
-        if (lower.contains("vib"))                                                           return "VIB";
-        if (lower.contains("msb"))                                                           return "MSB";
-        if (lower.contains("seabank"))                                                       return "SeABank";
-        if (lower.contains("ocb"))                                                           return "OCB";
-        if (lower.contains("vietinbank") || lower.contains("vietin"))                       return "VietinBank";
-        if (lower.contains("shinhan"))                                                       return "Shinhan";
-        if (lower.contains("hsbc"))                                                          return "HSBC";
-        if (lower.contains("cake") || lower.contains("vp digital"))                         return "Cake";
+        // ── Quốc doanh ───────────────────────────────────────────────────────
+        if (lower.contains("vietcombank") || lower.contains("vcb"))          return "Vietcombank";
+        if (lower.contains("vietinbank")  || lower.contains("vietin") || lower.contains("incombank")) return "VietinBank";
+        if (lower.contains("bidv"))                                           return "BIDV";
+        if (lower.contains("agribank")    || lower.contains("nông nghiệp"))  return "Agribank";
+        // ── MBBank — nhận cả "MB Smartbank", "MBBank", "MB Bank" ─────────────
+        if (lower.contains("smartbank")   || lower.contains("mbbank")
+                || lower.contains("mb bank")     || lower.matches(".*\\bmb\\b.*"))  return "MBBank";
+        // ── TMCP lớn ─────────────────────────────────────────────────────────
+        if (lower.contains("techcombank") || lower.contains("techcom"))      return "Techcombank";
+        if (lower.contains("vpbank")      || lower.contains("vp bank"))      return "VPBank";
+        if (lower.contains("tpbank")      || lower.contains("tp bank"))      return "TPBank";
+        if (lower.contains("acb"))                                            return "ACB";
+        if (lower.contains("sacombank"))                                      return "Sacombank";
+        if (lower.contains("hdbank")      || lower.contains("hd bank"))      return "HDBank";
+        if (lower.contains("vib"))                                            return "VIB";
+        // ── TMCP vừa ─────────────────────────────────────────────────────────
+        if (lower.contains("msb")         || lower.contains("maritime"))     return "MSB";
+        if (lower.contains("seabank"))                                        return "SeABank";
+        if (lower.contains("ocb"))                                            return "OCB";
+        if (lower.contains("shb")         || lower.contains("sài gòn hà nội")) return "SHB";
+        if (lower.contains("eximbank")    || lower.contains("exim"))         return "Eximbank";
+        if (lower.contains("lienviet")    || lower.contains("bưu điện"))     return "LienVietPostBank";
+        if (lower.contains("bacabank")    || lower.contains("bắc á"))        return "BacABank";
+        if (lower.contains("namabank")    || lower.contains("nam á"))        return "NamABank";
+        // ── Nước ngoài ───────────────────────────────────────────────────────
+        if (lower.contains("shinhan"))                                        return "Shinhan";
+        if (lower.contains("hsbc"))                                           return "HSBC";
+        if (lower.contains("standard chartered"))                             return "StandardChartered";
+        if (lower.contains("cake")        || lower.contains("vp digital"))   return "Cake";
         return null;
     }
 }
