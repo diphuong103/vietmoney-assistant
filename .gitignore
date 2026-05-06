@@ -15,6 +15,7 @@ ai-service/.venv/
 ai-service/app/models/*.pt
 
 # Environment
+.env
 frontend/.env
 .env.local
 frontend/.env.production
@@ -29,7 +30,6 @@ frontend/.env.development
 # OS
 .DS_Store
 Thumbs.db
-
 
 #Config
 backend/src/main/resources/application-*.yml
