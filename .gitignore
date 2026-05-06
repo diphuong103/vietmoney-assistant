@@ -6,7 +6,6 @@ backend/*.jar
 # Node
 frontend/node_modules/
 frontend/dist/
-frontend/.env.local
 
 # Python
 ai-service/__pycache__/
@@ -14,13 +13,13 @@ ai-service/**/__pycache__/
 ai-service/.venv/
 ai-service/app/models/*.pt
 
-# Environment
-.env
-frontend/.env
-.env.local
-frontend/.env.production
-frontend/.env.production
-frontend/.env.development
+# Environment (IMPORTANT)
+*.env
+*.env.*
+
+# Spring Boot config (IMPORTANT)
+backend/src/main/resources/application.yml
+backend/src/main/resources/application-*.yml
 
 # IDE
 .idea/
@@ -31,5 +30,6 @@ frontend/.env.development
 .DS_Store
 Thumbs.db
 
-#Config
-backend/src/main/resources/application-*.yml
+# Logs
+*.log
+*.tmp
