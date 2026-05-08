@@ -100,6 +100,24 @@ export default function AdminDashboardPage() {
             )}
           </button>
           <button
+            onClick={() => navigate('/admin/wiki')}
+            style={{
+              padding: '10px 20px',
+              fontSize: 13,
+              borderRadius: 12,
+              cursor: 'pointer',
+              background: 'rgba(61,242,200,0.12)',
+              color: 'var(--accent2)',
+              border: '1px solid rgba(61,242,200,0.3)',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            💰 Quản lý Price Wiki
+          </button>
+          <button
             onClick={() => navigate('/admin/users')}
             style={{
               padding: '10px 20px', fontSize: 13, borderRadius: 12, cursor: 'pointer',

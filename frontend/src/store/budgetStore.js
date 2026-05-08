@@ -1,68 +1,39 @@
 import { create } from 'zustand';
-
 import budgetApi from '../api/budgetApi';
 
 export const useBudgetStore = create((set, get) => ({
-  transactions: [],
-  dailyBudget: 2_000_000,
+  dailyBudget: 0,
   spentToday: 0,
-  remaining: 2_000_000,
+  remaining: 0,
   percentUsed: 0,
-  categories: [
-    { emoji: '🍜', name: 'Food', color: '#C8F23D' },
-    { emoji: '🛺', name: 'Transport', color: '#3DF2C8' },
-    { emoji: '🏨', name: 'Hotel', color: '#3D8FF2' },
-    { emoji: '🎭', name: 'Activity', color: '#F2C43D' },
-    { emoji: '🛍️', name: 'Shopping', color: '#F23D6E' },
-  ],
-
-  setDailyBudget: (budget) => set({ dailyBudget: budget }),
+  loading: false,
 
   fetchDailyBudget: async () => {
     try {
-      const data = await budgetApi.getDailyBudget();
-      if (data) {
-        set({
-          dailyBudget: data.dailyBudget ?? 0,
-          spentToday: data.spentToday ?? 0,
-          remaining: data.remaining ?? 0,
-          percentUsed: data.percentUsed ?? 0
-        });
-      }
-    } catch (e) {
-      if (e.response?.status === 404) {
-        set({
-          dailyBudget: 0,
-          spentToday: 0,
-          remaining: 0,
-          percentUsed: 0
-        });
-      } else {
-        console.error(e);
-      }
+      set({ loading: true });
+      const res = await budgetApi.getDailyBudget();
+      const dailyLimit  = Number(res?.dailyLimit  || 0);
+      const spentToday  = Number(res?.spentToday  || 0);
+      const remaining   = Math.max(0, dailyLimit - spentToday);
+      const percentUsed = dailyLimit > 0
+        ? Math.min(100, Math.round((spentToday / dailyLimit) * 100))
+        : 0;
+      set({ dailyBudget: dailyLimit, spentToday, remaining, percentUsed, loading: false });
+    } catch {
+      set({ dailyBudget: 0, spentToday: 0, remaining: 0, percentUsed: 0, loading: false });
     }
   },
 
-  addTransaction: (txn) =>
-    set((state) => ({ transactions: [txn, ...state.transactions] })),
-
-  removeTransaction: (idx) =>
-    set((state) => ({
-      transactions: state.transactions.filter((_, i) => i !== idx),
-    })),
-
-  addCategory: (cat) =>
-    set((state) => ({ categories: [...state.categories, cat] })),
-
-  removeCategory: (idx) =>
-    set((state) => ({
-      categories: state.categories.filter((_, i) => i !== idx),
-    })),
-
-  getTotalSpent: () => {
-    const { transactions } = get();
-    return transactions
-      .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
+  updateSpentToday: (spentAmount) => {
+    const dailyBudget = Number(get().dailyBudget || 0);
+    const spentToday  = Number(spentAmount || 0);
+    const remaining   = Math.max(0, dailyBudget - spentToday);
+    const percentUsed = dailyBudget > 0
+      ? Math.min(100, Math.round((spentToday / dailyBudget) * 100))
+      : 0;
+    set({ spentToday, remaining, percentUsed });
   },
+
+  resetDailyBudget: () =>
+    set({ dailyBudget: 0, spentToday: 0, remaining: 0, percentUsed: 0, loading: false }),
 }));

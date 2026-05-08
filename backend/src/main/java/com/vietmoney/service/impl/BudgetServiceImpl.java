@@ -3,7 +3,6 @@ package com.vietmoney.service.impl;
 import com.vietmoney.domain.entity.Budget;
 import com.vietmoney.domain.entity.User;
 import com.vietmoney.domain.enums.CategoryType;
-import com.vietmoney.domain.enums.TransactionType;
 import com.vietmoney.dto.request.BudgetRequest;
 import com.vietmoney.dto.response.BudgetResponse;
 import com.vietmoney.dto.response.DailyBudgetResponse;
@@ -111,27 +110,19 @@ public class BudgetServiceImpl implements BudgetService {
         User user = getCurrentUser();
         LocalDate today = LocalDate.now();
 
-        java.util.Optional<Budget> activeBudgetOpt = budgetRepository
+        Budget activeBudget = budgetRepository
                 .findFirstByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
                         user.getId(),
                         today,
-                        today);
-
-        if (activeBudgetOpt.isEmpty()) {
-            return DailyBudgetResponse.builder()
-                    .dailyLimit(BigDecimal.ZERO)
-                    .spentToday(BigDecimal.ZERO)
-                    .remaining(BigDecimal.ZERO)
-                    .percentUsed(0.0)
-                    .build();
-        }
-
-        Budget activeBudget = activeBudgetOpt.get();
+                        today
+                )
+                .orElseThrow(() -> new AppException(ErrorCode.BUDGET_NOT_FOUND));
 
         // số ngày budget
         long totalDays = ChronoUnit.DAYS.between(
                 activeBudget.getStartDate(),
-                activeBudget.getEndDate()) + 1;
+                activeBudget.getEndDate()
+        ) + 1;
 
         if (totalDays <= 0) {
             throw new AppException(ErrorCode.INVALID_DATE_RANGE);
@@ -147,9 +138,10 @@ public class BudgetServiceImpl implements BudgetService {
 
         BigDecimal spentToday = transactionRepository.sumTodayByUserAndType(
                 user.getId(),
-                TransactionType.EXPENSE,
+                CategoryType.EXPENSE,
                 startOfDay,
-                endOfDay);
+                endOfDay
+        );
 
         if (spentToday == null) {
             spentToday = BigDecimal.ZERO;
