@@ -6443,3 +6443,42 @@ html.light .vdock-separator {
     border-radius: 16px;
   }
 }
+
+/* ── Suggest Search Card Actions ───────────────────────────────────────────── */
+/* Thêm vào file CSS hiện tại của bạn (ví dụ: AIChatModal.css hoặc globals.css) */
+
+.ai-suggest-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ai-suggest-btn {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.ai-suggest-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ai-suggest-btn:not(:disabled):hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.ai-suggest-btn--yes {
+  background: #2563eb;   /* blue-600 */
+  color: #fff;
+}
+
+.ai-suggest-btn--no {
+  background: #f1f5f9;   /* slate-100 */
+  color: #475569;        /* slate-600 */
+}

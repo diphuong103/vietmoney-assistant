@@ -1,11 +1,8 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 const API_URL = 'http://localhost:8000/chat/stream';
+const CONFIRM_SEARCH_URL = 'http://localhost:8000/chat/confirm-search'; // đổi từ /chat/web-search
 
-/**
- * Custom hook for streaming chat with the VietMoney RAG API.
- * Uses fetch + ReadableStream to parse SSE events in real time.
- */
 export default function useStreamChat() {
     const [messages, setMessages] = useState([
         {
@@ -18,23 +15,166 @@ export default function useStreamChat() {
     ]);
     const [isStreaming, setIsStreaming] = useState(false);
     const abortRef = useRef(null);
+    const messagesRef = useRef(messages);
 
-    /**
-     * Build the conversation history array for the API.
-     */
+    useEffect(() => {
+        messagesRef.current = messages;
+    }, [messages]);
+
+    // ── Build history gửi lên server (bỏ welcome + suggestSearch cards) ──────
     const buildHistory = useCallback(
-        (currentMessages) =>
-            currentMessages
-                .filter((m) => m.id !== 'welcome')
+        (msgs) =>
+            msgs
+                .filter((m) => m.id !== 'welcome' && !m.suggestSearch)
                 .map((m) => ({ role: m.role, content: m.content })),
         [],
     );
 
-    /**
-     * Send a message and stream the response.
-     */
+    // ── Core streaming function ───────────────────────────────────────────────
+    const startStream = useCallback(
+        async (query, currentMsgs, botId, url) => {
+            setIsStreaming(true);
+            const controller = new AbortController();
+            abortRef.current = controller;
+
+            try {
+                const history = buildHistory(currentMsgs.slice(0, -1));
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, history }),
+                    signal: controller.signal,
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let suggestReceived = false;
+
+                outer: while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (!trimmed.startsWith('data: ')) continue;
+
+                        let event;
+                        try {
+                            event = JSON.parse(trimmed.slice(6));
+                        } catch {
+                            continue;
+                        }
+
+                        switch (event.type) {
+                            case 'token':
+                                setMessages((prev) =>
+                                    prev.map((m) =>
+                                        m.id === botId
+                                            ? { ...m, content: m.content + event.content }
+                                            : m,
+                                    ),
+                                );
+                                break;
+
+                            case 'sources':
+                                setMessages((prev) =>
+                                    prev.map((m) =>
+                                        m.id === botId
+                                            ? { ...m, sources: event.content }
+                                            : m,
+                                    ),
+                                );
+                                break;
+
+                            // ── Không có dữ liệu nội bộ → hỏi user ───────────
+                            case 'suggest_search':
+                                suggestReceived = true;
+                                setMessages((prev) => {
+                                    // Xoá bot placeholder rỗng đang streaming
+                                    const withoutEmptyBot = prev.filter(
+                                        (m) => !(m.id === botId && m.content === ''),
+                                    );
+                                    return [
+                                        ...withoutEmptyBot,
+                                        {
+                                            id: `suggest-${Date.now()}`,
+                                            role: 'assistant',
+                                            content:
+                                                'Tôi chưa có dữ liệu về nội dung này. ' +
+                                                'Bạn có muốn tôi tìm kiếm từ nguồn bên ngoài không?',
+                                            sources: [],
+                                            suggestSearch: true,
+                                            originalQuery: event.content, // query gốc để gửi lại
+                                        },
+                                    ];
+                                });
+                                reader.cancel();
+                                break outer;
+
+                            case 'error':
+                                setMessages((prev) =>
+                                    prev.map((m) =>
+                                        m.id === botId
+                                            ? {
+                                                ...m,
+                                                content: m.content + '\n⚠️ ' + event.content,
+                                            }
+                                            : m,
+                                    ),
+                                );
+                                break;
+
+                            case 'done':
+                                break outer;
+
+                            default:
+                                break;
+                        }
+                    }
+                }
+
+                if (!suggestReceived) {
+                    setMessages((prev) =>
+                        prev.map((m) =>
+                            m.id === botId ? { ...m, streaming: false } : m,
+                        ),
+                    );
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    setMessages((prev) =>
+                        prev.map((m) =>
+                            m.id === botId
+                                ? {
+                                    ...m,
+                                    streaming: false,
+                                    content:
+                                        m.content ||
+                                        '⚠️ Không thể kết nối đến server. / Could not connect to server.',
+                                }
+                                : m,
+                        ),
+                    );
+                }
+            } finally {
+                setIsStreaming(false);
+                abortRef.current = null;
+            }
+        },
+        [buildHistory],
+    );
+
+    // ── Gửi câu hỏi thông thường ─────────────────────────────────────────────
     const sendMessage = useCallback(
-        async (text) => {
+        (text) => {
             if (!text.trim() || isStreaming) return;
 
             const userMsg = {
@@ -43,7 +183,6 @@ export default function useStreamChat() {
                 content: text.trim(),
                 sources: [],
             };
-
             const botId = `bot-${Date.now()}`;
             const botMsg = {
                 id: botId,
@@ -53,124 +192,54 @@ export default function useStreamChat() {
                 streaming: true,
             };
 
-            setMessages((prev) => {
-                const next = [...prev, userMsg, botMsg];
-                // fire-and-forget the stream
-                startStream(text.trim(), next, botId);
-                return next;
-            });
+            const nextMsgs = [
+                ...messagesRef.current.filter((m) => !m.suggestSearch),
+                userMsg,
+                botMsg,
+            ];
+
+            setMessages(nextMsgs);
+            startStream(text.trim(), nextMsgs, botId, API_URL);
         },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [isStreaming],
+        [isStreaming, startStream],
     );
 
-    /**
-     * Internal: connect to SSE and progressively update the bot message.
-     */
-    const startStream = async (query, snapshot, botId) => {
-        setIsStreaming(true);
-        const controller = new AbortController();
-        abortRef.current = controller;
+    // ── User bấm "Có, tìm kiếm" → gọi /chat/confirm-search ─────────────────
+    const confirmWebSearch = useCallback(
+        (query) => {
+            if (isStreaming) return;
 
-        try {
-            const history = buildHistory(snapshot.slice(0, -1)); // exclude the empty bot msg
+            const botId = `bot-web-${Date.now()}`;
+            const botMsg = {
+                id: botId,
+                role: 'assistant',
+                content: '',
+                sources: [],
+                streaming: true,
+            };
 
-            const res = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query, history }),
-                signal: controller.signal,
-            });
+            const nextMsgs = [
+                ...messagesRef.current.filter((m) => !m.suggestSearch),
+                botMsg,
+            ];
 
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            setMessages(nextMsgs);
+            startStream(query, nextMsgs, botId, CONFIRM_SEARCH_URL);
+        },
+        [isStreaming, startStream],
+    );
 
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || ''; // keep incomplete line in buffer
-
-                for (const line of lines) {
-                    const trimmed = line.trim();
-                    if (!trimmed.startsWith('data: ')) continue;
-
-                    try {
-                        const event = JSON.parse(trimmed.slice(6));
-
-                        if (event.type === 'token') {
-                            setMessages((prev) =>
-                                prev.map((m) =>
-                                    m.id === botId
-                                        ? { ...m, content: m.content + event.content }
-                                        : m,
-                                ),
-                            );
-                        } else if (event.type === 'sources') {
-                            setMessages((prev) =>
-                                prev.map((m) =>
-                                    m.id === botId ? { ...m, sources: event.content } : m,
-                                ),
-                            );
-                        } else if (event.type === 'error') {
-                            setMessages((prev) =>
-                                prev.map((m) =>
-                                    m.id === botId
-                                        ? { ...m, content: m.content + '\n⚠️ ' + event.content }
-                                        : m,
-                                ),
-                            );
-                        }
-                        // 'done' — nothing extra to do, loop will end
-                    } catch {
-                        // skip unparseable lines
-                    }
-                }
-            }
-        } catch (err) {
-            if (err.name !== 'AbortError') {
-                setMessages((prev) =>
-                    prev.map((m) =>
-                        m.id === botId
-                            ? {
-                                ...m,
-                                content:
-                                    m.content ||
-                                    '⚠️ Không thể kết nối đến server. / Could not connect to server.',
-                            }
-                            : m,
-                    ),
-                );
-            }
-        } finally {
-            // Mark streaming done
-            setMessages((prev) =>
-                prev.map((m) =>
-                    m.id === botId ? { ...m, streaming: false } : m,
-                ),
-            );
-            setIsStreaming(false);
-            abortRef.current = null;
-        }
-    };
-
-    /**
-     * Abort an in-progress stream.
-     */
-    const stopStreaming = useCallback(() => {
-        if (abortRef.current) {
-            abortRef.current.abort();
-        }
+    // ── User bấm "Không" → xoá card, đợi câu hỏi mới ───────────────────────
+    const dismissWebSearch = useCallback(() => {
+        setMessages((prev) => prev.filter((m) => !m.suggestSearch));
     }, []);
 
-    /**
-     * Clear all messages and reset to welcome.
-     */
+    // ── Dừng stream đang chạy ─────────────────────────────────────────────────
+    const stopStreaming = useCallback(() => {
+        abortRef.current?.abort();
+    }, []);
+
+    // ── Xoá toàn bộ chat ──────────────────────────────────────────────────────
     const clearChat = useCallback(() => {
         setMessages([
             {
@@ -183,5 +252,13 @@ export default function useStreamChat() {
         ]);
     }, []);
 
-    return { messages, sendMessage, isStreaming, stopStreaming, clearChat };
+    return {
+        messages,
+        isStreaming,
+        sendMessage,
+        confirmWebSearch,
+        dismissWebSearch,
+        stopStreaming,
+        clearChat,
+    };
 }

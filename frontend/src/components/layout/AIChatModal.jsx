@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import useStreamChat from '../../hooks/useStreamChat';
 
-// ── Source Card Component ────────────────────────────────────────────────────
+// ── Source Card ──────────────────────────────────────────────────────────────
 function SourceCard({ source }) {
   return (
     <a
@@ -23,9 +23,53 @@ function StreamCursor() {
   return <span className="ai-stream-cursor" />;
 }
 
+// ── Suggest Search Card ──────────────────────────────────────────────────────
+// Hiển thị khi server trả về event suggest_search (không có dữ liệu nội bộ).
+// User chọn "Có" → confirmWebSearch, "Không" → dismissWebSearch.
+function SuggestSearchCard({ msg, onConfirm, onDismiss, disabled }) {
+  return (
+    <div className="ai-msg ai-msg--bot">
+      <div className="ai-msg-avatar">🤖</div>
+      <div className="ai-msg-body">
+        <div className="ai-msg-bubble ai-msg-bubble--bot">
+          <div className="ai-msg-text">{msg.content}</div>
+        </div>
+        <div className="ai-suggest-actions">
+          <button
+            className="ai-suggest-btn ai-suggest-btn--yes"
+            onClick={() => onConfirm(msg.originalQuery)}
+            disabled={disabled}
+          >
+            🔍 Có, tìm kiếm
+          </button>
+          <button
+            className="ai-suggest-btn ai-suggest-btn--no"
+            onClick={onDismiss}
+            disabled={disabled}
+          >
+            ✕ Không, cảm ơn
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Message Bubble ───────────────────────────────────────────────────────────
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, onConfirm, onDismiss, isStreaming }) {
   const isUser = msg.role === 'user';
+
+  // suggestSearch card dùng component riêng
+  if (msg.suggestSearch) {
+    return (
+      <SuggestSearchCard
+        msg={msg}
+        onConfirm={onConfirm}
+        onDismiss={onDismiss}
+        disabled={isStreaming}
+      />
+    );
+  }
 
   return (
     <div className={`ai-msg ${isUser ? 'ai-msg--user' : 'ai-msg--bot'}`}>
@@ -38,7 +82,6 @@ function MessageBubble({ msg }) {
           </div>
         </div>
 
-        {/* Source cards */}
         {!isUser && msg.sources && msg.sources.length > 0 && (
           <div className="ai-sources">
             <div className="ai-sources-label">📚 Nguồn tham khảo:</div>
@@ -55,20 +98,26 @@ function MessageBubble({ msg }) {
   );
 }
 
-// ── Main Modal Component ─────────────────────────────────────────────────────
+// ── Main Modal ───────────────────────────────────────────────────────────────
 export default function AIChatModal({ open, onClose }) {
-  const { messages, sendMessage, isStreaming, stopStreaming, clearChat } =
-    useStreamChat();
+  const {
+    messages,
+    isStreaming,
+    sendMessage,
+    confirmWebSearch,
+    dismissWebSearch,
+    stopStreaming,
+    clearChat,
+  } = useStreamChat();
+
   const [input, setInput] = useState('');
   const msgsEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     msgsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Focus input when modal opens
   useEffect(() => {
     if (open) {
       const t = setTimeout(() => inputRef.current?.focus(), 300);
@@ -131,18 +180,24 @@ export default function AIChatModal({ open, onClose }) {
         {/* ── Messages ── */}
         <div className="ai-chat-messages">
           {messages.map((msg) => (
-            <MessageBubble key={msg.id} msg={msg} />
+            <MessageBubble
+              key={msg.id}
+              msg={msg}
+              onConfirm={confirmWebSearch}
+              onDismiss={dismissWebSearch}
+              isStreaming={isStreaming}
+            />
           ))}
           <div ref={msgsEndRef} />
         </div>
 
         {/* ── Input Row ── */}
         <div className="ai-chat-input-row">
-          {isStreaming ? (
+          {isStreaming && (
             <button className="ai-stop-btn" onClick={stopStreaming}>
               ⏹ Dừng
             </button>
-          ) : null}
+          )}
           <input
             ref={inputRef}
             className="ai-chat-input"
