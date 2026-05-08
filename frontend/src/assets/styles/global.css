@@ -1324,7 +1324,7 @@ select {
 .fab-container {
   position: fixed;
   bottom: 100px;
-  right: 50px;
+  right: 75px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -6474,11 +6474,14 @@ html.light .vdock-separator {
 }
 
 .ai-suggest-btn--yes {
-  background: #2563eb;   /* blue-600 */
+  background: #2563eb;
+  /* blue-600 */
   color: #fff;
 }
 
 .ai-suggest-btn--no {
-  background: #f1f5f9;   /* slate-100 */
-  color: #475569;        /* slate-600 */
+  background: #f1f5f9;
+  /* slate-100 */
+  color: #475569;
+  /* slate-600 */
 }

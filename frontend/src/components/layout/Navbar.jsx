@@ -1,16 +1,23 @@
 import { useNavigate } from 'react-router-dom';
 
 export default function Navbar({ title, subtitle, actions }) {
+  const navigate = useNavigate();
   return (
     <div className="topbar">
-      <div className="topbar-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }} title="Về trang chủ">
+      <a
+        className="topbar-logo"
+        href="/"
+        onClick={e => { e.preventDefault(); navigate('/'); }}
+        style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
+        title="Về trang chủ"
+      >
         {title}
         {subtitle && (
           <span style={{ color: 'var(--muted)', fontSize: '14px', fontWeight: 400 }}>
             {' '}/ {subtitle}
           </span>
         )}
-      </div>
+      </a>
       <div className="topbar-actions">
         {actions}
       </div>
