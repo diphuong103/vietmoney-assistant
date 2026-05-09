@@ -82,7 +82,7 @@ function MessageBubble({ msg, onConfirm, onDismiss, isStreaming }) {
           </div>
         </div>
 
-        {!isUser && msg.sources && msg.sources.length > 0 && (
+        {/* !isUser && msg.sources && msg.sources.length > 0 && (
           <div className="ai-sources">
             <div className="ai-sources-label">📚 Nguồn tham khảo:</div>
             <div className="ai-sources-list">
@@ -91,7 +91,7 @@ function MessageBubble({ msg, onConfirm, onDismiss, isStreaming }) {
               ))}
             </div>
           </div>
-        )}
+        )*/}
       </div>
       {isUser && <div className="ai-msg-avatar ai-msg-avatar--user">👤</div>}
     </div>
