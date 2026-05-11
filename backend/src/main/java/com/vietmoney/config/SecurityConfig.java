@@ -32,91 +32,84 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-        private final JwtAuthFilter jwtAuthFilter;
-        private final AuthenticationProvider authenticationProvider;
+    private final JwtAuthFilter        jwtAuthFilter;
+    private final AuthenticationProvider authenticationProvider;
 
-        @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
-        private String allowedOrigins;
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    private String allowedOrigins;
 
-        // ── Public POST endpoints ─────────────────────────────
-        private static final String[] PUBLIC_POST = {
-                        "/api/v1/auth/login",
-                        "/api/v1/auth/register",
-                        "/api/v1/auth/forgot-password",
-                        "/api/v1/auth/reset-password",
-                        "/api/v1/auth/refresh-token",
-                        "/api/v1/auth/logout",
-        };
+    private static final String[] PUBLIC_POST = {
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/forgot-password",
+            "/api/v1/auth/reset-password",
+            "/api/v1/auth/refresh-token",
+            "/api/v1/auth/logout",
+            "/api/v1/media/upload",
+    };
 
-        // ── Public GET endpoints ──────────────────────────────
-        private static final String[] PUBLIC_GET = {
-                        "/api/v1/articles",
-                        "/api/v1/tourist-spots",
-                        "/api/v1/tourist-spots/search",
-                        "/api/v1/tourist-spots/{id}",
-                        "/api/v1/tourist-spots/nearby",
-                        "/api/v1/tourist-spots/**",
-                        "/api/v1/exchange-rates",
-                        "/api/v1/exchange-rates/convert",
-                        "/api/v1/wiki/**",
-                        "/api/v1/price-wiki/**",
-                        "/api/v1/atm/**",
-                        "/actuator/health",
-        };
+    private static final String[] PUBLIC_GET = {
+            "/api/v1/articles/public",
+            "/api/v1/articles/public/**",
+            "/api/v1/budgets/**",
+            "/api/v1/tourist-spots",
+            "/api/v1/tourist-spots/search",
+            "/api/v1/tourist-spots/{id}",
+            "/api/v1/tourist-spots/nearby",
+            "/api/v1/tourist-spots/**",
+            "/api/v1/exchange-rates",
+            "/api/v1/exchange-rates/convert",
+            "/api/v1/wiki/**",
+            "/api/v1/price-wiki/**",
+            "/api/v1/atm/**",
+            "/api/v1/users/me",
+            "/actuator/health",
+    };
 
-        @Bean
-        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-                http
-                                .csrf(AbstractHttpConfigurer::disable)
-                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                                .exceptionHandling(ex -> ex
-                                                // Return 401 (not 403) for unauthenticated/invalid-token requests
-                                                .authenticationEntryPoint(unauthorizedEntryPoint()))
-                                .authorizeHttpRequests(auth -> auth
-                                                // ── CRITICAL: allow ALL preflight OPTIONS requests ──
-                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                                                .requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
-                                                .requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
-                                                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                                                .anyRequest().authenticated())
-                                .authenticationProvider(authenticationProvider)
-                                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+    // ── Tất cả path yêu cầu role ADMIN ──────────────────
+    private static final String[] ADMIN_PATHS = {
+            "/api/v1/admin/**",
+            "/api/v1/articles/admin/**",   // ← ArticleController: /articles/admin/...
+    };
 
-                return http.build();
-        }
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
+                        .requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
+                        .requestMatchers(ADMIN_PATHS).hasRole("ADMIN")  // ← dùng mảng, cover cả 2 prefix
+                        .anyRequest().authenticated()
+                )
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-        @Bean
-        public AuthenticationEntryPoint unauthorizedEntryPoint() {
-                return (request, response, authException) -> {
-                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                        response.setCharacterEncoding("UTF-8");
-                        String body = new ObjectMapper().writeValueAsString(
-                                        Map.of("code", 401, "message", "Phiên đăng nhập đã hết hạn hoặc không hợp lệ"));
-                        response.getWriter().write(body);
-                };
-        }
+        return http.build();
+    }
 
-        @Bean
-        public CorsConfigurationSource corsConfigurationSource() {
-                CorsConfiguration config = new CorsConfiguration();
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
 
-                // Parse allowed origins from config, trim whitespace
-                List<String> origins = Arrays.stream(allowedOrigins.split(","))
-                                .map(String::trim)
-                                .filter(s -> !s.isEmpty())
-                                .toList();
-                config.setAllowedOriginPatterns(origins);
+        // Parse allowed origins from config, trim whitespace
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+        config.setAllowedOriginPatterns(origins);
 
-                config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-                config.setAllowedHeaders(List.of("*"));
-                config.setExposedHeaders(List.of("Authorization", "Content-Type"));
-                config.setAllowCredentials(true);
-                config.setMaxAge(3600L);
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
 
-                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-                source.registerCorsConfiguration("/**", config);
-                return source;
-        }
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
 }

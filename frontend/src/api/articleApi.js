@@ -1,36 +1,36 @@
 import axiosClient from './axiosClient';
 
 const articleApi = {
-  getAll: (params) =>
+  // ── PUBLIC FEED ─────────────────────
+  getFeed: (params = {}) =>
     axiosClient.get('/articles/public', { params }),
 
-  getById: (id) =>
-    axiosClient.get(`/articles/${id}`),
+  getAll: (params = {}) =>
+    axiosClient.get('/articles/public', { params }),
 
+  // ── MY POSTS ────────────────────────
+  getMyPosts: (params = {}) =>
+    axiosClient.get('/articles/my', { params }),
+
+  // ── CRUD ────────────────────────────
   create: (data) =>
     axiosClient.post('/articles', data),
 
-  approve: (id) =>
-    axiosClient.patch(`/articles/${id}/approve`),
+  update: (id, data) =>
+    axiosClient.put(`/articles/${id}`, data),
 
-  reject: (id) =>
-    axiosClient.patch(`/articles/${id}/reject`),
+  deleteSoft: (id) =>
+    axiosClient.delete(`/articles/${id}/soft`),
 
-  delete: (id) =>
-    axiosClient.delete(`/articles/${id}`),
-
+  // ── LIKE / SAVE ─────────────────────
   like: (id) =>
     axiosClient.post(`/articles/${id}/like`),
 
   save: (id) =>
     axiosClient.post(`/articles/${id}/save`),
 
-  uploadMedia: (formData) =>
-    axiosClient.post('/media/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
+  getStatus: (id) =>
+    axiosClient.get(`/articles/${id}/status`),
 };
 
 export default articleApi;
