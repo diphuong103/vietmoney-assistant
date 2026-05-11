@@ -10,7 +10,9 @@ export const useTransactionStore = create((set, get) => ({
     if (!localStorage.getItem('accessToken')) return;
     try {
       const res = await transactionApi.getAll();
-      set({ transactions: res || [] });
+      // res is already unwrapped (res.data from axios), so shape is {code, message, data: [...]}
+      const list = Array.isArray(res) ? res : (res?.data ?? []);
+      set({ transactions: list });
     } catch (err) {
       console.error('Fetch transactions failed', err);
     }

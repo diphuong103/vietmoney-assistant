@@ -2,9 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import Navbar from '../../components/layout/Navbar';
-import Badge from '../../components/common/Badge';
 import authApi, { clearSession } from '../../api/authApi';
-import { t } from '../../utils/i18n';
+import exchangeRateApi from '../../api/exchangeRateApi';
+import articleApi from '../../api/articleApi';
+import budgetApi from '../../api/budgetApi';
+import travelPlanApi from '../../api/travelPlanApi';
+import { useTransactionStore } from '../../store/transactionStore';
 import '../../assets/styles/landing.css';
 
 // ── Weather Helpers ──────────────────────────────────────────────────────────
@@ -39,11 +42,6 @@ function WeatherWidget() {
         .then(data => { if (data?.current) setWeather(data.current); })
         .catch(() => { })
         .finally(() => setLoading(false));
-
-      // Reverse geocode for city name
-      fetch(`https://geocoding-api.open-meteo.com/v1/search?name=&latitude=${lat}&longitude=${lon}&count=1`)
-        .catch(() => { });
-      // Use a simpler reverse geocode via nominatim
       fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`)
         .then(r => r.json())
         .then(data => {
@@ -52,16 +50,10 @@ function WeatherWidget() {
         })
         .catch(() => setCityName('Your Location'));
     };
-
-    // Try browser geolocation first
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-        () => {
-          // Permission denied — fallback to HCMC
-          setCityName('Ho Chi Minh City');
-          fetchWeather(10.8231, 106.6297);
-        },
+        () => { setCityName('Ho Chi Minh City'); fetchWeather(10.8231, 106.6297); },
         { timeout: 5000 }
       );
     } else {
@@ -91,12 +83,10 @@ function WeatherWidget() {
           <div className="lp-weather-desc">{info.desc}</div>
           <div className="lp-weather-details">
             <div className="lp-weather-detail">
-              <span>💧</span>
-              <span>{humidity}%</span>
+              <span>💧</span><span>{humidity}%</span>
             </div>
             <div className="lp-weather-detail">
-              <span>🌬️</span>
-              <span>{wind} km/h</span>
+              <span>🌬️</span><span>{wind} km/h</span>
             </div>
           </div>
         </>
@@ -106,99 +96,44 @@ function WeatherWidget() {
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-
 function getStoredUser() {
   try { return JSON.parse(localStorage.getItem('user') ?? 'null'); }
   catch { return null; }
 }
-
 function resolveAvatar(user) {
   if (user?.avatarUrl) return user.avatarUrl;
   const seed = user?.id ?? user?.username ?? 'guest';
   return `https://api.dicebear.com/8.x/thumbs/svg?seed=${seed}&radius=50`;
 }
-
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
   if (h < 18) return 'Good afternoon';
   return 'Good evening';
 }
+function fmtVND(n) {
+  const v = Number(n || 0);
+  if (v >= 1_000_000) return `₫${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `₫${(v / 1_000).toFixed(0)}K`;
+  return `₫${v}`;
+}
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.round(diff / 60000);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
+}
 
-// ── Exchange Rate Ticker Data ────────────────────────────────────────────────
-const TICKER_RATES = [
-  { label: 'USD/VND', val: '₫25,420', change: '+0.12%', up: true },
-  { label: 'EUR/VND', val: '₫27,810', change: '+0.23%', up: true },
-  { label: 'JPY/VND', val: '₫165.4', change: '+0.08%', up: true },
-  { label: 'KRW/VND', val: '₫18.9', change: '−0.05%', up: false },
-  { label: 'GBP/VND', val: '₫32,150', change: '−0.14%', up: false },
-  { label: 'CNY/VND', val: '₫3,497', change: '+0.03%', up: true },
-  { label: 'AUD/VND', val: '₫16,320', change: '+0.18%', up: true },
-  { label: 'THB/VND', val: '₫720', change: '−0.07%', up: false },
-];
-const TICKER_DOUBLE = [...TICKER_RATES, ...TICKER_RATES];
-
-// ── Budget Chart Data ────────────────────────────────────────────────────────
-const BUDGET_DATA = [
-  { name: 'Spent', value: 1760000 },
-  { name: 'Remaining', value: 3240000 },
-];
-const CHART_COLORS = ['#f59e0b', '#059669'];
-
-// ── Currency Conversion Rates ────────────────────────────────────────────────
-const FX = {
-  USD: 25420,
-  EUR: 27810,
-  JPY: 165.4,
-  KRW: 18.9,
-  GBP: 32150,
-  AUD: 16320,
-  THB: 720,
+// Currency fallback rates (shown when API has no data) ─────────────────────
+const FX_FALLBACK = {
+  USD: 25420, EUR: 27810, JPY: 165.4, KRW: 18.9,
+  GBP: 32150, AUD: 16320, THB: 720, CNY: 3497,
 };
 
-// ── Wiki Prices ──────────────────────────────────────────────────────────────
-const WIKI_PRICES = [
-  { emoji: '☕', name: 'Cafe', price: '25–55k' },
-  { emoji: '🍜', name: 'Phở', price: '40–80k' },
-  { emoji: '🚕', name: 'Taxi', price: '10–20k/km' },
-  { emoji: '🥖', name: 'Bánh Mì', price: '15–35k' },
-  { emoji: '🍚', name: 'Cơm', price: '35–65k' },
-  { emoji: '🍺', name: 'Bia', price: '15–40k' },
-];
-
-// ── Blog/News Posts ──────────────────────────────────────────────────────────
-const BLOG_POSTS = [
-  {
-    img: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=600&q=80',
-    tag: 'Travel',
-    title: 'Top 5 Hidden Gems in Hội An',
-    excerpt: 'Discover breathtaking spots that most tourists overlook in the ancient town.',
-    author: 'VietMoney', time: '2h ago',
-  },
-  {
-    img: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=600&q=80',
-    tag: 'Finance',
-    title: 'USD/VND Rate Update This Week',
-    excerpt: 'The State Bank adjusted the margin, affecting tourist spending power.',
-    author: 'Finance', time: '5h ago',
-  },
-  {
-    img: 'https://images.unsplash.com/photo-1550652755-66774e14f8d2?auto=format&fit=crop&w=600&q=80',
-    tag: 'Culture',
-    title: 'Hội An Lantern Festival — A Must-See',
-    excerpt: 'The monthly lantern festival attracts thousands of international visitors.',
-    author: 'Culture', time: '1d ago',
-  },
-  {
-    img: 'https://images.unsplash.com/photo-1582298538104-fe2e74c27f59?auto=format&fit=crop&w=600&q=80',
-    tag: 'Food',
-    title: 'Hội An Food Map: What & Where to Eat',
-    excerpt: 'From Cao Lầu to Bánh Mì Phượng — the ultimate foodie guide.',
-    author: 'Food', time: '2d ago',
-  },
-];
-
-// ── Tips ─────────────────────────────────────────────────────────────────────
+// ── Tips sidebar ────────────────────────────────────────────────────────────
 const TIPS = [
   { icon: '💬', title: 'How to Bargain', desc: 'Start at 50% of the quoted price, be friendly, walk away if too high — the vendor will often call you back.' },
   { icon: '💵', title: 'Spot 20k vs 500k Notes', desc: 'Always check the color and size. The 500k note is larger with a blue tint. Under UV light, security features glow.' },
@@ -206,8 +141,9 @@ const TIPS = [
   { icon: '📱', title: 'Pay with Grab/MoMo', desc: 'Download Grab for rides & food delivery. MoMo works at many shops if you have a local phone number.' },
 ];
 
-// ── SettingsMenu ──────────────────────────────────────────────────────────────
+const CHART_COLORS = ['#f59e0b', '#059669'];
 
+// ── SettingsMenu ─────────────────────────────────────────────────────────────
 function SettingsMenu() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -216,9 +152,7 @@ function SettingsMenu() {
 
   useEffect(() => {
     if (!open) return;
-    const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
-    };
+    const handler = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
@@ -226,31 +160,18 @@ function SettingsMenu() {
   const handleLogout = async () => {
     setOut(true);
     try { await authApi.logout(); } catch (_) { }
-    finally {
-      clearSession();
-      setOut(false);
-      setOpen(false);
-      navigate('/login');
-    }
+    finally { clearSession(); setOut(false); setOpen(false); navigate('/login'); }
   };
 
   return (
     <div ref={menuRef} className="settings-menu">
-      <button
-        className="icon-btn settings-trigger"
-        onClick={() => setOpen(v => !v)}
-        title="Cài đặt"
-        aria-haspopup="true"
-        aria-expanded={open}
-      >
+      <button className="icon-btn settings-trigger" onClick={() => setOpen(v => !v)} title="Cài đặt" aria-haspopup="true" aria-expanded={open}>
         <span className={`settings-trigger-icon ${open ? 'open' : 'closed'}`}>⚙️</span>
       </button>
-
       <div className={`settings-dropdown ${open ? 'open' : 'closed'}`}>
         <div className="settings-dropdown-header">
           <div className="settings-dropdown-header-label">Cài đặt</div>
         </div>
-
         <div className="settings-dropdown-body">
           {[
             { icon: '👤', label: 'Tài khoản', sub: 'Đang phát triển' },
@@ -265,19 +186,11 @@ function SettingsMenu() {
               </div>
             </button>
           ))}
-
           <div className="settings-divider" />
-
-          <button
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="settings-logout-btn"
-          >
+          <button onClick={handleLogout} disabled={loggingOut} className="settings-logout-btn">
             <span className="settings-logout-icon">{loggingOut ? '⏳' : '🚪'}</span>
             <div>
-              <div className="settings-logout-label">
-                {loggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
-              </div>
+              <div className="settings-logout-label">{loggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}</div>
               <div className="settings-logout-sub">Thoát khỏi tài khoản</div>
             </div>
           </button>
@@ -287,75 +200,156 @@ function SettingsMenu() {
   );
 }
 
-// ── ContactForm ───────────────────────────────────────────────────────────────
-
-function ContactForm() {
-  const [form, setForm] = useState({ name: '', email: '', message: '' });
-  const [sent, setSent] = useState(false);
-  const [sending, setSending] = useState(false);
-
-  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.name || !form.email || !form.message) return;
-    setSending(true);
-    await new Promise(r => setTimeout(r, 900));
-    setSending(false);
-    setSent(true);
-  };
-
-  if (sent) {
-    return (
-      <div className="contact-success">
-        <div className="contact-success-icon">✅</div>
-        <div className="contact-success-title">Đã gửi thành công!</div>
-        <div className="contact-success-sub">Chúng tôi sẽ phản hồi trong vòng 24 giờ.</div>
-        <button className="contact-reset-btn" onClick={() => { setForm({ name: '', email: '', message: '' }); setSent(false); }}>
-          Gửi yêu cầu khác
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <form className="contact-form" onSubmit={handleSubmit}>
-      <div className="contact-form-row">
-        <div className="contact-field">
-          <label className="contact-label">Họ và tên</label>
-          <input className="contact-input" type="text" name="name" placeholder="Nguyễn Văn A" value={form.name} onChange={handleChange} required />
-        </div>
-        <div className="contact-field">
-          <label className="contact-label">Email</label>
-          <input className="contact-input" type="email" name="email" placeholder="you@example.com" value={form.email} onChange={handleChange} required />
-        </div>
-      </div>
-      <div className="contact-field">
-        <label className="contact-label">Nội dung</label>
-        <textarea className="contact-input contact-textarea" name="message" placeholder="Mô tả vấn đề hoặc câu hỏi của bạn..." value={form.message} onChange={handleChange} required rows={4} />
-      </div>
-      <button type="submit" className="contact-submit-btn" disabled={sending}>
-        {sending ? '⏳ Đang gửi...' : '✉️ Gửi yêu cầu'}
-      </button>
-    </form>
-  );
-}
-
 // ── DashboardPage ─────────────────────────────────────────────────────────────
-
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [scrolled, setScrolled] = useState(false);
 
+  // ── Real exchange rates ──
+  const [rates, setRates] = useState(FX_FALLBACK);
+  const [ratesLoading, setRatesLoading] = useState(true);
+
+  // ── Real budget/transaction data ──
+  const [budgetData, setBudgetData] = useState(null);
+  const [dailyBudget, setDailyBudget] = useState(null);
+  const { transactions, fetchTransactions } = useTransactionStore();
+
+  // ── Real articles ──
+  const [articles, setArticles] = useState([]);
+  const [articlesLoading, setArticlesLoading] = useState(true);
+
+  // ── Real travel plans ──
+  const [nextPlan, setNextPlan] = useState(null);
+
+  const isLoggedIn = !!localStorage.getItem('accessToken');
+  const user = isLoggedIn ? getStoredUser() : null;
+  const displayName = user?.fullName ?? user?.username ?? 'Traveler';
+  const avatarSrc = resolveAvatar(user);
+
+  // Scroll handler
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // ── Fetch exchange rates (public endpoint, no token needed) ──
+  useEffect(() => {
+    exchangeRateApi.getRates()
+      .then(res => {
+        const list = res?.data?.data ?? res?.data ?? [];
+        if (Array.isArray(list) && list.length > 0) {
+          const map = {};
+          list.forEach(r => {
+            if (r.fromCurrency && r.toCurrency === 'VND') {
+              map[r.fromCurrency] = r.rate;
+            }
+          });
+          if (Object.keys(map).length > 0) setRates({ ...FX_FALLBACK, ...map });
+        }
+      })
+      .catch(() => { /* fallback stays */ })
+      .finally(() => setRatesLoading(false));
+  }, []);
+
+  // ── Fetch articles (public endpoint)
+  // articleApi uses axiosClient raw → res.data = { code, data: { content: [...] } }
+  useEffect(() => {
+    articleApi.getAll({ size: 4 })
+      .then(res => {
+        // raw axios → res.data.data.content or res.data.data (array)
+        const outer = res?.data?.data ?? res?.data ?? {};
+        const list = Array.isArray(outer)
+          ? outer
+          : (outer?.content ?? []);
+        setArticles(list.slice(0, 4));
+      })
+      .catch(() => { })
+      .finally(() => setArticlesLoading(false));
+  }, []);
+
+  // ── Authenticated-only data ──
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    // Transactions
+    fetchTransactions();
+
+    // Budget summary
+    // budgetApi already does res?.data, so response is { code, message, data: [...] }
+    budgetApi.getBudgets()
+      .then(res => {
+        const list = Array.isArray(res?.data) ? res.data
+          : Array.isArray(res) ? res
+            : [];
+        const today = new Date().toISOString().slice(0, 10);
+        const active = list.find(b => b.startDate <= today && b.endDate >= today)
+          ?? list[0]
+          ?? null;
+        setBudgetData(active);
+      })
+      .catch(() => { });
+
+    // Daily budget — res shape: { code, message, data: { dailyLimit, spentToday, ... } }
+    budgetApi.getDailyBudget()
+      .then(res => {
+        const d = res?.data ?? res;
+        setDailyBudget(d);
+      })
+      .catch(() => { });
+
+    // Next travel plan — travelPlanApi uses raw axiosClient, so res.data.data = [...]
+    travelPlanApi.getAll()
+      .then(res => {
+        const raw = res?.data?.data ?? res?.data ?? res ?? [];
+        const list = Array.isArray(raw) ? raw : [];
+        if (list.length > 0) {
+          const sorted = [...list].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+          // Show the most recent plan regardless of completion
+          const upcoming = sorted.find(p => new Date(p.endDate) >= new Date()) ?? sorted[sorted.length - 1];
+          setNextPlan(upcoming ?? null);
+        }
+      })
+      .catch(() => { });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn]);
+
+  // ── Currency converter ──
+  const converted = amount && !isNaN(amount)
+    ? (parseFloat(amount) * (rates[currency] || 25420)).toLocaleString('vi-VN')
+    : '0';
+
+  // ── Budget chart data ── use budgetData fields directly (pre-calculated by backend)
+  const totalBudget = budgetData ? Number(budgetData.totalAmount ?? 0) : 0;
+  const totalExpense = budgetData ? Number(budgetData.spentAmount ?? 0) : 0;
+  const remaining = Math.max(0, totalBudget - totalExpense);
+  const pct = totalBudget > 0 ? Math.round((remaining / totalBudget) * 100) : 0;
+  const chartData = totalBudget > 0
+    ? [{ name: 'Spent', value: totalExpense || 0.001 }, { name: 'Remaining', value: remaining }]
+    : [{ name: 'Spent', value: 1 }, { name: 'Remaining', value: 2 }];
+
+  // ── Exchange ticker for marquee ──
+  const TICKER_KEYS = ['USD', 'EUR', 'JPY', 'KRW', 'GBP', 'CNY', 'AUD', 'THB'];
+  const tickerItems = TICKER_KEYS.map(c => ({
+    label: `${c}/VND`,
+    val: `₫${Number(rates[c] || 0).toLocaleString('vi-VN')}`,
+  }));
+  const TICKER_DOUBLE = [...tickerItems, ...tickerItems];
+
+  // ── Travel plan highlight text ──
+  const planHighlight = nextPlan
+    ? `📅 Next: ${nextPlan.destination ?? nextPlan.name} — ${nextPlan.startDate}`
+    : '📅 No upcoming trips — plan one now!';
+
+  // ── Article image fallback ──
+  const ARTICLE_FALLBACK_IMGS = [
+    'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1550652755-66774e14f8d2?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1582298538104-fe2e74c27f59?auto=format&fit=crop&w=600&q=80',
+  ];
 
   const scrollToMenu = (e, id) => {
     e.preventDefault();
@@ -366,16 +360,6 @@ export default function DashboardPage() {
     }
   };
 
-  const isLoggedIn = !!localStorage.getItem('accessToken');
-  const user = isLoggedIn ? getStoredUser() : null;
-  const displayName = user?.fullName ?? user?.username ?? 'Traveler';
-  const avatarSrc = resolveAvatar(user);
-
-  // Currency conversion
-  const converted = amount && !isNaN(amount)
-    ? (parseFloat(amount) * (FX[currency] || 25420)).toLocaleString('vi-VN')
-    : '0';
-
   return (
     <div className="landing-page" style={{ paddingTop: 72 }}>
       {/* ═══════════ CUSTOM LANDING HEADER ═══════════ */}
@@ -383,14 +367,12 @@ export default function DashboardPage() {
         <a href="#" className="lp-nav-logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
           Viet<span>Money</span>
         </a>
-
         <div className="lp-nav-links">
           <button className="lp-nav-link" onClick={(e) => scrollToMenu(e, 'financial-dashboard')}>Financial Dashboard</button>
           <button className="lp-nav-link" onClick={(e) => scrollToMenu(e, 'travelers-toolkit')}>Traveler's Toolkit</button>
-          <button className="lp-nav-link" onClick={(e) => scrollToMenu(e, 'community-news')}>Community & News</button>
+          <button className="lp-nav-link" onClick={(e) => scrollToMenu(e, 'community-news')}>Community &amp; News</button>
           <button className="lp-nav-link" onClick={(e) => scrollToMenu(e, 'about')}>About</button>
         </div>
-
         <div className="lp-nav-actions" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           {isLoggedIn ? (
             <>
@@ -420,14 +402,13 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      {/* ── Exchange Rate Ticker (below header) ── */}
+      {/* ── Exchange Rate Ticker (live data) ── */}
       <div className="lp-ticker">
         <div className="lp-ticker-inner">
           {TICKER_DOUBLE.map((item, i) => (
             <div className="lp-ticker-item" key={i}>
               <span className="lp-ticker-label">{item.label}</span>
-              <span className="lp-ticker-val">{item.val}</span>
-              <span className={`lp-ticker-change ${item.up ? 'up' : 'down'}`}>{item.change}</span>
+              <span className="lp-ticker-val">{ratesLoading ? '…' : item.val}</span>
             </div>
           ))}
         </div>
@@ -438,19 +419,16 @@ export default function DashboardPage() {
         <div className="lp-hero-content">
           <div className="lp-hero-badge">
             <span className="dot" />
-            Smart Travel Financial Assistant
+            {isLoggedIn ? `${getGreeting()}, ${displayName} 👋` : 'Smart Travel Financial Assistant'}
           </div>
-
           <h1 className="lp-hero-title">
             Your Vietnam Trip,{' '}
             <span className="highlight">Financially Mastered.</span>
           </h1>
-
           <p className="lp-hero-desc">
             Scan money with AI, track budgets in real-time, compare prices—everything
             a tourist needs to manage finances in Vietnam, all in one beautiful app.
           </p>
-
           <button className="lp-cta-btn" onClick={() => navigate(isLoggedIn ? '/scan' : '/login')}>
             <span className="lp-cta-icon">📷</span>
             Scan Money Now
@@ -466,17 +444,21 @@ export default function DashboardPage() {
         </p>
 
         <div className="lp-dashboard-grid">
-          {/* Budget Card */}
-          <div className="lp-glass lp-budget-card">
+          {/* Budget Card — real data when logged in */}
+          <div className="lp-glass lp-budget-card" style={{ cursor: isLoggedIn ? 'pointer' : 'default' }} onClick={() => isLoggedIn && navigate('/budget')}>
             <div className="lp-budget-header">
               <h3 className="lp-budget-title">📊 Travel Budget</h3>
-              <span className="lp-budget-badge">This Week</span>
+              {budgetData ? (
+                <span className="lp-budget-badge">{budgetData.name ?? 'Active'}</span>
+              ) : (
+                <span className="lp-budget-badge">{isLoggedIn ? 'No Budget' : 'Preview'}</span>
+              )}
             </div>
             <div className="lp-chart-wrap" style={{ position: 'relative' }}>
               <div style={{ position: 'relative', width: 200, height: 200 }}>
                 <PieChart width={200} height={200}>
                   <Pie
-                    data={BUDGET_DATA}
+                    data={chartData}
                     cx="50%"
                     cy="50%"
                     innerRadius={65}
@@ -487,7 +469,7 @@ export default function DashboardPage() {
                     startAngle={90}
                     endAngle={-270}
                   >
-                    {BUDGET_DATA.map((_, idx) => (
+                    {chartData.map((_, idx) => (
                       <Cell key={`budget-cell-${idx}`} fill={CHART_COLORS[idx]} />
                     ))}
                   </Pie>
@@ -495,29 +477,41 @@ export default function DashboardPage() {
               </div>
               <div style={{ position: 'absolute', textAlign: 'center' }}>
                 <div style={{ fontSize: 12, color: 'var(--lp-muted)', fontWeight: 500 }}>Remaining</div>
-                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 800, color: 'var(--lp-emerald)' }}>65%</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 800, color: 'var(--lp-emerald)' }}>
+                  {isLoggedIn && totalBudget > 0 ? `${pct}%` : '--'}
+                </div>
               </div>
             </div>
             <div className="lp-budget-info">
               <div className="lp-budget-stat">
                 <div className="lp-budget-stat-label">Budget Left</div>
-                <div className="lp-budget-stat-val emerald">₫3,240,000</div>
+                <div className="lp-budget-stat-val emerald">
+                  {isLoggedIn && totalBudget > 0 ? fmtVND(remaining) : '—'}
+                </div>
               </div>
               <div className="lp-budget-stat">
                 <div className="lp-budget-stat-label">Today's Spent</div>
-                <div className="lp-budget-stat-val amber">₫480,000</div>
+                <div className="lp-budget-stat-val amber">
+                  {isLoggedIn && dailyBudget ? fmtVND(dailyBudget.spentToday) : '—'}
+                </div>
               </div>
             </div>
+            {isLoggedIn && (
+              <div style={{ marginTop: 8, fontSize: 11, color: 'var(--lp-muted)', textAlign: 'center' }}>
+                {totalBudget > 0
+                  ? `Tap to manage your budget →`
+                  : `Tap to set up a budget →`}
+              </div>
+            )}
           </div>
 
           {/* Weather Widget */}
           <WeatherWidget />
 
-          {/* Currency Converter */}
+          {/* Currency Converter (live rates) */}
           <div className="lp-glass lp-converter-card">
             <h3 className="lp-converter-title">💱 Quick Currency Converter</h3>
             <p className="lp-converter-sub">See how much your money is worth in Vietnamese Đồng</p>
-
             <div className="lp-converter-row">
               <div className="lp-converter-input-wrap">
                 <span className="lp-converter-currency">$</span>
@@ -534,30 +528,28 @@ export default function DashboardPage() {
                 value={currency}
                 onChange={e => setCurrency(e.target.value)}
               >
-                {Object.keys(FX).map(c => (
+                {Object.keys(rates).map(c => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             </div>
-
             <div className="lp-converter-result">
               <div className="lp-converter-result-label">Vietnamese Đồng (VND)</div>
               <div className="lp-converter-result-val">₫{converted}</div>
               <div className="lp-converter-result-sub">
-                1 {currency} ≈ ₫{(FX[currency] || 25420).toLocaleString('vi-VN')}
+                1 {currency} ≈ ₫{(rates[currency] || 25420).toLocaleString('vi-VN')}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ═══════════ TIER 3: UTILITY GRID ═══════════ */}
+      {/* ═══════════ TIER 3: TRAVELER'S TOOLKIT ═══════════ */}
       <section id="travelers-toolkit" className="lp-utility lp-section">
         <h2 className="lp-section-title">Traveler's Toolkit</h2>
         <p className="lp-section-subtitle">
           Essential tools designed for tourists navigating Vietnam with confidence.
         </p>
-
         <div className="lp-utility-grid">
           {/* ATM Map */}
           <div className="lp-glass lp-util-card" onClick={() => navigate('/atm-map')}>
@@ -566,17 +558,17 @@ export default function DashboardPage() {
             <p className="lp-util-card-desc">
               Locate international-card friendly ATMs (Visa/Mastercard) near you instantly.
             </p>
-            <div className="lp-util-highlight">🟢 ATM nearest you: ~200m</div>
+            <div className="lp-util-highlight">🟢 Tap to find ATMs near you</div>
           </div>
 
-          {/* Travel Planner */}
+          {/* Travel Planner — real next plan */}
           <div className="lp-glass lp-util-card" onClick={() => navigate('/plans')}>
             <div className="lp-util-icon amber-bg">📅</div>
             <h3 className="lp-util-card-title">Travel Planner</h3>
             <p className="lp-util-card-desc">
               Smart itineraries, budget estimates, and local recommendations for your trip.
             </p>
-            <div className="lp-util-highlight amber">🕖 Next: Dinner at Hội An — 19:00</div>
+            <div className="lp-util-highlight amber">{planHighlight}</div>
           </div>
 
           {/* Wiki Price */}
@@ -587,7 +579,14 @@ export default function DashboardPage() {
               Know what things cost before you buy. Crowdsourced average prices.
             </p>
             <div className="lp-wiki-price-row">
-              {WIKI_PRICES.map(w => (
+              {[
+                { emoji: '☕', name: 'Cafe', price: '25–55k' },
+                { emoji: '🍜', name: 'Phở', price: '40–80k' },
+                { emoji: '🚕', name: 'Taxi', price: '10–20k/km' },
+                { emoji: '🥖', name: 'Bánh Mì', price: '15–35k' },
+                { emoji: '🍚', name: 'Cơm', price: '35–65k' },
+                { emoji: '🍺', name: 'Bia', price: '15–40k' },
+              ].map(w => (
                 <div className="lp-wiki-price-item" key={w.name}>
                   <span className="emoji">{w.emoji}</span>
                   <span className="price">{w.price}</span>
@@ -601,34 +600,65 @@ export default function DashboardPage() {
 
       {/* ═══════════ TIER 4: COMMUNITY & NEWS ═══════════ */}
       <section id="community-news" className="lp-community lp-section">
-        <h2 className="lp-section-title">Community & News</h2>
+        <h2 className="lp-section-title">Community &amp; News</h2>
         <p className="lp-section-subtitle">
           Stories, tips, and insights from fellow travelers exploring Vietnam.
         </p>
-
         <div className="lp-community-layout">
-          {/* Masonry Blog */}
+          {/* Masonry Blog — real articles */}
           <div className="lp-masonry">
-            {BLOG_POSTS.map((post, i) => (
-              <div className="lp-masonry-card" key={i} onClick={() => navigate('/news')}>
+            {articlesLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div className="lp-masonry-card" key={i} style={{ opacity: 0.5, minHeight: 200 }}>
+                  <div style={{ height: 140, background: 'var(--lp-surface)', borderRadius: '20px 20px 0 0' }} />
+                  <div className="lp-masonry-body">
+                    <div style={{ height: 12, width: '60%', background: 'var(--lp-surface)', borderRadius: 6, marginBottom: 8 }} />
+                    <div style={{ height: 16, width: '90%', background: 'var(--lp-surface)', borderRadius: 6, marginBottom: 6 }} />
+                  </div>
+                </div>
+              ))
+            ) : articles.length > 0 ? articles.map((art, i) => (
+              <div className="lp-masonry-card" key={art.id ?? i} onClick={() => navigate('/news')}>
                 <img
-                  src={post.img}
-                  alt={post.title}
+                  src={art.coverImage || art.imageUrl || art.thumbnailUrl || ARTICLE_FALLBACK_IMGS[i % 4]}
+                  alt={art.title}
                   className="lp-masonry-img"
                   loading="lazy"
                   style={{ borderRadius: '20px 20px 0 0' }}
+                  onError={e => { e.currentTarget.src = ARTICLE_FALLBACK_IMGS[i % 4]; }}
                 />
                 <div className="lp-masonry-body">
-                  <span className="lp-masonry-tag">{post.tag}</span>
-                  <h4 className="lp-masonry-title">{post.title}</h4>
-                  <p className="lp-masonry-excerpt">{post.excerpt}</p>
+                  <span className="lp-masonry-tag">{art.category ?? art.tag ?? 'News'}</span>
+                  <h4 className="lp-masonry-title">{art.title}</h4>
+                  <p className="lp-masonry-excerpt">{art.summary ?? art.content?.slice(0, 100) ?? ''}</p>
                 </div>
                 <div className="lp-masonry-footer">
-                  <span>{post.author} · {post.time}</span>
+                  <span>{art.authorName ?? art.author?.username ?? 'VietMoney'} · {timeAgo(art.createdAt)}</span>
                   <span style={{ color: 'var(--lp-emerald)', cursor: 'pointer' }}>Read more →</span>
                 </div>
               </div>
-            ))}
+            )) : (
+              // Fallback static if no articles yet
+              [
+                { img: ARTICLE_FALLBACK_IMGS[0], tag: 'Travel', title: 'Top 5 Hidden Gems in Hội An', excerpt: 'Discover breathtaking spots that most tourists overlook in the ancient town.', author: 'VietMoney', time: `${Date.now()}` },
+                { img: ARTICLE_FALLBACK_IMGS[1], tag: 'Finance', title: 'USD/VND Rate Update This Week', excerpt: 'The State Bank adjusted the margin, affecting tourist spending power.', author: 'Finance', time: `${Date.now()}` },
+                { img: ARTICLE_FALLBACK_IMGS[2], tag: 'Culture', title: 'Hội An Lantern Festival — A Must-See', excerpt: 'The monthly lantern festival attracts thousands of international visitors.', author: 'Culture', time: `${Date.now()}` },
+                { img: ARTICLE_FALLBACK_IMGS[3], tag: 'Food', title: 'Hội An Food Map: What & Where to Eat', excerpt: 'From Cao Lầu to Bánh Mì Phượng — the ultimate foodie guide.', author: 'Food', time: `${Date.now()}` },
+              ].map((post, i) => (
+                <div className="lp-masonry-card" key={i} onClick={() => navigate('/news')}>
+                  <img src={post.img} alt={post.title} className="lp-masonry-img" loading="lazy" style={{ borderRadius: '20px 20px 0 0' }} />
+                  <div className="lp-masonry-body">
+                    <span className="lp-masonry-tag">{post.tag}</span>
+                    <h4 className="lp-masonry-title">{post.title}</h4>
+                    <p className="lp-masonry-excerpt">{post.excerpt}</p>
+                  </div>
+                  <div className="lp-masonry-footer">
+                    <span>{post.author}</span>
+                    <span style={{ color: 'var(--lp-emerald)', cursor: 'pointer' }}>Read more →</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Wiki Essentials Sidebar */}
@@ -651,12 +681,8 @@ export default function DashboardPage() {
           <div className="lp-footer-grid">
             <div className="lp-footer-brand">
               <h3>Viet<span>Money</span></h3>
-              <p>
-                The smart financial companion for tourists in Vietnam.
-                Scan, track, convert, and travel with confidence.
-              </p>
+              <p>The smart financial companion for tourists in Vietnam. Scan, track, convert, and travel with confidence.</p>
             </div>
-
             <div>
               <h4 className="lp-footer-col-title">Features</h4>
               <ul className="lp-footer-links">
@@ -666,7 +692,6 @@ export default function DashboardPage() {
                 <li><a href="/wiki">Price Wiki</a></li>
               </ul>
             </div>
-
             <div>
               <h4 className="lp-footer-col-title">Explore</h4>
               <ul className="lp-footer-links">
@@ -676,7 +701,6 @@ export default function DashboardPage() {
                 <li><a href="/news">Travel News</a></li>
               </ul>
             </div>
-
             <div>
               <h4 className="lp-footer-col-title">Company</h4>
               <ul className="lp-footer-links">
@@ -687,7 +711,6 @@ export default function DashboardPage() {
               </ul>
             </div>
           </div>
-
           <div className="lp-footer-bottom">
             <span>© 2026 VietMoney. All rights reserved.</span>
             <div className="lp-footer-social">

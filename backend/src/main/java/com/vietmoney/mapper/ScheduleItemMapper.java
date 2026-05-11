@@ -1,3 +1,4 @@
+// backend/src/main/java/com/vietmoney/mapper/ScheduleItemMapper.java
 package com.vietmoney.mapper;
 
 import com.vietmoney.domain.entity.ScheduleItem;
@@ -6,14 +7,15 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ScheduleItemMapper {
-    public ScheduleItemResponse toResponse(ScheduleItem item) {
-        ScheduleItemResponse res = new ScheduleItemResponse();
-        res.setId(item.getId());
-        res.setDayNumber(item.getDayNumber());
-        res.setTimeSlot(item.getTimeSlot());
-        res.setLocation(item.getLocation());
-        res.setDescription(item.getDescription());
-        res.setEstimatedCost(item.getEstimatedCost());
-        return res;
+
+    public ScheduleItemResponse toResponse(ScheduleItem entity) {
+        ScheduleItemResponse r = new ScheduleItemResponse();
+        r.setId(entity.getId());
+        r.setDayNumber(entity.getDayNumber());
+        r.setTimeSlot(entity.getTimeSlot());
+        r.setLocation(entity.getLocation());
+        r.setDescription(entity.getDescription());
+        r.setEstimatedCost(entity.getEstimatedCost());
+        return r;
     }
 }
