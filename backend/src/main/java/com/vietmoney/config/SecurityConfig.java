@@ -51,7 +51,6 @@ public class SecurityConfig {
         private static final String[] PUBLIC_GET = {
                         "/api/v1/articles/public",
                         "/api/v1/articles/public/**",
-                        "/api/v1/budgets/**",
                         "/api/v1/tourist-spots",
                         "/api/v1/tourist-spots/search",
                         "/api/v1/tourist-spots/{id}",
@@ -62,7 +61,6 @@ public class SecurityConfig {
                         "/api/v1/wiki/**",
                         "/api/v1/price-wiki/**",
                         "/api/v1/atm/**",
-                        "/api/v1/users/me",
                         "/ws/**",
                         "/actuator/health",
         };

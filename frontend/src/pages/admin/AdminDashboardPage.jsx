@@ -40,7 +40,7 @@ export default function AdminDashboardPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, paddingTop: 80 }}>
+      <div style={{ paddingLeft: 32, paddingRight: 32, paddingBottom: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, paddingTop: 80 }}>
         <Spinner size={36} />
         <span style={{ color: 'var(--muted)', fontSize: 14 }}>Đang tải dữ liệu...</span>
       </div>
@@ -49,7 +49,7 @@ export default function AdminDashboardPage() {
 
   if (error) {
     return (
-      <div style={{ padding: 32, textAlign: 'center', paddingTop: 80 }}>
+      <div style={{ paddingLeft: 32, paddingRight: 32, paddingBottom: 32, textAlign: 'center', paddingTop: 80 }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
         <div style={{ color: 'var(--accent3)', marginBottom: 16 }}>{error}</div>
         <button className="submit-form-btn" style={{ width: 'auto', padding: '10px 24px' }} onClick={fetchData}>

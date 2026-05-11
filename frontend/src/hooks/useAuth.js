@@ -1,35 +1,23 @@
-import { useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import authApi from '../api/authApi';
+import authApi, { clearSession } from '../api/authApi';
 
 export function useAuth() {
-  const { user, token, setUser, setToken, logout } = useAuthStore();
+  const { user, token, setUser, setToken, logout, isReady } = useAuthStore();
 
-  useEffect(() => {
-    // Rehydrate user on mount if token exists in localStorage
-    const savedToken = localStorage.getItem('token');
-    if (savedToken && !user) {
-      setToken(savedToken);
-      authApi.getMe()
-        .then((res) => setUser(res.data))
-        .catch(() => { localStorage.removeItem('token'); logout(); });
-    }
-  }, []);
-
-  const login = async (email, password) => {
-    const res = await authApi.login(email, password);
+  const login = async (identifier, password) => {
+    const res = await authApi.login({ identifier, password });
     const { token: t, user: u } = res.data;
-    localStorage.setItem('token', t);
+    localStorage.setItem('accessToken', t);
     setToken(t);
     setUser(u);
     return u;
   };
 
   const logoutUser = async () => {
-    try { await authApi.logout(); } catch (_) {}
-    localStorage.removeItem('token');
+    try { await authApi.logout(); } catch (_) { }
+    clearSession();
     logout();
   };
 
-  return { user, token, login, logout: logoutUser, isAuthenticated: !!user };
+  return { user, token, login, logout: logoutUser, isAuthenticated: !!user, isReady };
 }
