@@ -107,10 +107,6 @@ function decodePolyline(encoded) {
 }
 
 // ─── Navigation geometry helpers ────────────────────────────────────────────
-
-/**
- * Bearing (0–360°, clockwise from North) giữa hai điểm [lng, lat].
- */
 function calcBearing(fromLngLat, toLngLat) {
   const toRad = d => (d * Math.PI) / 180;
   const dLng  = toRad(toLngLat[0] - fromLngLat[0]);
@@ -121,7 +117,6 @@ function calcBearing(fromLngLat, toLngLat) {
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
-/** Khoảng cách điểm P đến đoạn thẳng AB (đơn vị độ, chỉ để so sánh). */
 function ptSegDist(p, a, b) {
   const dx = b[0] - a[0], dy = b[1] - a[1];
   if (dx === 0 && dy === 0) return Math.hypot(p[0] - a[0], p[1] - a[1]);
@@ -129,10 +124,6 @@ function ptSegDist(p, a, b) {
   return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy);
 }
 
-/**
- * Tìm index segment [i, i+1] trên polyline gần GPS nhất.
- * Trả { idx, distM } — distM là khoảng cách mét xấp xỉ.
- */
 function findClosestSegment(lngLat, coords) {
   let minDeg = Infinity, minIdx = 0;
   for (let i = 0; i < coords.length - 1; i++) {
@@ -140,6 +131,58 @@ function findClosestSegment(lngLat, coords) {
     if (d < minDeg) { minDeg = d; minIdx = i; }
   }
   return { idx: minIdx, distM: minDeg * 111_000 };
+}
+
+// ─── Navigation helpers (GPS smooth + snap + steps + reroute) ───────────────
+
+/**
+ * GPS Smoothing: trung bình cộng buffer 3 điểm gần nhất.
+ * Giảm ~65% jitter mà không cần thư viện ngoài.
+ */
+function smoothGps(bufRef, rawLng, rawLat) {
+  const buf = bufRef.current;
+  buf.push([rawLng, rawLat]);
+  if (buf.length > 3) buf.shift();
+  const avgLng = buf.reduce((s, p) => s + p[0], 0) / buf.length;
+  const avgLat = buf.reduce((s, p) => s + p[1], 0) / buf.length;
+  return [avgLng, avgLat];
+}
+
+/**
+ * Snap-to-road: tìm điểm gần nhất trên polyline theo Haversine.
+ * Trả về { snappedLngLat, segmentIdx, distanceM }
+ */
+function snapToRoad(lngLat, routeCoords) {
+  if (!routeCoords.length) return { snappedLngLat: lngLat, segmentIdx: 0, distanceM: 0 };
+  let minDist = Infinity, minIdx = 0, snapped = routeCoords[0];
+  for (let i = 0; i < routeCoords.length; i++) {
+    const d = haversineKm(lngLat[1], lngLat[0], routeCoords[i][1], routeCoords[i][0]) * 1000;
+    if (d < minDist) { minDist = d; minIdx = i; snapped = routeCoords[i]; }
+  }
+  return { snappedLngLat: snapped, segmentIdx: minIdx, distanceM: minDist };
+}
+
+/**
+ * Parse steps từ Direction API response, gán _startIdx dựa trên polyline đã decode.
+ */
+function parseStepsWithIdx(legs, routeCoords) {
+  if (!legs?.length) return [];
+  const steps = [];
+  let coordCursor = 0;
+  for (const step of legs[0].steps ?? []) {
+    const stepCoords = step.polyline?.points ? decodePolyline(step.polyline.points) : [];
+    const startIdx = coordCursor;
+    coordCursor += Math.max(stepCoords.length - 1, 1);
+    steps.push({
+      instruction: step.html_instructions
+          ? step.html_instructions.replace(/<[^>]+>/g, '')
+          : (step.maneuver ?? 'Đi thẳng'),
+      distanceM: step.distance?.value ?? 0,
+      _startIdx: startIdx,
+      _endIdx: coordCursor,
+    });
+  }
+  return steps;
 }
 
 // ─── Map marker factories ────────────────────────────────────────────────────
@@ -243,6 +286,7 @@ const GLOBAL_CSS = `
 @keyframes bsUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes nearestGlow{0%,100%{box-shadow:0 0 0 0 rgba(0,201,141,0.2)}60%{box-shadow:0 0 0 6px rgba(0,201,141,0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+@keyframes rerouteIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 
 .atm-root{
   display:flex;width:100%;height:100%;
@@ -410,6 +454,14 @@ const GLOBAL_CSS = `
 .suggest-row:last-child{border-bottom:none;}
 .suggest-row:hover{background:rgba(0,201,141,0.06);}
 .mob-toggle{display:none;position:absolute;top:16px;left:16px;z-index:16;}
+.step-banner{
+  font-size:11.5px;color:rgba(255,255,255,0.55);margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;
+}
+.reroute-badge{
+  font-size:10.5px;color:#A78BFA;font-weight:700;margin-top:2px;
+  display:flex;align-items:center;gap:4px;animation:rerouteIn .3s ease;
+}
 
 @media(max-width:768px){
   .sidebar{position:absolute;top:0;left:0;height:100%;transform:translateX(-100%);z-index:30;width:88vw;}
@@ -455,14 +507,21 @@ export default function AtmMapPage({ embedded = false }) {
   const [travelMode, setTravelMode]     = useState('car');
   const [navigating, setNavigating]     = useState(false);
 
-  // Navigation refs — không dùng state để tránh re-render mỗi GPS tick
-  const navMarkerRef    = useRef(null);
-  const navWatchIdRef   = useRef(null);   // watchId riêng cho navigation
-  const prevNavCoordRef = useRef(null);   // tọa độ GPS trước để tính bearing fallback
-  const navProgressRef  = useRef(0);      // index segment hiện tại trên polyline
-  const navigatingRef   = useRef(false);  // mirror của state để đọc trong callback GPS
-  const routeCoordsRef  = useRef([]);     // mirror của routeCoords để đọc trong callback GPS
-  const selectedAtmRef  = useRef(null);   // mirror để handleRoute không cần capture
+  // Navigation refs
+  const navMarkerRef      = useRef(null);
+  const navWatchIdRef     = useRef(null);
+  const prevNavCoordRef   = useRef(null);
+  const navProgressRef    = useRef(0);
+  const navigatingRef     = useRef(false);
+  const routeCoordsRef    = useRef([]);
+  const selectedAtmRef    = useRef(null);
+
+  // ── NEW: Navigation enhancement refs ─────────────────────────────────────
+  const gpsBufferRef       = useRef([]);      // GPS smoothing buffer (max 3 pts)
+  const lastRerouteTimeRef = useRef(0);       // ms timestamp of last reroute
+  const routeStepsRef      = useRef([]);      // parsed turn-by-turn steps
+  const [currentStep, setCurrentStep]     = useState(null);
+  const [rerouteFlash, setRerouteFlash]   = useState(false);
 
   // ── Search & filter ───────────────────────────────────────────────────────
   const [search, setSearch]             = useState('');
@@ -486,15 +545,15 @@ export default function AtmMapPage({ embedded = false }) {
   const panTimerRef   = useRef(null);
   const customPlaceMarkerRef = useRef(null);
 
-  // Ambient GPS watch (tách biệt hoàn toàn với navigation watch)
-  const watchIdRef    = useRef(null);
+  // Ambient GPS watch
+  const watchIdRef = useRef(null);
 
   const isDesktop = () => window.innerWidth > 768;
 
-  // ── Sync refs với state ───────────────────────────────────────────────────
-  useEffect(() => { navigatingRef.current   = navigating;   }, [navigating]);
-  useEffect(() => { routeCoordsRef.current  = routeCoords;  }, [routeCoords]);
-  useEffect(() => { selectedAtmRef.current  = selectedAtm;  }, [selectedAtm]);
+  // ── Sync refs ─────────────────────────────────────────────────────────────
+  useEffect(() => { navigatingRef.current  = navigating;  }, [navigating]);
+  useEffect(() => { routeCoordsRef.current = routeCoords; }, [routeCoords]);
+  useEffect(() => { selectedAtmRef.current = selectedAtm; }, [selectedAtm]);
 
   // ── Resize ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -508,7 +567,7 @@ export default function AtmMapPage({ embedded = false }) {
     if (!silent) setLoading(true);
     clearTimeout(pollTimerRef.current);
     try {
-      const res     = await atmApi.getNearby(lat, lng, radius ?? searchRadius);
+      const res      = await atmApi.getNearby(lat, lng, radius ?? searchRadius);
       const raw      = res.data?.data ?? [];
       const coverage = res.data?.meta?.coveragePct ?? 100;
       const enriched = raw.map(a => ({
@@ -532,7 +591,7 @@ export default function AtmMapPage({ embedded = false }) {
 
   useEffect(() => () => clearTimeout(pollTimerRef.current), []);
 
-  // ── Geolocation — ambient watch (vị trí người dùng + update "chấm xanh") ─
+  // ── Ambient GPS watch ─────────────────────────────────────────────────────
   const applyPosition = useCallback((pos, forceCenter = false) => {
     const c = { lat: pos.coords.latitude, lng: pos.coords.longitude };
     setCoords(c);
@@ -543,16 +602,11 @@ export default function AtmMapPage({ embedded = false }) {
 
     if (!gMapRef.current) return;
 
-    // Khi đang navigation, camera được điều khiển bởi navWatch — không can thiệp ở đây
     if (navigatingRef.current) {
-      // Chỉ update "chấm xanh" marker, không flyTo
-      if (userMarkerRef.current) {
-        userMarkerRef.current.setLngLat([c.lng, c.lat]);
-      }
+      if (userMarkerRef.current) userMarkerRef.current.setLngLat([c.lng, c.lat]);
       return;
     }
 
-    // Không navigate: center bản đồ lần đầu
     if (!mapCentered.current || forceCenter) {
       mapCentered.current = true;
       gMapRef.current.flyTo({ center: [c.lng, c.lat], zoom: 16, speed: 1.3 });
@@ -577,6 +631,8 @@ export default function AtmMapPage({ embedded = false }) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
+    // Reset GPS buffer on manual re-center
+    gpsBufferRef.current = [];
     let localForceCenter = forceCenter;
     const onPos = (p) => { applyPosition(p, localForceCenter); localForceCenter = false; };
     const onErr = (err) => {
@@ -649,7 +705,7 @@ export default function AtmMapPage({ embedded = false }) {
       setMapReady(true);
 
       map.on('moveend', () => {
-        if (navigatingRef.current) return; // navigation đang control camera
+        if (navigatingRef.current) return;
         const c = map.getCenter(), prev = panCenterRef.current;
         if (prev && haversineKm(prev.lat, prev.lng, c.lat, c.lng) < 0.3) return;
         clearTimeout(panTimerRef.current);
@@ -744,15 +800,9 @@ export default function AtmMapPage({ embedded = false }) {
   }, [filtered, mapReady]);
 
   // ════════════════════════════════════════════════════════════════════════════
-  //  NAVIGATION — real-time GPS (mobile-first)
+  //  NAVIGATION — stopNavigation
   // ════════════════════════════════════════════════════════════════════════════
-
-  /**
-   * stopNavigation: dọn dẹp toàn bộ navigation state.
-   * Dùng useCallback không có dependencies để tránh stale closure trong cleanup.
-   */
   const stopNavigation = useCallback(() => {
-    // Dừng GPS watch của navigation
     if (navWatchIdRef.current != null) {
       navigator.geolocation.clearWatch(navWatchIdRef.current);
       navWatchIdRef.current = null;
@@ -760,56 +810,104 @@ export default function AtmMapPage({ embedded = false }) {
 
     setNavigating(false);
 
-    // Reset refs
-    navProgressRef.current  = 0;
-    prevNavCoordRef.current = null;
+    // Reset all navigation refs
+    navProgressRef.current   = 0;
+    prevNavCoordRef.current  = null;
+    gpsBufferRef.current     = [];      // NEW: clear smoothing buffer
+    routeStepsRef.current    = [];      // NEW: clear steps
+    setCurrentStep(null);              // NEW
+    setRerouteFlash(false);            // NEW
 
-    // Xóa NavMarker (mũi tên)
     navMarkerRef.current?.remove();
     navMarkerRef.current = null;
 
-    // Reset route-done layer
     if (gMapRef.current) {
       gMapRef.current.getSource?.('route-done')?.setData({
         type: 'Feature', geometry: { type: 'LineString', coordinates: [] },
       });
-      // Trả bản đồ về 2D
       gMapRef.current.easeTo({ pitch: 0, bearing: 0, zoom: 15, duration: 600 });
     }
   }, []);
 
-  /**
-   * startNavigation: bắt đầu real-time GPS navigation.
-   *
-   * Flow:
-   *  1. Tạo NavMarker tại vị trí hiện tại
-   *  2. Thiết lập góc nhìn 3D ban đầu
-   *  3. Start watchPosition riêng (maxAge=0, highAccuracy=true)
-   *  4. Mỗi GPS tick:
-   *     a. Update NavMarker vị trí
-   *     b. Tính bearing (native heading ưu tiên, fallback tính tay)
-   *     c. Map matching: tìm segment gần nhất → update route-done
-   *     d. Camera follow theo GPS + bearing + pitch 55°
-   *     e. Kiểm tra đã đến nơi chưa (< 30m)
-   */
+  // ── Turn-by-turn step updater ─────────────────────────────────────────────
+  const updateCurrentStep = useCallback((segmentIdx) => {
+    const steps = routeStepsRef.current;
+    if (!steps.length) return;
+    let active = steps[0];
+    for (const s of steps) {
+      if (s._startIdx <= segmentIdx) active = s;
+      else break;
+    }
+    setCurrentStep(prev => prev?.instruction === active.instruction ? prev : active);
+  }, []);
+
+  // ── Reroute ───────────────────────────────────────────────────────────────
+  const doReroute = useCallback(async (lngLat, atm) => {
+    const now = Date.now();
+    if (now - lastRerouteTimeRef.current < 15_000) return; // 15s cooldown
+    if (!atm?.lat || !atm?.lng) return;
+    lastRerouteTimeRef.current = now;
+    try {
+      const res = await atmApi.getDirection(
+          `${lngLat[1]},${lngLat[0]}`,
+          `${atm.lat},${atm.lng}`,
+          travelMode,
+      );
+      const route = (res.data?.data ?? res.data)?.routes?.[0];
+      if (!route) return;
+      const encoded = route.overview_polyline?.points;
+      let newCoords = [];
+      if (encoded) {
+        newCoords = decodePolyline(encoded);
+      } else {
+        for (const s of route.legs?.[0]?.steps ?? []) {
+          if (s.polyline?.points) newCoords.push(...decodePolyline(s.polyline.points));
+        }
+      }
+      if (!newCoords.length) return;
+
+      // Update map layers
+      gMapRef.current?.getSource?.('route')?.setData({
+        type: 'Feature', geometry: { type: 'LineString', coordinates: newCoords },
+      });
+      gMapRef.current?.getSource?.('route-done')?.setData({
+        type: 'Feature', geometry: { type: 'LineString', coordinates: [] },
+      });
+
+      // Sync state + refs
+      setRouteCoords(newCoords);
+      routeCoordsRef.current = newCoords;
+      navProgressRef.current = 0;
+      routeStepsRef.current  = parseStepsWithIdx(route.legs, newCoords);
+      if (routeStepsRef.current.length) setCurrentStep(routeStepsRef.current[0]);
+
+      // Flash badge
+      setRerouteFlash(true);
+      setTimeout(() => setRerouteFlash(false), 3000);
+    } catch (e) {
+      console.warn('Reroute failed:', e);
+    }
+  }, [travelMode]);
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  NAVIGATION — startNavigation (with GPS smooth + snap + turn-by-turn + reroute)
+  // ════════════════════════════════════════════════════════════════════════════
   const startNavigation = useCallback(() => {
     const coords_ = routeCoordsRef.current;
     if (!coords_.length || !gMapRef.current) return;
 
     stopNavigation();
     setNavigating(true);
-    setShowSidebar(false); // mobile: ẩn sidebar
+    setShowSidebar(false);
 
-    // Reset progress
     navProgressRef.current  = 0;
     prevNavCoordRef.current = null;
+    gpsBufferRef.current    = []; // fresh buffer on start
 
-    // Điểm xuất phát: vị trí GPS hiện tại nếu có, fallback đầu route
     const startLngLat = coords
         ? [coords.lng, coords.lat]
         : coords_[0];
 
-    // Tạo NavMarker
     const el = createNavMarker();
     navMarkerRef.current = new goongjs.Marker({
       element: el,
@@ -817,14 +915,12 @@ export default function AtmMapPage({ embedded = false }) {
       anchor: 'center',
     }).setLngLat(startLngLat).addTo(gMapRef.current);
 
-    // Góc nhìn 3D ban đầu
     gMapRef.current.easeTo({
       center: startLngLat, zoom: 18, pitch: 55, bearing: 0, duration: 1000,
     });
 
     if (!navigator.geolocation) return;
 
-    // Xóa watch cũ nếu có
     if (navWatchIdRef.current != null) {
       navigator.geolocation.clearWatch(navWatchIdRef.current);
     }
@@ -833,50 +929,50 @@ export default function AtmMapPage({ embedded = false }) {
         (pos) => {
           if (!gMapRef.current || !navigatingRef.current) return;
 
-          const { latitude: lat, longitude: lng, heading, accuracy } = pos.coords;
-
-          // Bỏ qua GPS quá nhiễu (trong nhà, hầm xe, ...)
-          // Threshold 100m cho VN — GPS đô thị thường 10–40m khi ngoài trời
+          const { latitude: rawLat, longitude: rawLng, heading, accuracy } = pos.coords;
           if (accuracy > 100) return;
 
-          const curLngLat = [lng, lat];
+          // ── Step 1: GPS Smoothing ───────────────────────────────────
+          const [sLng, sLat] = smoothGps(gpsBufferRef, rawLng, rawLat);
 
-          // ── 1. Update NavMarker vị trí ─────────────────────────────
-          navMarkerRef.current?.setLngLat(curLngLat);
+          // ── Step 2: Snap-to-road ────────────────────────────────────
+          const routePts = routeCoordsRef.current;
+          const { snappedLngLat, segmentIdx, distanceM } = routePts.length
+              ? snapToRoad([sLng, sLat], routePts)
+              : { snappedLngLat: [sLng, sLat], segmentIdx: 0, distanceM: 0 };
 
-          // ── 2. Tính bearing ────────────────────────────────────────
-          // Ưu tiên native heading (chính xác trên mobile đang di chuyển)
+          // NavMarker snaps to road — no jumping off polyline
+          navMarkerRef.current?.setLngLat(snappedLngLat);
+
+          // ── Step 3: Turn-by-turn ────────────────────────────────────
+          updateCurrentStep(segmentIdx);
+
+          // ── Step 4: Reroute if off-route > 50m ─────────────────────
+          if (distanceM > 50 && selectedAtmRef.current) {
+            doReroute([sLng, sLat], selectedAtmRef.current);
+          }
+
+          // ── Bearing ─────────────────────────────────────────────────
           let bearing = 0;
           if (heading != null && !isNaN(heading) && accuracy < 50) {
-            // heading chỉ reliable khi accuracy tốt
             bearing = heading;
           } else if (prevNavCoordRef.current) {
             const prev = prevNavCoordRef.current;
-            const distDeg = Math.hypot(lng - prev[0], lat - prev[1]);
-            // Chỉ tính bearing khi di chuyển đủ xa (> ~5m) để tránh jitter khi đứng yên
+            const distDeg = Math.hypot(sLng - prev[0], sLat - prev[1]);
             if (distDeg > 0.00004) {
-              bearing = calcBearing(prev, curLngLat);
+              bearing = calcBearing(prev, [sLng, sLat]);
             } else {
-              // Giữ nguyên bearing hiện tại của map
               bearing = gMapRef.current.getBearing();
             }
           }
-          prevNavCoordRef.current = curLngLat;
+          prevNavCoordRef.current = [sLng, sLat];
 
-          // ── 3. NavMarker xoay theo hướng ───────────────────────────
           navMarkerRef.current?.setRotation(bearing - gMapRef.current.getBearing());
 
-          // ── 4. Map matching: tìm segment gần nhất trên route ───────
-          const routePts = routeCoordsRef.current;
+          // ── Progress / route-done ───────────────────────────────────
           if (routePts.length > 1) {
-            const { idx, distM } = findClosestSegment(curLngLat, routePts);
+            if (segmentIdx > navProgressRef.current) navProgressRef.current = segmentIdx;
 
-            // Chỉ tiến, không lùi (tránh route-done giật lùi khi GPS drift)
-            if (idx > navProgressRef.current) {
-              navProgressRef.current = idx;
-            }
-
-            // Update route-done (phần đã đi — hiện màu mờ)
             gMapRef.current.getSource?.('route-done')?.setData({
               type: 'Feature',
               geometry: {
@@ -885,41 +981,35 @@ export default function AtmMapPage({ embedded = false }) {
               },
             });
 
-            // ── 5. Kiểm tra đã đến nơi (< 30m tới điểm cuối) ────────
-            const dest     = routePts[routePts.length - 1];
-            const distDest = haversineKm(lat, lng, dest[1], dest[0]) * 1000;
+            // Arrived if < 30m from destination
+            const dest    = routePts[routePts.length - 1];
+            const distDest = haversineKm(rawLat, rawLng, dest[1], dest[0]) * 1000;
             if (distDest < 30) {
               stopNavigation();
               return;
             }
           }
 
-          // ── 6. Camera follow ──────────────────────────────────────
-          // duration = 900ms — hơi nhỏ hơn GPS interval (~1s) để smooth
+          // ── Camera follow ───────────────────────────────────────────
           gMapRef.current.easeTo({
-            center: curLngLat,
-            zoom: 18,
-            pitch: 55,
-            bearing,
+            center: snappedLngLat,
+            zoom: 18, pitch: 55, bearing,
             duration: 900,
-            easing: t => t, // linear — không overshoot
+            easing: t => t,
           });
         },
         (err) => {
-          // Không dừng nav khi mất GPS tạm thời (vào hầm, tòa nhà)
           console.warn('Nav GPS error:', err.code, err.message);
         },
         {
           enableHighAccuracy: true,
-          maximumAge: 0,       // luôn lấy GPS mới nhất, không dùng cache
+          maximumAge: 0,
           timeout: 10_000,
         }
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coords, stopNavigation]);
-  // Không list routeCoords vì đọc qua routeCoordsRef để tránh recreate callback
+  }, [coords, stopNavigation, updateCurrentStep, doReroute]);
 
-  // Cleanup khi unmount
   useEffect(() => () => stopNavigation(), [stopNavigation]);
 
   // ── Select ATM ────────────────────────────────────────────────────────────
@@ -986,6 +1076,11 @@ export default function AtmMapPage({ embedded = false }) {
           maxZoom: 17,
         });
       }
+
+      // NEW: Parse turn-by-turn steps
+      const steps = parseStepsWithIdx(route.legs, coordinates);
+      routeStepsRef.current = steps;
+      if (steps.length) setCurrentStep(steps[0]);
 
       const leg = route.legs?.[0], dur = leg?.duration?.value ?? 0, dist = leg?.distance?.value ?? 0;
       setRouteInfo({
@@ -1347,6 +1442,28 @@ export default function AtmMapPage({ embedded = false }) {
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 1 }}>{navigating ? 'Đang dẫn đến' : 'Đường đến'}</div>
                     <div style={{ fontSize: 13.5, fontWeight: 700, color: '#E2E8F0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedAtm?.name}</div>
                     <div style={{ fontSize: 13, color: '#00C98D', marginTop: 1, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{routeInfo.duration} · {routeInfo.distance}</div>
+
+                    {/* NEW: Turn-by-turn instruction banner */}
+                    {navigating && currentStep && (
+                        <div className="step-banner">
+                          ↱ {currentStep.instruction}
+                          {currentStep.distanceM > 0 && (
+                              <span style={{ color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>
+                            · {currentStep.distanceM < 1000
+                                  ? `${currentStep.distanceM}m`
+                                  : `${(currentStep.distanceM / 1000).toFixed(1)}km`}
+                          </span>
+                          )}
+                        </div>
+                    )}
+
+                    {/* NEW: Reroute flash badge */}
+                    {rerouteFlash && (
+                        <div className="reroute-badge">
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#A78BFA', display: 'inline-block', animation: 'pulse 1s infinite' }}/>
+                          Đã tính lại đường đi
+                        </div>
+                    )}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>

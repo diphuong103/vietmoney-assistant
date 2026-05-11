@@ -1,4 +1,7 @@
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useNotificationStore } from '../../store/notificationStore';
+import NotificationPanel from '../common/NotificationPanel';
 
 // ── SVG Icon Components ──────────────────────────────────────────────────────
 
@@ -80,6 +83,13 @@ const IconSearch = () => (
     </svg>
 );
 
+const IconBell = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+);
+
 // ── Dock Items Config ────────────────────────────────────────────────────────
 
 const DOCK_ITEMS = [
@@ -102,6 +112,14 @@ const DOCK_ITEMS = [
 export default function VerticalDock({ onOpenPlans, onOpenSearch }) {
     const navigate = useNavigate();
     const location = useLocation();
+    const [notifOpen, setNotifOpen] = useState(false);
+    const { unreadCount, fetch: fetchNotifs } = useNotificationStore();
+
+    // Fetch notifications on mount
+    useEffect(() => {
+        fetchNotifs();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleClick = (item) => {
         if (item.action === 'scrollTop') {
@@ -116,27 +134,63 @@ export default function VerticalDock({ onOpenPlans, onOpenSearch }) {
     };
 
     return (
-        <nav className="vertical-dock" aria-label="Quick access dock" style={{ width: 50 }}>
-            {DOCK_ITEMS.map((item, idx) => {
-                if (item === null) {
-                    return <div key={`sep-${idx}`} className="vdock-separator" />;
-                }
+        <>
+            <nav className="vertical-dock" aria-label="Quick access dock" style={{ width: 50 }}>
+                {DOCK_ITEMS.map((item, idx) => {
+                    if (item === null) {
+                        return <div key={`sep-${idx}`} className="vdock-separator" />;
+                    }
 
-                const Icon = item.icon;
-                const isActive = item.path && location.pathname === item.path;
+                    const Icon = item.icon;
+                    const isActive = item.path && location.pathname === item.path;
 
-                return (
-                    <button
-                        key={item.id}
-                        className={`vdock-item${isActive ? ' vdock-item--active' : ''}`}
-                        onClick={() => handleClick(item)}
-                        aria-label={item.label}
-                    >
-                        <span className="vdock-icon"><Icon /></span>
-                        <span className="vdock-tooltip">{item.label}</span>
-                    </button>
-                );
-            })}
-        </nav>
+                    return (
+                        <button
+                            key={item.id}
+                            className={`vdock-item${isActive ? ' vdock-item--active' : ''}`}
+                            onClick={() => handleClick(item)}
+                            aria-label={item.label}
+                        >
+                            <span className="vdock-icon"><Icon /></span>
+                            <span className="vdock-tooltip">{item.label}</span>
+                        </button>
+                    );
+                })}
+
+                {/* Separator before bell */}
+                <div className="vdock-separator" />
+
+                {/* Bell button with unread badge */}
+                <button
+                    className={`vdock-item${notifOpen ? ' vdock-item--active' : ''}`}
+                    onClick={() => setNotifOpen(v => !v)}
+                    aria-label="Thông báo"
+                    style={{ position: 'relative' }}
+                >
+                    <span className="vdock-icon"><IconBell /></span>
+                    {unreadCount > 0 && (
+                        <span style={{
+                            position: 'absolute',
+                            top: 4, right: 4,
+                            minWidth: 16, height: 16,
+                            background: '#f23d6e',
+                            color: '#fff',
+                            fontSize: 10, fontWeight: 700,
+                            borderRadius: 8,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: '0 3px',
+                            lineHeight: 1,
+                            pointerEvents: 'none',
+                        }}>
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                    )}
+                    <span className="vdock-tooltip">Thông báo</span>
+                </button>
+            </nav>
+
+            {/* Notification slide-in panel */}
+            <NotificationPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
+        </>
     );
 }

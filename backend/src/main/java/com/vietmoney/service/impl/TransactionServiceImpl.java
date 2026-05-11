@@ -2,17 +2,20 @@ package com.vietmoney.service.impl;
 
 import com.vietmoney.domain.entity.*;
 import com.vietmoney.domain.enums.CategoryType;
+import com.vietmoney.domain.enums.NotificationType;
 import com.vietmoney.dto.request.TransactionRequest;
 import com.vietmoney.dto.response.TransactionResponse;
 import com.vietmoney.exception.AppException;
 import com.vietmoney.exception.ErrorCode;
 import com.vietmoney.repository.*;
+import com.vietmoney.service.NotificationService;
 import com.vietmoney.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,6 +28,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final BudgetRepository budgetRepository;
+    private final NotificationService notificationService;
 
     // ================= USER =================
     private User getCurrentUser() {
@@ -67,8 +71,7 @@ public class TransactionServiceImpl implements TransactionService {
             }
 
             budget.setSpentAmount(
-                    budget.getSpentAmount().add(request.getAmount())
-            );
+                    budget.getSpentAmount().add(request.getAmount()));
             budgetRepository.save(budget);
         }
 
@@ -76,7 +79,44 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction full = transactionRepository.findByIdWithCategory(saved.getId())
                 .orElse(saved);
 
-        return map(full);
+        TransactionResponse response = map(full);
+
+        // ─ Notification: transaction created ─
+        String catName = response.getCategoryName() != null ? " – " + response.getCategoryName() : "";
+        String amtFmt = String.format("%,.0f₫", request.getAmount());
+        notificationService.sendTo(
+                user,
+                NotificationType.TRANSACTION_CREATED,
+                request.getType() == CategoryType.EXPENSE ? "Chi tiêu mới" : "Thu nhập mới",
+                (request.getType() == CategoryType.EXPENSE ? "Chi " : "Thu ") + amtFmt + catName,
+                "/budget");
+
+        // ─ Notification: budget threshold ─
+        if (budget != null && request.getType() == CategoryType.EXPENSE
+                && budget.getTotalAmount() != null && budget.getTotalAmount().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal pct = budget.getSpentAmount()
+                    .divide(budget.getTotalAmount(), 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+
+            if (pct.compareTo(BigDecimal.valueOf(100)) >= 0) {
+                notificationService.sendTo(
+                        user,
+                        NotificationType.BUDGET_EXCEEDED,
+                        "Vượt ngân sách!",
+                        "Ngân sách \"" + budget.getName() + "\" đã vượt mức cho phép.",
+                        "/budget");
+            } else if (pct.compareTo(BigDecimal.valueOf(80)) >= 0) {
+                notificationService.sendTo(
+                        user,
+                        NotificationType.BUDGET_WARNING,
+                        "Sắp hết ngân sách",
+                        "Bạn đã dùng " + pct.setScale(0, RoundingMode.HALF_UP) + "% ngân sách \"" + budget.getName()
+                                + "\".",
+                        "/budget");
+            }
+        }
+
+        return response;
     }
 
     // ================= GET ALL =================
@@ -104,8 +144,7 @@ public class TransactionServiceImpl implements TransactionService {
         if (txn.getBudget() != null && txn.getType() == CategoryType.EXPENSE) {
             Budget oldBudget = txn.getBudget();
             oldBudget.setSpentAmount(
-                    oldBudget.getSpentAmount().subtract(txn.getAmount())
-            );
+                    oldBudget.getSpentAmount().subtract(txn.getAmount()));
             budgetRepository.save(oldBudget);
         }
 
@@ -132,8 +171,7 @@ public class TransactionServiceImpl implements TransactionService {
         if (budget != null && request.getType() == CategoryType.EXPENSE) {
             budget.setSpentAmount(
                     (budget.getSpentAmount() == null ? BigDecimal.ZERO : budget.getSpentAmount())
-                            .add(request.getAmount())
-            );
+                            .add(request.getAmount()));
             budgetRepository.save(budget);
         }
 

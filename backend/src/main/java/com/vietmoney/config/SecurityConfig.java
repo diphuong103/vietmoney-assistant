@@ -32,84 +32,85 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthFilter        jwtAuthFilter;
-    private final AuthenticationProvider authenticationProvider;
+        private final JwtAuthFilter jwtAuthFilter;
+        private final AuthenticationProvider authenticationProvider;
 
-    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
-    private String allowedOrigins;
+        @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+        private String allowedOrigins;
 
-    private static final String[] PUBLIC_POST = {
-            "/api/v1/auth/login",
-            "/api/v1/auth/register",
-            "/api/v1/auth/forgot-password",
-            "/api/v1/auth/reset-password",
-            "/api/v1/auth/refresh-token",
-            "/api/v1/auth/logout",
-            "/api/v1/media/upload",
-    };
+        private static final String[] PUBLIC_POST = {
+                        "/api/v1/auth/login",
+                        "/api/v1/auth/register",
+                        "/api/v1/auth/forgot-password",
+                        "/api/v1/auth/reset-password",
+                        "/api/v1/auth/refresh-token",
+                        "/api/v1/auth/logout",
+                        "/api/v1/media/upload",
+        };
 
-    private static final String[] PUBLIC_GET = {
-            "/api/v1/articles/public",
-            "/api/v1/articles/public/**",
-            "/api/v1/budgets/**",
-            "/api/v1/tourist-spots",
-            "/api/v1/tourist-spots/search",
-            "/api/v1/tourist-spots/{id}",
-            "/api/v1/tourist-spots/nearby",
-            "/api/v1/tourist-spots/**",
-            "/api/v1/exchange-rates",
-            "/api/v1/exchange-rates/convert",
-            "/api/v1/wiki/**",
-            "/api/v1/price-wiki/**",
-            "/api/v1/atm/**",
-            "/api/v1/users/me",
-            "/actuator/health",
-    };
+        private static final String[] PUBLIC_GET = {
+                        "/api/v1/articles/public",
+                        "/api/v1/articles/public/**",
+                        "/api/v1/budgets/**",
+                        "/api/v1/tourist-spots",
+                        "/api/v1/tourist-spots/search",
+                        "/api/v1/tourist-spots/{id}",
+                        "/api/v1/tourist-spots/nearby",
+                        "/api/v1/tourist-spots/**",
+                        "/api/v1/exchange-rates",
+                        "/api/v1/exchange-rates/convert",
+                        "/api/v1/wiki/**",
+                        "/api/v1/price-wiki/**",
+                        "/api/v1/atm/**",
+                        "/api/v1/users/me",
+                        "/ws/**",
+                        "/actuator/health",
+        };
 
-    // ── Tất cả path yêu cầu role ADMIN ──────────────────
-    private static final String[] ADMIN_PATHS = {
-            "/api/v1/admin/**",
-            "/api/v1/articles/admin/**",   // ← ArticleController: /articles/admin/...
-    };
+        // ── Tất cả path yêu cầu role ADMIN ──────────────────
+        private static final String[] ADMIN_PATHS = {
+                        "/api/v1/admin/**",
+                        "/api/v1/articles/admin/**", // ← ArticleController: /articles/admin/...
+        };
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
-                        .requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
-                        .requestMatchers(ADMIN_PATHS).hasRole("ADMIN")  // ← dùng mảng, cover cả 2 prefix
-                        .anyRequest().authenticated()
-                )
-                .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                http
+                                .csrf(AbstractHttpConfigurer::disable)
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                                .requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
+                                                .requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
+                                                .requestMatchers(ADMIN_PATHS).hasRole("ADMIN") // ← dùng mảng, cover cả
+                                                                                               // 2 prefix
+                                                .anyRequest().authenticated())
+                                .authenticationProvider(authenticationProvider)
+                                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration config = new CorsConfiguration();
 
-        // Parse allowed origins from config, trim whitespace
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toList();
-        config.setAllowedOriginPatterns(origins);
+                // Parse allowed origins from config, trim whitespace
+                List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                                .map(String::trim)
+                                .filter(s -> !s.isEmpty())
+                                .toList();
+                config.setAllowedOriginPatterns(origins);
 
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setExposedHeaders(List.of("Authorization", "Content-Type"));
-        config.setAllowCredentials(true);
-        config.setMaxAge(3600L);
+                config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+                config.setAllowedHeaders(List.of("*"));
+                config.setExposedHeaders(List.of("Authorization", "Content-Type"));
+                config.setAllowCredentials(true);
+                config.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", config);
+                return source;
+        }
 }

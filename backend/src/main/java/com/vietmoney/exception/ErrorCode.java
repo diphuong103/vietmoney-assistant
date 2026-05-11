@@ -45,10 +45,11 @@ public enum ErrorCode {
     SCAN_NOT_FOUND(404, "Bản ghi scan không tồn tại", HttpStatus.NOT_FOUND),
     PLAN_NOT_FOUND(404, "Kế hoạch du lịch không tồn tại", HttpStatus.NOT_FOUND),
 
-    SCHEDULE_ITEM_NOT_FOUND(404, "Không tìm thấy hoạt động trong lịch trình",HttpStatus.NOT_FOUND),
+    SCHEDULE_ITEM_NOT_FOUND(404, "Không tìm thấy hoạt động trong lịch trình", HttpStatus.NOT_FOUND),
 
-    WIKI_PRICE_NOT_FOUND(404, "Không tìm thấy dữ liệu giá", HttpStatus.NOT_FOUND);
+    WIKI_PRICE_NOT_FOUND(404, "Không tìm thấy dữ liệu giá", HttpStatus.NOT_FOUND),
 
+    NOTIFICATION_NOT_FOUND(404, "Thông báo không tồn tại", HttpStatus.NOT_FOUND);
 
     private final int code;
     private final String message;

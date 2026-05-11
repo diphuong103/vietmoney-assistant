@@ -5,6 +5,7 @@ import AIChatModal from './AIChatModal';
 import VerticalDock from './VerticalDock';
 import FloatingPopup from '../common/FloatingPopup';
 import { useAuthStore } from '../../store/authStore';
+import { useNotificationStore } from '../../store/notificationStore';
 import { getLanguage, setLanguage } from '../../utils/i18n';
 
 // Lazy-load heavy page content for popups
@@ -128,6 +129,19 @@ export default function ClientLayout() {
   const langRef = useRef(null);
   const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
   const currentLang = LANGS.find(l => l.code === activeLang) ?? LANGS[0];
+
+  const { connect: connectNotifications, disconnect: disconnectNotifications } = useNotificationStore();
+
+  // Connect / disconnect WebSocket notifications on auth state change
+  useEffect(() => {
+    if (user?.id) {
+      connectNotifications(user.id);
+    } else {
+      disconnectNotifications();
+    }
+    return () => disconnectNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // Apply / remove dark class on <html> and persist
   useEffect(() => {
