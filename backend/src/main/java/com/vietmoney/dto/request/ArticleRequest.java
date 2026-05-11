@@ -1,16 +1,23 @@
 package com.vietmoney.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class ArticleRequest {
-    @NotBlank
+
     private String title;
-    @NotBlank
+
     private String content;
-    private String thumbnailUrl;
+
+    private String category;
+
+    private String visibility;
+
     private String tags;
-    private String mediaUrl;
-    private String mediaType;
+
+    private String status;
+
+    private List<MediaRequest> media;
 }

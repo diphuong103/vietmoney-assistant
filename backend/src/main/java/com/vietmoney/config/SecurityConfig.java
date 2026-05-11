@@ -33,7 +33,6 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
     private String allowedOrigins;
 
-    // ── Public POST endpoints ─────────────────────────────
     private static final String[] PUBLIC_POST = {
             "/api/v1/auth/login",
             "/api/v1/auth/register",
@@ -41,11 +40,12 @@ public class SecurityConfig {
             "/api/v1/auth/reset-password",
             "/api/v1/auth/refresh-token",
             "/api/v1/auth/logout",
+            "/api/v1/media/upload",
     };
 
-    // ── Public GET endpoints ──────────────────────────────
     private static final String[] PUBLIC_GET = {
-            "/api/v1/articles",
+            "/api/v1/articles/public",
+            "/api/v1/articles/public/**",
             "/api/v1/budgets/**",
             "/api/v1/tourist-spots",
             "/api/v1/tourist-spots/search",
@@ -59,7 +59,12 @@ public class SecurityConfig {
             "/api/v1/atm/**",
             "/api/v1/users/me",
             "/actuator/health",
+    };
 
+    // ── Tất cả path yêu cầu role ADMIN ──────────────────
+    private static final String[] ADMIN_PATHS = {
+            "/api/v1/admin/**",
+            "/api/v1/articles/admin/**",   // ← ArticleController: /articles/admin/...
     };
 
     @Bean
@@ -69,11 +74,10 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // ── CRITICAL: allow ALL preflight OPTIONS requests ──
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers(ADMIN_PATHS).hasRole("ADMIN")  // ← dùng mảng, cover cả 2 prefix
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider)
@@ -86,7 +90,6 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Parse allowed origins from config, trim whitespace
         List<String> origins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())

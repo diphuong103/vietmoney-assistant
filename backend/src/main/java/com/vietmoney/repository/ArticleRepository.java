@@ -10,9 +10,45 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ArticleRepository extends JpaRepository<Article, Long> {
-    Page<Article> findByStatus(ArticleStatus status, Pageable pageable);
 
-    Page<Article> findByAuthorId(Long authorId, Pageable pageable);
-    Page<Article> findByAuthor(User author, Pageable pageable);
+    // ================= PUBLIC FEED =================
+
+    Page<Article> findByStatusAndDeletedFalse(
+            ArticleStatus status,
+            Pageable pageable
+    );
+
+    // ================= USER POSTS =================
+
+    Page<Article> findByAuthorAndDeletedFalse(
+            User author,
+            Pageable pageable
+    );
+
+    Page<Article> findByAuthorAndStatusAndDeletedFalse(
+            User author,
+            ArticleStatus status,
+            Pageable pageable
+    );
+
+    // ================= LEGACY =================
+
+    Page<Article> findByStatus(
+            ArticleStatus status,
+            Pageable pageable
+    );
+
+    Page<Article> findByAuthor(
+            User author,
+            Pageable pageable
+    );
+
+    Page<Article> findByAuthorId(
+            Long authorId,
+            Pageable pageable
+    );
+
+    // ================= STATISTICS =================
+
     long countByStatus(ArticleStatus status);
 }

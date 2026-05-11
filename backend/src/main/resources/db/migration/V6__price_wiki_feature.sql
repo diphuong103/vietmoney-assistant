@@ -229,17 +229,20 @@ ON DUPLICATE KEY UPDATE rate_to_vnd = VALUES(rate_to_vnd);
 -- =========================================
 -- 13. SEED DATA: PRICE CATEGORIES
 -- =========================================
-INSERT INTO price_categories (name, icon, color, display_order) VALUES
-('Food','🍜','#F2C43D',1),
-('Transport','🚗','#3D8FF2',2),
-('Hotel','🏨','#C8F23D',3),
-('Shopping','🛍️','#F23DC8',4),
-('Entertainment','🎭','#3DF2C8',5),
-('Other','📦','#999999',6)
+INSERT INTO price_categories
+(name, icon, color, display_order, active)
+VALUES
+('Food','🍜','#F2C43D',1,b'1'),
+('Transport','🚗','#3D8FF2',2,b'1'),
+('Hotel','🏨','#C8F23D',3,b'1'),
+('Shopping','🛍️','#F23DC8',4,b'1'),
+('Entertainment','🎭','#3DF2C8',5,b'1'),
+('Other','📦','#999999',6,b'1')
 ON DUPLICATE KEY UPDATE
 icon = VALUES(icon),
 color = VALUES(color),
-display_order = VALUES(display_order);
+display_order = VALUES(display_order),
+active = VALUES(active);
 
 -- =========================================
 -- 14. SEED DATA: PRICE UNITS
