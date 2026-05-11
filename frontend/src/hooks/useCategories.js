@@ -5,6 +5,7 @@ export default function useCategories() {
   const [categories, setCategories] = useState([]);
 
   const loadCategories = async () => {
+    if (!localStorage.getItem('accessToken')) return;
     try {
       const data = await categoryApi.getAll();
 

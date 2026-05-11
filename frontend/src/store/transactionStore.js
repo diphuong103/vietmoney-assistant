@@ -7,6 +7,7 @@ export const useTransactionStore = create((set, get) => ({
 
   // ===== FETCH =====
   fetchTransactions: async () => {
+    if (!localStorage.getItem('accessToken')) return;
     try {
       const res = await transactionApi.getAll();
       set({ transactions: res || [] });

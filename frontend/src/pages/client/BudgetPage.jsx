@@ -287,6 +287,7 @@ export default function BudgetPage() {
   useEffect(() => { setTxnPage(1); }, [txnSearch, txnFilterType, txnFilterCat]);
 
   const loadBudgets = useCallback(async () => {
+    if (!localStorage.getItem('accessToken')) return;
     try { setBudgets((await budgetApi.getBudgets()) || []); } catch (e) { console.error(e); }
   }, []);
 
