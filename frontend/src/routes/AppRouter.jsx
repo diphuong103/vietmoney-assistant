@@ -24,6 +24,7 @@ import TravelPlanPage from '../pages/client/TravelPlanPage';
 import AtmMapPage from '../pages/client/AtmMapPage';
 import TouristSpotsPage from '../pages/client/TouristSpotsPage';
 import ProfilePage from '../pages/client/ProfilePage';
+import SettingsPage from '../pages/client/SettingsPage';
 
 // Admin pages
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
@@ -58,6 +59,7 @@ export default function AppRouter() {
           <Route path="/plans" element={<TravelPlanPage />} />
           <Route path="/spots" element={<TouristSpotsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
 
         {/* ATM Map standalone protected */}
