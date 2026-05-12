@@ -50,10 +50,9 @@ export default function NotificationPanel({ open, onClose }) {
         <div
             ref={panelRef}
             style={{
-                position: 'fixed',
-                right: 62,
-                top: '50%',
-                transform: 'translateY(-50%)',
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                right: 0,
                 width: 340,
                 maxHeight: '80vh',
                 background: 'var(--bg2)',
@@ -164,8 +163,8 @@ export default function NotificationPanel({ open, onClose }) {
 
             <style>{`
         @keyframes notifSlideIn {
-          from { opacity: 0; transform: translateY(-50%) translateX(10px); }
-          to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+          from { opacity: 0; transform: translateY(-8px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
         </div>

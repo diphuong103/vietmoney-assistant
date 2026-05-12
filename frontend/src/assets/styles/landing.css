@@ -1241,7 +1241,7 @@
     }
 
     .lp-nav-links {
-        gap: 16px;
+        display: none;
     }
 
     .lp-chat-fab {
@@ -1262,10 +1262,6 @@
 }
 
 @media (max-width: 480px) {
-    .lp-nav-links .lp-nav-link {
-        display: none;
-    }
-
     .lp-hero-title {
         font-size: 32px;
     }

@@ -8,7 +8,10 @@ import articleApi from '../../api/articleApi';
 import budgetApi from '../../api/budgetApi';
 import travelPlanApi from '../../api/travelPlanApi';
 import { useTransactionStore } from '../../store/transactionStore';
+import { useNotificationStore } from '../../store/notificationStore';
+import NotificationPanel from '../../components/common/NotificationPanel';
 import '../../assets/styles/landing.css';
+
 
 // ── Weather Helpers ──────────────────────────────────────────────────────────
 const WEATHER_CODES = {
@@ -222,6 +225,8 @@ export default function DashboardPage() {
 
   // ── Real travel plans ──
   const [nextPlan, setNextPlan] = useState(null);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const { unreadCount, fetch: fetchNotifs } = useNotificationStore();
 
   const isLoggedIn = !!localStorage.getItem('accessToken');
   const user = isLoggedIn ? getStoredUser() : null;
@@ -234,6 +239,9 @@ export default function DashboardPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Fetch notifications on mount
+  useEffect(() => { fetchNotifs(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Fetch exchange rates (public endpoint, no token needed) ──
   useEffect(() => {
@@ -373,7 +381,7 @@ export default function DashboardPage() {
           <button className="lp-nav-link" onClick={(e) => scrollToMenu(e, 'community-news')}>Community &amp; News</button>
           <button className="lp-nav-link" onClick={(e) => scrollToMenu(e, 'about')}>About</button>
         </div>
-        <div className="lp-nav-actions" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="lp-nav-actions" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {isLoggedIn ? (
             <>
               <div className="user-box" onClick={() => navigate('/profile')} title="Xem hồ sơ">
@@ -391,7 +399,41 @@ export default function DashboardPage() {
                   <div className="name">{displayName}</div>
                 </div>
               </div>
-              <SettingsMenu />
+              {/* Notification bell + panel anchor */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  className="icon-btn"
+                  onClick={() => setNotifOpen(v => !v)}
+                  title="Thông báo"
+                  aria-label="Thông báo"
+                  style={{ position: 'relative' }}
+                >
+                  🔔
+                  {unreadCount > 0 && (
+                    <span style={{
+                      position: 'absolute', top: 2, right: 2,
+                      minWidth: 16, height: 16,
+                      background: '#f23d6e', color: '#fff',
+                      fontSize: 10, fontWeight: 700,
+                      borderRadius: 8,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      padding: '0 3px', lineHeight: 1, pointerEvents: 'none',
+                    }}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+                <NotificationPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
+              </div>
+              {/* Settings icon */}
+              <button
+                className="icon-btn"
+                onClick={() => navigate('/settings')}
+                title="Cài đặt"
+                aria-label="Cài đặt"
+              >
+                ⚙️
+              </button>
             </>
           ) : (
             <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
@@ -401,6 +443,7 @@ export default function DashboardPage() {
           )}
         </div>
       </nav>
+
 
       {/* ── Exchange Rate Ticker (live data) ── */}
       <div className="lp-ticker">
@@ -724,6 +767,9 @@ export default function DashboardPage() {
       </footer>
 
       <div style={{ height: 24 }} />
+
+      {/* Notification panel is now rendered inside the bell button wrapper above */}
     </div>
   );
+
 }

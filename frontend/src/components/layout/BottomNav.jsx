@@ -10,7 +10,7 @@ export default function BottomNav({ onOpenSearch }) {
     { to: '/news', icon: '📰', label: t('nav_news') },
     { to: '/scan', icon: '📷', label: t('nav_scan') },
     { to: '/budget', icon: '💰', label: t('nav_budget') },
-    { to: '/settings', icon: '⚙️', label: 'Cài đặt', badge: unreadCount },
+    // { to: '/settings', icon: '⚙️', label: 'Cài đặt', badge: unreadCount },
   ];
 
   return (
