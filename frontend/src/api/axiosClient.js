@@ -46,7 +46,7 @@ axiosClient.interceptors.response.use(
         const status   = error.response?.status;
 
         // ── 401 handling (refresh token rotation) ─────────
-        if (status === 401 && !original._retry) {
+        if ((status === 401 || status === 403) && !original._retry) {
             // Các endpoint auth không cần refresh
             if (original.url?.includes('/auth/')) {
                 return Promise.reject(error);
