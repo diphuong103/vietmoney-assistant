@@ -17,4 +17,6 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
             LocalDate today1,
             LocalDate today2
     );
+
+    void deleteByUserId(Long userId);
 }

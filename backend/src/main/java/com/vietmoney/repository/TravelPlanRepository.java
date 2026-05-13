@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface TravelPlanRepository extends JpaRepository<TravelPlan, Long> {
     List<TravelPlan> findByUserOrderByCreatedAtDesc(User user);
     Optional<TravelPlan> findByIdAndUser(Long id, User user);
+    void deleteByUserId(Long userId);
 }
