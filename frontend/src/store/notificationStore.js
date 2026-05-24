@@ -51,29 +51,57 @@ export const useNotificationStore = create((set, get) => ({
 
     // ── WebSocket / STOMP ────────────────────────────────────────
     connect: (userId) => {
-        if (!userId || get().connected || stompClient) return;
+        const token = localStorage.getItem('accessToken');
+
+        if (!userId || !token || get().connected || stompClient) return;
 
         stompClient = new Client({
             webSocketFactory: () => new SockJS(`${BASE_URL}/ws`),
+
+            connectHeaders: {
+                Authorization: `Bearer ${token}`,
+            },
+
             reconnectDelay: 5000,
+
             onConnect: () => {
+                console.log('WebSocket connected');
                 set({ connected: true });
+
                 stompClient.subscribe(`/topic/notifications/${userId}`, (message) => {
                     try {
                         const notification = JSON.parse(message.body);
+
                         set(state => ({
                             notifications: [notification, ...state.notifications],
                             unreadCount: state.unreadCount + 1,
                         }));
-                    } catch { /* skip */ }
+                    } catch (error) {
+                        console.error('Invalid notification message:', error);
+                    }
                 });
             },
-            onDisconnect: () => { set({ connected: false }); },
-            onStompError: () => { set({ connected: false }); },
+
+            onDisconnect: () => {
+                console.log('WebSocket disconnected');
+                set({ connected: false });
+            },
+
+            onWebSocketClose: () => {
+                console.log('WebSocket closed');
+                set({ connected: false });
+            },
+
+            onStompError: (frame) => {
+                console.error('STOMP error:', frame.headers['message']);
+                console.error('Details:', frame.body);
+                set({ connected: false });
+            },
         });
 
         stompClient.activate();
     },
+
 
     disconnect: () => {
         if (stompClient) {

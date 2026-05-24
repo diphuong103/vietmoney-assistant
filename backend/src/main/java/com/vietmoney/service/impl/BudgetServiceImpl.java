@@ -116,8 +116,18 @@ public class BudgetServiceImpl implements BudgetService {
                         today,
                         today
                 )
-                .orElseThrow(() -> new AppException(ErrorCode.BUDGET_NOT_FOUND));
+                .orElse(null);
 
+
+        //Nếu user chưa có budget đang hoạt động
+        if(activeBudget == null) {
+            return DailyBudgetResponse.builder()
+                    .dailyLimit(BigDecimal.ZERO)
+                    .spentToday(BigDecimal.ZERO)
+                    .remaining(BigDecimal.ZERO)
+                    .percentUsed(0)
+                    .build();
+        }
         // số ngày budget
         long totalDays = ChronoUnit.DAYS.between(
                 activeBudget.getStartDate(),

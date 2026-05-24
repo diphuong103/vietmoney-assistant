@@ -540,57 +540,113 @@ function MediaBlock({ block, onChange, onPick, removeMedia }) {
    ARTICLE CARD
 ═══════════════════════════════════════ */
 
-const ArticleCard = memo(function ArticleCard({ article, showStatus = false }) {
+const ArticleCard = memo(function ArticleCard({ article, showStatus = false, onLikeChange }) {
   const cat = getCat(article.category);
 
+  const [liked, setLiked] = useState(article.likedByMe || article.liked || false);
+  const [likeCount, setLikeCount] = useState(article.likeCount || 0);
+  const [liking, setLiking] = useState(false);
+
+  const handleLike = async () => {
+    if (liking) return;
+
+    const oldLiked = liked;
+    const oldCount = likeCount;
+
+    // cập nhật UI trước cho mượt
+    setLiked(!oldLiked);
+    setLikeCount(oldLiked ? Math.max(0, oldCount - 1) : oldCount + 1);
+
+    try {
+      setLiking(true);
+
+      // Bạn cần có hàm này trong articleApi
+      const res = await articleApi.toggleLike(article.id);
+
+      // Nếu backend trả về data mới thì đồng bộ lại
+      const data = res?.data?.data ?? res?.data ?? null;
+
+      if (data) {
+        if (typeof data.liked === 'boolean') {
+          setLiked(data.liked);
+        }
+
+        if (typeof data.likeCount === 'number') {
+          setLikeCount(data.likeCount);
+        }
+      }
+
+      if (onLikeChange) {
+        onLikeChange(article.id, data);
+      }
+    } catch (e) {
+      // lỗi thì rollback
+      setLiked(oldLiked);
+      setLikeCount(oldCount);
+      console.error('Like failed:', e?.response?.status, e?.message);
+    } finally {
+      setLiking(false);
+    }
+  };
+
   return (
-    <article className="np-card">
-      <div className="np-card-header">
-        <div className="np-avatar" style={{ background: cat.accent }}>
-          {initials(article.authorName || 'VM')}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="np-author-name">{article.authorName || 'VietMoney'}</div>
-          <div className="np-author-meta">
-            <CategoryBadge category={article.category} />
-            {/* FIX 1: chỉ render StatusBadge khi showStatus=true */}
-            {showStatus && <StatusBadge status={article.status} />}
+      <article className="np-card">
+        <div className="np-card-header">
+          <div className="np-avatar" style={{ background: cat.accent }}>
+            {initials(article.authorName || 'VM')}
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="np-author-name">{article.authorName || 'VietMoney'}</div>
+
+            <div className="np-author-meta">
+              <CategoryBadge category={article.category} />
+              {showStatus && <StatusBadge status={article.status} />}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="np-card-body">
-        <h2 className="np-card-title">{article.title}</h2>
-        <p className="np-card-content">{article.content}</p>
+        <div className="np-card-body">
+          <h2 className="np-card-title">{article.title}</h2>
+          <p className="np-card-content">{article.content}</p>
 
-        {article.status === 'REJECTED' && article.rejectionReason && (
-          <div className="np-rejection">
-            <strong>Lý do từ chối</strong>
-            {article.rejectionReason}
-          </div>
-        )}
+          {article.status === 'REJECTED' && article.rejectionReason && (
+              <div className="np-rejection">
+                <strong>Lý do từ chối</strong>
+                {article.rejectionReason}
+              </div>
+          )}
 
-        {article.mediaList?.length > 0 && (
-          <div className="np-gallery">
-            {article.mediaList.map((m, i) =>
-              m.mediaType === 'VIDEO'
-                ? <video key={i} src={m.mediaUrl} controls />
-                : <img key={i} src={m.mediaUrl} alt={m.caption || ''} />
-            )}
-          </div>
-        )}
-      </div>
+          {article.mediaList?.length > 0 && (
+              <div className="np-gallery">
+                {article.mediaList.map((m, i) =>
+                    m.mediaType === 'VIDEO' ? (
+                        <video key={i} src={m.mediaUrl} controls />
+                    ) : (
+                        <img key={i} src={m.mediaUrl} alt={m.caption || ''} />
+                    )
+                )}
+              </div>
+          )}
+        </div>
 
-      <div className="np-card-footer">
-        <button className="np-action-btn">
-          ♥ {article.likeCount || 0}
-        </button>
-        <button className="np-action-btn">
-          🔖 {article.saveCount || 0}
-        </button>
-        <span className="np-time">{dayjs(article.createdAt).fromNow()}</span>
-      </div>
-    </article>
+        <div className="np-card-footer">
+          <button
+              className={`np-action-btn ${liked ? 'liked' : ''}`}
+              onClick={handleLike}
+              disabled={liking}
+              title={liked ? 'Bỏ thích' : 'Thích'}
+          >
+            {liked ? '♥' : '♡'} {likeCount}
+          </button>
+
+          <button className="np-action-btn">
+            🔖 {article.saveCount || 0}
+          </button>
+
+          <span className="np-time">{dayjs(article.createdAt).fromNow()}</span>
+        </div>
+      </article>
   );
 });
 
