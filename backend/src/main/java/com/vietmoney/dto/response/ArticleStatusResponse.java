@@ -13,4 +13,5 @@ public class ArticleStatusResponse {
     private boolean liked;
     private boolean saved;
     private long likeCount;
+    private long saveCount;
 }

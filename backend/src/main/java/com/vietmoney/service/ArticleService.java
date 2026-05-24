@@ -396,6 +396,18 @@ public class ArticleService {
                         articleLikeRepository.save(newLike);
                         article.setLikeCount(article.getLikeCount() + 1);
                         liked = true;
+
+                        // Gửi thông báo cho tác giả bài viết (nếu người like không phải tác giả)
+                        if (article.getAuthor() != null
+                                        && !article.getAuthor().getId().equals(user.getId())) {
+                                String likerName = user.getFullName() != null ? user.getFullName() : user.getUsername();
+                                notificationService.sendTo(
+                                                article.getAuthor(),
+                                                NotificationType.ARTICLE_LIKED,
+                                                "Bài viết của bạn được thích!",
+                                                likerName + " đã thích bài viết \"" + article.getTitle() + "\".",
+                                                "/news");
+                        }
                 }
 
                 articleRepository.save(article);
@@ -406,6 +418,7 @@ public class ArticleService {
                                 .liked(liked)
                                 .saved(saved)
                                 .likeCount(article.getLikeCount())
+                                .saveCount(article.getSaveCount())
                                 .build();
         }
 
@@ -427,6 +440,7 @@ public class ArticleService {
 
                 if (existing.isPresent()) {
                         savedArticleRepository.delete(existing.get());
+                        article.setSaveCount(Math.max(0, article.getSaveCount() - 1));
                         saved = false;
                 } else {
                         SavedArticle savedArticle = SavedArticle.builder()
@@ -434,8 +448,11 @@ public class ArticleService {
                                         .article(article)
                                         .build();
                         savedArticleRepository.save(savedArticle);
+                        article.setSaveCount(article.getSaveCount() + 1);
                         saved = true;
                 }
+
+                articleRepository.save(article);
 
                 boolean liked = articleLikeRepository
                                 .findByUserAndArticle(user, article)
@@ -445,6 +462,7 @@ public class ArticleService {
                                 .liked(liked)
                                 .saved(saved)
                                 .likeCount(article.getLikeCount())
+                                .saveCount(article.getSaveCount())
                                 .build();
         }
 
@@ -471,6 +489,7 @@ public class ArticleService {
                                 .liked(liked)
                                 .saved(saved)
                                 .likeCount(article.getLikeCount())
+                                .saveCount(article.getSaveCount())
                                 .build();
         }
 }

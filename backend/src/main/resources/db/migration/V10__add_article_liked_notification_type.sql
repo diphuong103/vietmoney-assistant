@@ -1,0 +1,10 @@
+ALTER TABLE notifications
+    MODIFY COLUMN type ENUM(
+        'BUDGET_WARNING',
+        'BUDGET_EXCEEDED',
+        'TRANSACTION_CREATED',
+        'ARTICLE_APPROVED',
+        'ARTICLE_REJECTED',
+        'ARTICLE_LIKED',
+        'TRAVEL_REMINDER'
+    ) NOT NULL;

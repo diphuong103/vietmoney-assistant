@@ -78,9 +78,9 @@ const CATEGORY_PALETTE = {
 };
 
 const STATUS_PALETTE = {
-  PENDING:  { accent: '#F59E0B', bg: 'rgba(245,158,11,.15)',  text: '#F59E0B', label: 'Đang xử lý', icon: '⏳' },
-  APPROVED: { accent: '#10B981', bg: 'rgba(16,185,129,.15)',  text: '#10B981', label: 'Đã duyệt',   icon: '✅' },
-  REJECTED: { accent: '#EF4444', bg: 'rgba(239,68,68,.15)',   text: '#EF4444', label: 'Bị từ chối', icon: '❌' },
+  PENDING: { accent: '#F59E0B', bg: 'rgba(245,158,11,.15)', text: '#F59E0B', label: 'Đang xử lý', icon: '⏳' },
+  APPROVED: { accent: '#10B981', bg: 'rgba(16,185,129,.15)', text: '#10B981', label: 'Đã duyệt', icon: '✅' },
+  REJECTED: { accent: '#EF4444', bg: 'rgba(239,68,68,.15)', text: '#EF4444', label: 'Bị từ chối', icon: '❌' },
 };
 
 const CATEGORY_OPTIONS = Object.entries(CATEGORY_PALETTE).map(([key, val]) => ({
@@ -94,14 +94,14 @@ const CATEGORY_OPTIONS = Object.entries(CATEGORY_PALETTE).map(([key, val]) => ({
 ═══════════════════════════════════════ */
 
 let _bid = 0;
-const uid     = () => `b${++_bid}`;
-const mkText  = (content = '') => ({ id: uid(), type: 'text', content });
-const mkMedia = ()             => ({ id: uid(), type: 'media', items: [] });
+const uid = () => `b${++_bid}`;
+const mkText = (content = '') => ({ id: uid(), type: 'text', content });
+const mkMedia = () => ({ id: uid(), type: 'media', items: [] });
 
 const getCat = (raw = '') =>
   CATEGORY_PALETTE[raw?.toUpperCase()?.trim()] ||
   CATEGORY_PALETTE.GENERAL;
-const getStatus = (raw)      => (raw ? STATUS_PALETTE[raw.toUpperCase()] || null : null);
+const getStatus = (raw) => (raw ? STATUS_PALETTE[raw.toUpperCase()] || null : null);
 
 function initials(name = '') {
   const p = name.trim().split(/\s+/);
@@ -545,7 +545,10 @@ const ArticleCard = memo(function ArticleCard({ article, showStatus = false, onL
 
   const [liked, setLiked] = useState(article.likedByMe || article.liked || false);
   const [likeCount, setLikeCount] = useState(article.likeCount || 0);
+  const [saved, setSaved] = useState(article.savedByMe || article.saved || false);
+  const [saveCount, setSaveCount] = useState(article.saveCount || 0);
   const [liking, setLiking] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const handleLike = async () => {
     if (liking) return;
@@ -559,26 +562,18 @@ const ArticleCard = memo(function ArticleCard({ article, showStatus = false, onL
 
     try {
       setLiking(true);
-
-      // Bạn cần có hàm này trong articleApi
       const res = await articleApi.toggleLike(article.id);
 
-      // Nếu backend trả về data mới thì đồng bộ lại
+      // Đồng bộ từ response backend
       const data = res?.data?.data ?? res?.data ?? null;
-
       if (data) {
-        if (typeof data.liked === 'boolean') {
-          setLiked(data.liked);
-        }
-
-        if (typeof data.likeCount === 'number') {
-          setLikeCount(data.likeCount);
-        }
+        if (typeof data.liked === 'boolean') setLiked(data.liked);
+        if (typeof data.likeCount === 'number') setLikeCount(data.likeCount);
+        if (typeof data.saved === 'boolean') setSaved(data.saved);
+        if (typeof data.saveCount === 'number') setSaveCount(data.saveCount);
       }
 
-      if (onLikeChange) {
-        onLikeChange(article.id, data);
-      }
+      if (onLikeChange) onLikeChange(article.id, data);
     } catch (e) {
       // lỗi thì rollback
       setLiked(oldLiked);
@@ -589,64 +584,101 @@ const ArticleCard = memo(function ArticleCard({ article, showStatus = false, onL
     }
   };
 
+  const handleSave = async () => {
+    if (saving) return;
+
+    const oldSaved = saved;
+    const oldCount = saveCount;
+
+    // Optimistic update
+    setSaved(!oldSaved);
+    setSaveCount(oldSaved ? Math.max(0, oldCount - 1) : oldCount + 1);
+
+    try {
+      setSaving(true);
+      const res = await articleApi.save(article.id);
+
+      // Đồng bộ từ response backend
+      const data = res?.data?.data ?? res?.data ?? null;
+      if (data) {
+        if (typeof data.saved === 'boolean') setSaved(data.saved);
+        if (typeof data.saveCount === 'number') setSaveCount(data.saveCount);
+        if (typeof data.liked === 'boolean') setLiked(data.liked);
+        if (typeof data.likeCount === 'number') setLikeCount(data.likeCount);
+      }
+    } catch (e) {
+      // lỗi thì rollback
+      setSaved(oldSaved);
+      setSaveCount(oldCount);
+      console.error('Save failed:', e?.response?.status, e?.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-      <article className="np-card">
-        <div className="np-card-header">
-          <div className="np-avatar" style={{ background: cat.accent }}>
-            {initials(article.authorName || 'VM')}
+    <article className="np-card">
+      <div className="np-card-header">
+        <div className="np-avatar" style={{ background: cat.accent }}>
+          {initials(article.authorName || 'VM')}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="np-author-name">{article.authorName || 'VietMoney'}</div>
+
+          <div className="np-author-meta">
+            <CategoryBadge category={article.category} />
+            {showStatus && <StatusBadge status={article.status} />}
           </div>
+        </div>
+      </div>
 
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="np-author-name">{article.authorName || 'VietMoney'}</div>
+      <div className="np-card-body">
+        <h2 className="np-card-title">{article.title}</h2>
+        <p className="np-card-content">{article.content}</p>
 
-            <div className="np-author-meta">
-              <CategoryBadge category={article.category} />
-              {showStatus && <StatusBadge status={article.status} />}
-            </div>
+        {article.status === 'REJECTED' && article.rejectionReason && (
+          <div className="np-rejection">
+            <strong>Lý do từ chối</strong>
+            {article.rejectionReason}
           </div>
-        </div>
+        )}
 
-        <div className="np-card-body">
-          <h2 className="np-card-title">{article.title}</h2>
-          <p className="np-card-content">{article.content}</p>
+        {article.mediaList?.length > 0 && (
+          <div className="np-gallery">
+            {article.mediaList.map((m, i) =>
+              m.mediaType === 'VIDEO' ? (
+                <video key={i} src={m.mediaUrl} controls />
+              ) : (
+                <img key={i} src={m.mediaUrl} alt={m.caption || ''} />
+              )
+            )}
+          </div>
+        )}
+      </div>
 
-          {article.status === 'REJECTED' && article.rejectionReason && (
-              <div className="np-rejection">
-                <strong>Lý do từ chối</strong>
-                {article.rejectionReason}
-              </div>
-          )}
+      <div className="np-card-footer">
+        <button
+          className={`np-action-btn ${liked ? 'liked' : ''}`}
+          onClick={handleLike}
+          disabled={liking}
+          title={liked ? 'Bỏ thích' : 'Thích'}
+        >
+          {liked ? '♥' : '♡'} {likeCount}
+        </button>
 
-          {article.mediaList?.length > 0 && (
-              <div className="np-gallery">
-                {article.mediaList.map((m, i) =>
-                    m.mediaType === 'VIDEO' ? (
-                        <video key={i} src={m.mediaUrl} controls />
-                    ) : (
-                        <img key={i} src={m.mediaUrl} alt={m.caption || ''} />
-                    )
-                )}
-              </div>
-          )}
-        </div>
+        <button
+          className={`np-action-btn ${saved ? 'saved' : ''}`}
+          onClick={handleSave}
+          disabled={saving}
+          title={saved ? 'Bỏ lưu' : 'Lưu bài viết'}
+        >
+          {saved ? '🔖' : '🔖'} {saveCount}
+        </button>
 
-        <div className="np-card-footer">
-          <button
-              className={`np-action-btn ${liked ? 'liked' : ''}`}
-              onClick={handleLike}
-              disabled={liking}
-              title={liked ? 'Bỏ thích' : 'Thích'}
-          >
-            {liked ? '♥' : '♡'} {likeCount}
-          </button>
-
-          <button className="np-action-btn">
-            🔖 {article.saveCount || 0}
-          </button>
-
-          <span className="np-time">{dayjs(article.createdAt).fromNow()}</span>
-        </div>
-      </article>
+        <span className="np-time">{dayjs(article.createdAt).fromNow()}</span>
+      </div>
+    </article>
   );
 });
 
@@ -655,12 +687,12 @@ const ArticleCard = memo(function ArticleCard({ article, showStatus = false, onL
 ═══════════════════════════════════════ */
 
 function ArticleEditor({ onSubmit, submitting }) {
-  const [title,    setTitle]    = useState('');
+  const [title, setTitle] = useState('');
   const [category, setCategory] = useState('GENERAL');
-  const [blocks,   setBlocks]   = useState([mkText()]);
+  const [blocks, setBlocks] = useState([mkText()]);
 
-  const fileRef    = useRef(null);
-  const activeRef  = useRef(null);
+  const fileRef = useRef(null);
+  const activeRef = useRef(null);
   const isVideoRef = useRef(false);
 
   const updateBlock = useCallback((id, patch) => {
@@ -686,11 +718,11 @@ function ArticleEditor({ onSubmit, submitting }) {
   }, []);
 
   const pickFiles = (id, isVideo) => {
-    activeRef.current  = id;
+    activeRef.current = id;
     isVideoRef.current = isVideo;
     if (fileRef.current) {
       fileRef.current.accept = isVideo ? 'video/*' : 'image/*';
-      fileRef.current.value  = '';
+      fileRef.current.value = '';
       fileRef.current.click();
     }
   };
@@ -727,11 +759,11 @@ function ArticleEditor({ onSubmit, submitting }) {
       }
 
       const media = uploaded.map((u, i) => ({
-        mediaUrl:  u.url,
+        mediaUrl: u.url,
         mediaType: mediaItems[i].isVideo ? 'VIDEO' : 'IMAGE',
-        fileSize:  u.fileSize,
-        mimeType:  u.mimeType,
-        caption:   mediaItems[i].caption,
+        fileSize: u.fileSize,
+        mimeType: u.mimeType,
+        caption: mediaItems[i].caption,
       }));
 
       await onSubmit({ title, content: textContent, category: category.toUpperCase(), media });
@@ -826,22 +858,22 @@ function ArticleEditor({ onSubmit, submitting }) {
 ═══════════════════════════════════════ */
 
 const STATUS_FILTERS = [
-  { value: '',         label: 'Tất cả'       },
-  { value: 'PENDING',  label: '⏳ Đang xử lý' },
-  { value: 'APPROVED', label: '✅ Đã duyệt'   },
+  { value: '', label: 'Tất cả' },
+  { value: 'PENDING', label: '⏳ Đang xử lý' },
+  { value: 'APPROVED', label: '✅ Đã duyệt' },
   { value: 'REJECTED', label: '❌ Bị từ chối' },
 ];
 
 function MyArticles() {
   const [statusFilter, setStatusFilter] = useState('');
-  const [articles,     setArticles]     = useState([]);
-  const [loading,      setLoading]      = useState(true);
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       // FIX 3: dùng đúng tên hàm getMyPosts (không phải getMyArticles)
-      const res  = await articleApi.getMyPosts({ status: statusFilter, page: 0, size: 20 });
+      const res = await articleApi.getMyPosts({ status: statusFilter, page: 0, size: 20 });
       const data = res?.data?.data?.content || res?.data?.data || [];
       setArticles(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -859,7 +891,7 @@ function MyArticles() {
       {/* Status filter pills */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
         {STATUS_FILTERS.map((f) => {
-          const s      = getStatus(f.value);
+          const s = getStatus(f.value);
           const active = statusFilter === f.value;
           return (
             <button
@@ -907,15 +939,15 @@ function MyArticles() {
 ═══════════════════════════════════════ */
 
 export default function NewsPage() {
-  const [tab,        setTab]        = useState('feed');
-  const [articles,   setArticles]   = useState([]);
-  const [loading,    setLoading]    = useState(true);
+  const [tab, setTab] = useState('feed');
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const loadFeed = useCallback(async () => {
     try {
       setLoading(true);
-      const res  = await articleApi.getFeed({ page: 0, size: 20 });
+      const res = await articleApi.getFeed({ page: 0, size: 20 });
       const data = res?.data?.data?.content || res?.data?.data || [];
       setArticles(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -940,9 +972,9 @@ export default function NewsPage() {
   };
 
   const TABS = [
-    { key: 'feed',  label: '📰 Feed'        },
-    { key: 'write', label: '✍️ Viết bài'    },
-    { key: 'my',    label: '📋 Bài của tôi' },
+    { key: 'feed', label: '📰 Feed' },
+    { key: 'write', label: '✍️ Viết bài' },
+    { key: 'my', label: '📋 Bài của tôi' },
   ];
 
   return (
