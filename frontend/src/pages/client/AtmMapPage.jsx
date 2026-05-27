@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../../components/layout/Navbar';
 import atmApi from '../../api/atmApi';
 import goongjs from '@goongmaps/goong-js';
@@ -479,6 +480,7 @@ const GLOBAL_CSS = `
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 export default function AtmMapPage({ embedded = false }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // ── Data ──────────────────────────────────────────────────────────────────
@@ -611,8 +613,9 @@ export default function AtmMapPage({ embedded = false }) {
       mapCentered.current = true;
       gMapRef.current.flyTo({ center: [c.lng, c.lat], zoom: 16, speed: 1.3 });
       if (userMarkerRef.current) {
+        const popupText = t('atm_you_are_here', 'Bạn đang ở đây');
         const popup = new goongjs.Popup({ offset: 25, closeButton: false })
-          .setHTML('<div style="font-size:12px;font-weight:700;color:#00C98D;padding:2px 4px;background:#0D1520;border-radius:6px;">Bạn đang ở đây</div>');
+          .setHTML(`<div style="font-size:12px;font-weight:700;color:#00C98D;padding:2px 4px;background:#0D1520;border-radius:6px;">${popupText}</div>`);
         userMarkerRef.current.setPopup(popup).togglePopup();
         setTimeout(() => popup.remove(), 3000);
       }
@@ -622,7 +625,7 @@ export default function AtmMapPage({ embedded = false }) {
   const fetchLocation = useCallback((forceCenter = true) => {
     setGeoLoading(true); setGeoError('');
     if (!navigator.geolocation) {
-      setGeoError('Trình duyệt không hỗ trợ GPS.');
+      setGeoError(t('atm_geo_not_supported', 'Trình duyệt không hỗ trợ GPS.'));
       setGeoLoading(false);
       loadAtms(FALLBACK_CENTER.lat, FALLBACK_CENTER.lng);
       return;
@@ -638,7 +641,7 @@ export default function AtmMapPage({ embedded = false }) {
     const onErr = (err) => {
       console.warn('Geolocation error:', err);
       if (!coords) {
-        setGeoError('Không lấy được vị trí.');
+        setGeoError(t('atm_geo_error', 'Không lấy được vị trí.'));
         setGeoLoading(false);
         loadAtms(FALLBACK_CENTER.lat, FALLBACK_CENTER.lng);
       }
@@ -1103,15 +1106,15 @@ export default function AtmMapPage({ embedded = false }) {
 
       const leg = route.legs?.[0], dur = leg?.duration?.value ?? 0, dist = leg?.distance?.value ?? 0;
       setRouteInfo({
-        duration: dur < 3600 ? `${Math.round(dur / 60)} phút` : `${(dur / 3600).toFixed(1)} giờ`,
+        duration: dur < 3600 ? `${Math.round(dur / 60)} ${t('atm_minutes', 'phút')}` : `${(dur / 3600).toFixed(1)} ${t('atm_hours', 'giờ')}`,
         distance: dist < 1000 ? `${dist} m` : `${(dist / 1000).toFixed(1)} km`,
       });
     } catch {
-      setRouteInfo({ error: 'Không thể tính đường đi.' });
+      setRouteInfo({ error: t('atm_error_route', 'Không thể tính đường đi.') });
     } finally {
       setRouteLoading(false);
     }
-  }, [coords, travelMode, stopNavigation]);
+  }, [coords, travelMode, stopNavigation, t]);
 
   const clearRoute = () => {
     stopNavigation();
@@ -1153,12 +1156,12 @@ export default function AtmMapPage({ embedded = false }) {
         const res = await atmApi.getPlaceDetail(sug.placeId);
         const loc = res.data?.data?.geometry?.location ?? res.data?.data;
         const lat = loc?.lat ?? sug.lat, lng = loc?.lng ?? sug.lng;
-        if (lat && lng) handleSelectAtm({ id: sug.placeId, name: sug.mainText ?? 'Địa điểm', address: sug.secondaryText ?? '', lat, lng, isCustomPlace: true, type: 'Địa điểm', status: 'open' });
+        if (lat && lng) handleSelectAtm({ id: sug.placeId, name: sug.mainText ?? t('atm_default_place', 'Địa điểm'), address: sug.secondaryText ?? '', lat, lng, isCustomPlace: true, type: t('atm_default_place', 'Địa điểm'), status: 'open' });
       } catch {
-        if (sug.lat && sug.lng) handleSelectAtm({ id: sug.placeId || 'search-' + Date.now(), name: sug.mainText ?? 'Địa điểm', address: sug.secondaryText ?? '', lat: sug.lat, lng: sug.lng, isCustomPlace: true, type: 'Địa điểm', status: 'open' });
+        if (sug.lat && sug.lng) handleSelectAtm({ id: sug.placeId || 'search-' + Date.now(), name: sug.mainText ?? t('atm_default_place', 'Địa điểm'), address: sug.secondaryText ?? '', lat: sug.lat, lng: sug.lng, isCustomPlace: true, type: t('atm_default_place', 'Địa điểm'), status: 'open' });
       }
     }
-  }, [handleSelectAtm]);
+  }, [handleSelectAtm, t]);
 
   useEffect(() => {
     const h = e => { if (!searchRef.current?.contains(e.target)) setShowSuggestions(false); };
@@ -1207,7 +1210,7 @@ export default function AtmMapPage({ embedded = false }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, marginBottom: 3 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#E2E8F0', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                {isNearest && <span style={{ fontSize: 9, color: '#00C98D', fontWeight: 700, background: 'rgba(0,201,141,0.12)', padding: '1px 5px', borderRadius: 4, marginRight: 5, verticalAlign: 'middle', border: '1px solid rgba(0,201,141,0.2)' }}>GẦN NHẤT</span>}
+                {isNearest && <span style={{ fontSize: 9, color: '#00C98D', fontWeight: 700, background: 'rgba(0,201,141,0.12)', padding: '1px 5px', borderRadius: 4, marginRight: 5, verticalAlign: 'middle', border: '1px solid rgba(0,201,141,0.2)' }}>{t('atm_nearest', 'GẦN NHẤT')}</span>}
                 {atm.name}
               </span>
               {atm.distanceKm != null && <span style={{ fontSize: 12, fontWeight: 700, color: '#00C98D', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{distStr(atm.distanceKm)}</span>}
@@ -1226,7 +1229,7 @@ export default function AtmMapPage({ embedded = false }) {
             disabled={routeLoading}
           >
             {routeLoading ? <Spinner size={14} color="#0D1520" /> : <IconNavArrow size={14} color="#0D1520" />}
-            {routeLoading ? 'Đang tính...' : 'Chỉ đường'}
+            {routeLoading ? t('atm_calculating', 'Đang tính...') : t('atm_directions', 'Chỉ đường')}
           </button>
         )}
       </div>
@@ -1270,12 +1273,12 @@ export default function AtmMapPage({ embedded = false }) {
                 {!atm.isCustomPlace && (
                   <button onClick={() => toggleSave(atm)} style={{ fontSize: 11.5, fontWeight: 600, color: isSaved ? '#FBBF24' : 'rgba(255,255,255,0.45)', background: isSaved ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.05)', padding: '3px 8px', borderRadius: 6, border: isSaved ? '1px solid rgba(251,191,36,0.2)' : '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontFamily: 'inherit' }}>
                     <IconStar size={11} color={isSaved ? '#FBBF24' : 'rgba(255,255,255,0.3)'} filled={isSaved} />
-                    {isSaved ? 'Đã lưu' : 'Lưu'}
+                    {isSaved ? t('atm_saved', 'Đã lưu') : t('atm_save', 'Lưu')}
                   </button>
                 )}
               </div>
               <button className="btn-primary" onClick={() => { handleRoute(atm); if (!isDesktop()) setShowSidebar(false); }} disabled={routeLoading}>
-                {routeLoading ? <><Spinner size={15} color="#0D1520" /> Đang tính...</> : <><IconNavArrow size={14} color="#0D1520" /> Chỉ đường đến đây</>}
+                {routeLoading ? <><Spinner size={15} color="#0D1520" /> {t('atm_calculating', 'Đang tính...')}</> : <><IconNavArrow size={14} color="#0D1520" /> {t('atm_directions_here', 'Chỉ đường đến đây')}</>}
               </button>
             </>
           )}
@@ -1286,7 +1289,11 @@ export default function AtmMapPage({ embedded = false }) {
     return <div className="map-popup" style={{ left: 16 }}>{inner}</div>;
   };
 
-  const modes = [['car', '🚗', 'Ô tô'], ['bike', '🛵', 'Xe máy'], ['foot', '🚶', 'Đi bộ']];
+  const modes = [
+    ['car', '🚗', t('atm_mode_car', 'Ô tô')],
+    ['bike', '🛵', t('atm_mode_bike', 'Xe máy')],
+    ['foot', '🚶', t('atm_mode_foot', 'Đi bộ')]
+  ];
 
   // ─── RENDER ──────────────────────────────────────────────────────────────
   const content = (
@@ -1314,9 +1321,9 @@ export default function AtmMapPage({ embedded = false }) {
               <div>
                 <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800, fontSize: 17, color: '#E2E8F0', lineHeight: 1 }}>ATM<span style={{ color: '#00C98D' }}>Map</span></div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>
-                  {loading ? <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Spinner size={10} color="rgba(255,255,255,0.3)" /> Đang tải...</span>
-                    : scanning ? <span style={{ color: '#A78BFA', display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 5, height: 5, borderRadius: '50%', background: '#A78BFA', animation: 'pulse 1s infinite', display: 'inline-block' }} />Đang quét thêm...</span>
-                      : <span>{filtered.length} địa điểm</span>}
+                  {loading ? <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Spinner size={10} color="rgba(255,255,255,0.3)" /> {t('loading', 'Đang tải...')}</span>
+                    : scanning ? <span style={{ color: '#A78BFA', display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 5, height: 5, borderRadius: '50%', background: '#A78BFA', animation: 'pulse 1s infinite', display: 'inline-block' }} />{t('atm_scanning', 'Đang quét thêm...')}</span>
+                      : <span>{filtered.length} {t('atm_places', 'địa điểm')}</span>}
                 </div>
               </div>
             </div>
@@ -1326,7 +1333,7 @@ export default function AtmMapPage({ embedded = false }) {
           </div>
 
           <button className="btn-primary" onClick={() => fetchLocation()} disabled={geoLoading} style={{ marginBottom: geoError ? 8 : 12 }}>
-            {geoLoading ? <><Spinner size={14} color="#0D1520" /> Đang lấy vị trí...</> : <><IconLocation size={14} color="#0D1520" /> {coords ? 'Cập nhật vị trí' : 'Lấy vị trí của tôi'}</>}
+            {geoLoading ? <><Spinner size={14} color="#0D1520" /> {t('atm_getting_location', 'Đang lấy vị trí...')}</> : <><IconLocation size={14} color="#0D1520" /> {coords ? t('atm_update_location', 'Cập nhật vị trí') : t('atm_get_location', 'Lấy vị trí của tôi')}</>}
           </button>
 
           {geoError && <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 8, padding: '7px 10px', fontSize: 11.5, color: '#FBBF24', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}><span>⚠️</span> {geoError}</div>}
@@ -1334,7 +1341,7 @@ export default function AtmMapPage({ embedded = false }) {
           <div ref={searchRef} style={{ position: 'relative', marginBottom: 12 }}>
             <div className="search-wrap">
               <IconSearch size={15} color="rgba(255,255,255,0.3)" />
-              <input className="search-input" value={search} onChange={e => handleSearchChange(e.target.value)} onFocus={() => suggestions.length && setShowSuggestions(true)} placeholder="Tìm ngân hàng, ATM, địa điểm..." />
+              <input className="search-input" value={search} onChange={e => handleSearchChange(e.target.value)} onFocus={() => suggestions.length && setShowSuggestions(true)} placeholder={t('atm_search_placeholder', 'Tìm ngân hàng, ATM, địa điểm...')} />
               {suggestLoading && <Spinner size={13} />}
               {search && !suggestLoading && <button onClick={() => { setSearch(''); setSuggestions([]); setShowSuggestions(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', padding: 2 }}><IconX size={13} /></button>}
             </div>
@@ -1362,17 +1369,25 @@ export default function AtmMapPage({ embedded = false }) {
 
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.45)' }}>Bán kính tìm kiếm</span>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.45)' }}>{t('atm_search_radius', 'Bán kính tìm kiếm')}</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#00C98D', fontVariantNumeric: 'tabular-nums' }}>{searchRadius >= 1000 ? `${(searchRadius / 1000).toFixed(searchRadius % 1000 ? 1 : 0)} km` : `${searchRadius} m`}</span>
             </div>
             <input type="range" className="rad-slider" min={1000} max={20000} step={1000} value={searchRadius} onChange={e => handleRadiusChange(Number(e.target.value))} />
           </div>
 
           <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 4 }}>
-            {['Tất cả', 'Cây ATM', 'Ngân hàng'].map(t => <button key={t} className={`chip${filterType === t ? ' on' : ''}`} onClick={() => setFilterType(t)}>{t}</button>)}
+            {['Tất cả', 'Cây ATM', 'Ngân hàng'].map(typeValue => (
+              <button
+                key={typeValue}
+                className={`chip${filterType === typeValue ? ' on' : ''}`}
+                onClick={() => setFilterType(typeValue)}
+              >
+                {typeValue === 'Tất cả' ? t('atm_all', 'Tất cả') : typeValue === 'Cây ATM' ? t('atm_type_atm', 'Cây ATM') : t('atm_type_bank', 'Ngân hàng')}
+              </button>
+            ))}
             <button className={`chip${showBankFilter ? ' on' : ''}`} onClick={() => setShowBankFilter(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <IconFilter size={11} color={showBankFilter ? '#00C98D' : 'rgba(255,255,255,0.4)'} />
-              Ngân hàng
+              {t('atm_bank_filter', 'Ngân hàng')}
               <IconChevron size={11} color={showBankFilter ? '#00C98D' : 'rgba(255,255,255,0.4)'} dir={showBankFilter ? 'up' : 'down'} />
             </button>
           </div>
@@ -1381,7 +1396,7 @@ export default function AtmMapPage({ embedded = false }) {
             <div style={{ marginTop: 8, display: 'flex', gap: 5, flexWrap: 'wrap', animation: 'slideDown .15s', paddingBottom: 4 }}>
               {ALL_BANKS.map(b => (
                 <button key={b} className={`chip${filterBank === b ? ' on' : ''}`} onClick={() => setFilterBank(b)} style={{ fontSize: 11, padding: '4px 9px' }}>
-                  {b === 'Tất cả' ? 'Tất cả' : <span style={{ color: filterBank === b ? '#00C98D' : getBankMeta(b).color, fontWeight: 700 }}>{getBankMeta(b).label}</span>}
+                  {b === 'Tất cả' ? t('atm_all', 'Tất cả') : <span style={{ color: filterBank === b ? '#00C98D' : getBankMeta(b).color, fontWeight: 700 }}>{getBankMeta(b).label}</span>}
                 </button>
               ))}
             </div>
@@ -1393,16 +1408,20 @@ export default function AtmMapPage({ embedded = false }) {
           {!loading && !coords && atms.length === 0 && (
             <div style={{ textAlign: 'center', padding: '50px 20px' }}>
               <div style={{ fontSize: 44, marginBottom: 14 }}>📍</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#E2E8F0', marginBottom: 8 }}>Chưa có vị trí</div>
-              <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>Nhấn <strong style={{ color: '#00C98D' }}>Lấy vị trí của tôi</strong> để bắt đầu</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#E2E8F0', marginBottom: 8 }}>{t('atm_no_location', 'Chưa có vị trí')}</div>
+              <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
+                {t('atm_push_location_1', 'Nhấn ')}
+                <strong style={{ color: '#00C98D' }}>{t('atm_get_location', 'Lấy vị trí của tôi')}</strong>
+                {t('atm_push_location_2', ' để bắt đầu')}
+              </div>
             </div>
           )}
           {!loading && atms.length > 0 && filtered.length === 0 && (
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: '#E2E8F0', marginBottom: 6 }}>Không tìm thấy kết quả</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginBottom: 16 }}>Thử xóa bộ lọc hoặc mở rộng bán kính</div>
-              <button className="btn-ghost" onClick={() => { setSearch(''); setFilterBank('Tất cả'); setFilterType('Tất cả'); }} style={{ margin: '0 auto' }}>Xóa bộ lọc</button>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: '#E2E8F0', marginBottom: 6 }}>{t('atm_no_results', 'Không tìm thấy kết quả')}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginBottom: 16 }}>{t('atm_no_results_hint', 'Thử xóa bộ lọc hoặc mở rộng bán kính')}</div>
+              <button className="btn-ghost" onClick={() => { setSearch(''); setFilterBank('Tất cả'); setFilterType('Tất cả'); }} style={{ margin: '0 auto' }}>{t('atm_clear_filter', 'Xóa bộ lọc')}</button>
             </div>
           )}
           {!loading && filtered.map((atm, idx) => <AtmCard key={atm.placeId ?? atm.id} atm={atm} idx={idx} />)}
@@ -1416,19 +1435,19 @@ export default function AtmMapPage({ embedded = false }) {
         {(panLoading || scanning) && !navigating && (
           <div className="map-pill" style={{ top: 16, left: '50%', transform: 'translateX(-50%)' }}>
             <Spinner size={13} color={scanning ? '#A78BFA' : '#00C98D'} />
-            {panLoading ? 'Đang tải ATM...' : 'Đang quét khu vực mới...'}
+            {panLoading ? t('atm_loading', 'Đang tải ATM...') : t('atm_scanning_area', 'Đang quét khu vực mới...')}
           </div>
         )}
 
         {navigating && (
           <div className="map-pill" style={{ top: 16, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,201,141,0.15)', color: '#00C98D', borderColor: 'rgba(0,201,141,0.3)' }}>
             <IconNavArrow size={13} color="#00C98D" />
-            Đang dẫn đường · Nhấn Dừng để kết thúc
+            {t('atm_navigating_hint', 'Đang dẫn đường · Nhấn Dừng để kết thúc')}
           </div>
         )}
 
         <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 15 }}>
-          <button className={`map-fab${geoLoading ? ' active' : ''}`} onClick={() => fetchLocation()} title="Vị trí của tôi">
+          <button className={`map-fab${geoLoading ? ' active' : ''}`} onClick={() => fetchLocation()} title={t('atm_my_location', 'Vị trí của tôi')}>
             {geoLoading ? <Spinner size={16} color="#00C98D" /> : <IconLocation size={17} />}
           </button>
         </div>
@@ -1458,7 +1477,7 @@ export default function AtmMapPage({ embedded = false }) {
                 {navigating ? '🚗' : '🧭'}
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 1 }}>{navigating ? 'Đang dẫn đến' : 'Đường đến'}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 1 }}>{navigating ? t('atm_navigating_to', 'Đang dẫn đến') : t('atm_route_to', 'Đường đến')}</div>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: '#E2E8F0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedAtm?.name}</div>
                 <div style={{ fontSize: 13, color: '#00C98D', marginTop: 1, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{routeInfo.duration} · {routeInfo.distance}</div>
 
@@ -1480,7 +1499,7 @@ export default function AtmMapPage({ embedded = false }) {
                 {rerouteFlash && (
                   <div className="reroute-badge">
                     <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#A78BFA', display: 'inline-block', animation: 'pulse 1s infinite' }} />
-                    Đã tính lại đường đi
+                    {t('atm_rerouting', 'Đã tính lại đường đi')}
                   </div>
                 )}
               </div>
@@ -1489,11 +1508,11 @@ export default function AtmMapPage({ embedded = false }) {
               {!navigating
                 ? <button className="btn-primary" onClick={startNavigation} disabled={!routeCoords.length} style={{ width: 'auto', padding: '9px 16px', fontSize: 13 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="#0D1520"><polygon points="5,3 19,12 5,21" /></svg>
-                  Bắt đầu
+                  {t('atm_start', 'Bắt đầu')}
                 </button>
                 : <button className="btn-danger" onClick={stopNavigation} style={{ padding: '9px 16px', fontSize: 13 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
-                  Dừng
+                  {t('atm_stop', 'Dừng')}
                 </button>
               }
               <button onClick={clearRoute} className="map-fab" style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>
@@ -1519,7 +1538,7 @@ export default function AtmMapPage({ embedded = false }) {
         title={<span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800 }}>ATM<span style={{ color: '#00C98D' }}>Map</span></span>}
         actions={
           <button onClick={() => navigate('/')} className="btn-ghost" style={{ fontSize: 13, padding: '6px 12px' }}>
-            🏠 <span className="hide-sm">Trang chủ</span>
+            🏠 <span className="hide-sm">{t('nav_home', 'Trang chủ')}</span>
             <style>{`@media(max-width:480px){.hide-sm{display:none}}`}</style>
           </button>
         }

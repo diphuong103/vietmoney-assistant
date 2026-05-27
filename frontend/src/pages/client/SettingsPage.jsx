@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import { useAuthStore } from '../../store/authStore';
 import { useNotificationStore } from '../../store/notificationStore';
+import { useTranslation } from 'react-i18next';
 import { getLanguage, setLanguage } from '../../utils/i18n';
 import { clearSession } from '../../api/authApi';
 import authApi from '../../api/authApi';
@@ -59,6 +60,7 @@ function SettingRow({ icon, label, sublabel, action, last }) {
 
 // ── ThemeToggle (standalone, reads localStorage) ──────────────
 function ThemeToggleControl() {
+    const { t } = useTranslation();
     const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
 
     const toggle = () => {
@@ -83,7 +85,7 @@ function ThemeToggleControl() {
                 color: dark ? 'var(--accent)' : 'var(--text)',
             }}
         >
-            {dark ? '🌙 Tối' : '☀️ Sáng'}
+            {dark ? `🌙 ${t('theme_dark', 'Tối')}` : `☀️ ${t('theme_light', 'Sáng')}`}
         </button>
     );
 }
@@ -91,9 +93,10 @@ function ThemeToggleControl() {
 // ── Main ──────────────────────────────────────────────────────
 export default function SettingsPage() {
     const navigate = useNavigate();
+    const { t, i18n } = useTranslation();
     const { user } = useAuthStore();
     const { unreadCount, connected, fetch: fetchNotifs } = useNotificationStore();
-    const [activeLang, setActiveLang] = useState(getLanguage());
+    const [activeLang, setActiveLang] = useState(i18n.language || getLanguage());
     const [loggingOut, setLoggingOut] = useState(false);
     const [notifPanelOpen, setNotifPanelOpen] = useState(false);
 
@@ -105,7 +108,7 @@ export default function SettingsPage() {
     const handleLangChange = (code) => {
         setActiveLang(code);
         setLanguage(code);
-        setTimeout(() => window.location.reload(), 300);
+        // Page reload is no longer needed globally if all components use useTranslation
     };
 
     const handleLogout = async () => {
@@ -119,30 +122,30 @@ export default function SettingsPage() {
         <div className="page active" id="page-settings">
             <Navbar
                 title={<>Viet<span style={{ color: 'var(--accent)' }}>Money</span></>}
-                subtitle="Cài đặt"
+                subtitle={t('settings_title', 'Cài đặt')}
             />
 
             <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
                 {/* ── Appearance ── */}
-                <SettingSection title="Giao diện">
+                <SettingSection title={t('appearance_section', 'Giao diện')}>
                     <SettingRow
                         icon="🎨"
-                        label="Chủ đề"
-                        sublabel="Chuyển đổi sáng / tối"
+                        label={t('theme_label', 'Chủ đề')}
+                        sublabel={t('theme_sublabel', 'Chuyển đổi sáng / tối')}
                         action={<ThemeToggleControl />}
                         last
                     />
                 </SettingSection>
 
                 {/* ── Language ── */}
-                <SettingSection title="Ngôn ngữ">
+                <SettingSection title={t('language_section', 'Ngôn ngữ')}>
                     {LANGS.map((l, i) => (
                         <SettingRow
                             key={l.code}
                             icon={l.flag}
                             label={l.name}
-                            sublabel={activeLang === l.code ? 'Đang sử dụng' : null}
+                            sublabel={activeLang === l.code ? t('in_use', 'Đang sử dụng') : null}
                             last={i === LANGS.length - 1}
                             action={
                                 <button
@@ -163,7 +166,7 @@ export default function SettingsPage() {
                                         transition: 'all 0.2s',
                                     }}
                                 >
-                                    {activeLang === l.code ? '✓ Đang dùng' : 'Chọn'}
+                                    {activeLang === l.code ? `✓ ${t('in_use_btn', 'Đang dùng')}` : t('select_btn', 'Chọn')}
                                 </button>
                             }
                         />
@@ -171,14 +174,14 @@ export default function SettingsPage() {
                 </SettingSection>
 
                 {/* ── Notifications ── */}
-                <SettingSection title="Thông báo">
+                <SettingSection title={t('notif_section', 'Thông báo')}>
                     <SettingRow
                         icon="🔔"
-                        label="Thông báo"
+                        label={t('notif_label', 'Thông báo')}
                         sublabel={
                             connected
-                                ? `Đang kết nối · ${unreadCount > 0 ? `${unreadCount} chưa đọc` : 'Đã đọc hết'}`
-                                : 'Chưa kết nối WebSocket'
+                                ? `${t('notif_connected', 'Đang kết nối')} · ${unreadCount > 0 ? t('notif_unread', { count: unreadCount, defaultValue: '{{count}} chưa đọc' }) : t('notif_read_all', 'Đã đọc hết')}`
+                                : t('notif_disconnected', 'Chưa kết nối WebSocket')
                         }
                         action={
                             <button
@@ -203,7 +206,7 @@ export default function SettingsPage() {
                                         {unreadCount > 99 ? '99+' : unreadCount}
                                     </span>
                                 )}
-                                Xem
+                                {t('view_btn', 'Xem')}
                             </button>
                         }
                         last
@@ -211,10 +214,10 @@ export default function SettingsPage() {
                 </SettingSection>
 
                 {/* ── Account ── */}
-                <SettingSection title="Tài khoản">
+                <SettingSection title={t('account_section', 'Tài khoản')}>
                     <SettingRow
                         icon="👤"
-                        label={user?.fullName ?? user?.username ?? 'Người dùng'}
+                        label={user?.fullName ?? user?.username ?? t('user_default', 'Người dùng')}
                         sublabel={user?.email ?? ''}
                         action={
                             <button
@@ -227,14 +230,14 @@ export default function SettingsPage() {
                                     cursor: 'pointer', transition: 'all 0.2s',
                                 }}
                             >
-                                Chỉnh sửa →
+                                {t('edit_btn', 'Chỉnh sửa')} →
                             </button>
                         }
                     />
                     <SettingRow
                         icon="🔑"
-                        label="Đổi mật khẩu"
-                        sublabel="Truy cập trang quên mật khẩu"
+                        label={t('change_password_label', 'Đổi mật khẩu')}
+                        sublabel={t('change_password_sublabel', 'Truy cập trang quên mật khẩu')}
                         last
                         action={
                             <button
@@ -247,14 +250,14 @@ export default function SettingsPage() {
                                     cursor: 'pointer',
                                 }}
                             >
-                                Đặt lại →
+                                {t('reset_btn', 'Đặt lại')} →
                             </button>
                         }
                     />
                 </SettingSection>
 
                 {/* ── App info ── */}
-                <SettingSection title="Thông tin ứng dụng">
+                <SettingSection title={t('app_info_section', 'Thông tin ứng dụng')}>
                     <SettingRow icon="📱" label="VietMoney Assistant" sublabel="v1.0.0 · Built with ❤️" action={null} last />
                 </SettingSection>
 
@@ -273,7 +276,7 @@ export default function SettingsPage() {
                         transition: 'background 0.2s',
                     }}
                 >
-                    {loggingOut ? '⏳ Đang đăng xuất...' : '🚪 Đăng xuất'}
+                    {loggingOut ? `⏳ ${t('logging_out', 'Đang đăng xuất...')}` : `🚪 ${t('logout', 'Đăng xuất')}`}
                 </button>
             </div>
 

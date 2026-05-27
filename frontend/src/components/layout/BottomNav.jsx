@@ -1,16 +1,17 @@
 import { NavLink } from 'react-router-dom';
-import { t } from '../../utils/i18n';
+import { useTranslation } from 'react-i18next';
 import { useNotificationStore } from '../../store/notificationStore';
 
 export default function BottomNav({ onOpenSearch }) {
   const { unreadCount } = useNotificationStore();
+  const { t } = useTranslation();
 
   const NAV_ITEMS = [
-    { to: '/', icon: '🏠', label: t('nav_home') },
-    { to: '/news', icon: '📰', label: t('nav_news') },
-    { to: '/scan', icon: '📷', label: t('nav_scan') },
-    { to: '/budget', icon: '💰', label: t('nav_budget') },
-    // { to: '/settings', icon: '⚙️', label: 'Cài đặt', badge: unreadCount },
+    { to: '/', icon: '🏠', label: t('nav_home', 'Trang chủ') },
+    { to: '/news', icon: '📰', label: t('nav_news', 'Tin tức') },
+    { to: '/scan', icon: '📷', label: t('nav_scan', 'Quét') },
+    { to: '/budget', icon: '💰', label: t('nav_budget', 'Ngân sách') },
+    // { to: '/settings', icon: '⚙️', label: t('settings_title', 'Cài đặt'), badge: unreadCount },
   ];
 
   return (
@@ -47,7 +48,7 @@ export default function BottomNav({ onOpenSearch }) {
         aria-label="Search"
       >
         <span className="nav-icon">🔍</span>
-        <span className="nav-label">Search</span>
+        <span className="nav-label">{t('nav_search_sub', 'Tìm kiếm')}</span>
       </button>
     </nav>
   );

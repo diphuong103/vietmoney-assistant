@@ -16,6 +16,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,   // Bind 0.0.0.0 → truy cập qua WiFi local
     port: 5173,
     proxy: {
       '/api': {

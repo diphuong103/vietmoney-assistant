@@ -5,8 +5,7 @@ import notificationApi from '../api/notificationApi';
 
 let stompClient = null;
 
-const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1')
-    .replace('/api/v1', '');
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 export const useNotificationStore = create((set, get) => ({
     notifications: [],

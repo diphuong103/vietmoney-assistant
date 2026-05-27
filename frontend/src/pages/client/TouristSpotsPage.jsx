@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../../components/layout/Navbar';
 import touristApi from '../../api/touristApi';
 
-const CATEGORY_CHIPS = [
-  { key: 'all',           label: '🌟 Tất cả' },
-  { key: 'heritage',      label: '🏛️ Di sản' },
-  { key: 'nature',        label: '🌿 Thiên nhiên' },
-  { key: 'temple',        label: '🛕 Đền chùa' },
-  { key: 'entertainment', label: '🎢 Giải trí' },
-  { key: 'art',           label: '🎨 Nghệ thuật' },
-];
-
 export default function TouristSpotsPage() {
-  const [spots, setSpots]       = useState([]);
-  const [loading, setLoading]   = useState(true);
+  const { t } = useTranslation();
+
+  const CATEGORY_CHIPS = [
+    { key: 'all', label: `🌟 ${t('cat_all', 'Tất cả')}` },
+    { key: 'heritage', label: `🏛️ ${t('cat_heritage', 'Di sản')}` },
+    { key: 'nature', label: `🌿 ${t('cat_nature', 'Thiên nhiên')}` },
+    { key: 'temple', label: `🛕 ${t('cat_temple', 'Đền chùa')}` },
+    { key: 'entertainment', label: `🎢 ${t('cat_entertainment', 'Giải trí')}` },
+    { key: 'art', label: `🎨 ${t('cat_art', 'Nghệ thuật')}` },
+  ];
+  const [spots, setSpots] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('all');
   const [selected, setSelected] = useState(null);
 
@@ -42,7 +44,7 @@ export default function TouristSpotsPage() {
         title={<>Tourist<span style={{ color: 'var(--accent)' }}>Spots</span></>}
         actions={
           <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-            {filtered.length} địa điểm
+            {t('spots_count', { count: filtered.length, defaultValue: '{{count}} địa điểm' })}
           </span>
         }
       />
@@ -73,14 +75,14 @@ export default function TouristSpotsPage() {
         {loading && (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
             <div style={{ fontSize: 28, marginBottom: 8, animation: 'pulse 1.5s infinite' }}>🏯</div>
-            <div style={{ fontSize: 13 }}>Đang tải danh sách...</div>
+            <div style={{ fontSize: 13 }}>{t('loading_list', 'Đang tải danh sách...')}</div>
           </div>
         )}
 
         {!loading && filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
             <span style={{ fontSize: 48 }}>🏯</span>
-            <p style={{ fontSize: 14, marginTop: 12 }}>Không có địa điểm nào trong danh mục này.</p>
+            <p style={{ fontSize: 14, marginTop: 12 }}>{t('no_spots', 'Không có địa điểm nào trong danh mục này.')}</p>
           </div>
         )}
 

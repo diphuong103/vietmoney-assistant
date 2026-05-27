@@ -20,7 +20,7 @@ axiosClient.interceptors.request.use((config) => {
 
 // ── Response: xử lý 401 + refresh rotation + global error toast ──
 let isRefreshing = false;
-let failedQueue  = [];
+let failedQueue = [];
 
 const processQueue = (error, token = null) => {
     failedQueue.forEach(({ resolve, reject }) =>
@@ -43,7 +43,7 @@ axiosClient.interceptors.response.use(
     (res) => res,
     async (error) => {
         const original = error.config;
-        const status   = error.response?.status;
+        const status = error.response?.status;
 
         // ── 401 handling (refresh token rotation) ─────────
         if ((status === 401 || status === 403) && !original._retry) {
@@ -62,7 +62,7 @@ axiosClient.interceptors.response.use(
             }
 
             original._retry = true;
-            isRefreshing    = true;
+            isRefreshing = true;
             const refreshToken = localStorage.getItem('refreshToken');
 
             if (!refreshToken) {
@@ -77,14 +77,14 @@ axiosClient.interceptors.response.use(
                     null,
                     { params: { token: refreshToken } }
                 );
-                const newAccess  = data.data?.accessToken;
+                const newAccess = data.data?.accessToken;
                 const newRefresh = data.data?.refreshToken;
 
-                localStorage.setItem('accessToken',  newAccess);
+                localStorage.setItem('accessToken', newAccess);
                 localStorage.setItem('refreshToken', newRefresh);
 
                 axiosClient.defaults.headers.common.Authorization = `Bearer ${newAccess}`;
-                original.headers.Authorization                    = `Bearer ${newAccess}`;
+                original.headers.Authorization = `Bearer ${newAccess}`;
 
                 processQueue(null, newAccess);
                 return axiosClient(original);
@@ -101,8 +101,8 @@ axiosClient.interceptors.response.use(
         // Chỉ hiển thị toast cho lỗi chưa được silent (không có _silent flag)
         if (!original._silent && status && status !== 401) {
             const serverMsg = error.response?.data?.error
-                           ?? error.response?.data?.message;
-            const fallback  = ERROR_MESSAGES[status] ?? `Lỗi ${status}. Vui lòng thử lại.`;
+                ?? error.response?.data?.message;
+            const fallback = ERROR_MESSAGES[status] ?? `Lỗi ${status}. Vui lòng thử lại.`;
             toast.error(serverMsg || fallback, {
                 duration: 4000,
                 style: {

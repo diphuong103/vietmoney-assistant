@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../../components/layout/Navbar';
 import scanApi from '../../api/scanApi';
 // Thêm vào đầu file
@@ -44,39 +45,40 @@ const useBreakpoint = () => {
 
 export default function ScanPage() {
   const navigate = useNavigate();
-  const bp       = useBreakpoint();
+  const { t } = useTranslation();
+  const bp = useBreakpoint();
 
-  const videoRef     = useRef(null);
-  const canvasRef    = useRef(null);
-  const streamRef    = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
   const fileInputRef = useRef(null);
-  const dropZoneRef  = useRef(null);
+  const dropZoneRef = useRef(null);
 
-  const [mode, setMode]               = useState('realtime');
+  const [mode, setMode] = useState('realtime');
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState('');
-  const [flashOn, setFlashOn]         = useState(false);
-  const [zoomIdx, setZoomIdx]         = useState(0);
+  const [flashOn, setFlashOn] = useState(false);
+  const [zoomIdx, setZoomIdx] = useState(0);
 
   // ── Realtime scan state ───────────────────────────────────────────────────
-  const [scanning, setScanning]     = useState(false);
-  const [detected, setDetected]     = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [detected, setDetected] = useState(false);
   const [showResult, setShowResult] = useState(false);
-  const [scanError, setScanError]   = useState('');
-  const [result, setResult]         = useState(null);
+  const [scanError, setScanError] = useState('');
+  const [result, setResult] = useState(null);
 
   // ── Upload state ──────────────────────────────────────────────────────────
-  const [uploadFiles, setUploadFiles]         = useState([]);
-  const [dragOver, setDragOver]               = useState(false);
+  const [uploadFiles, setUploadFiles] = useState([]);
+  const [dragOver, setDragOver] = useState(false);
   const [activeUploadIdx, setActiveUploadIdx] = useState(null);
 
   // ── Breakpoint flags (tên rõ ràng hơn) ───────────────────────────────────
   const isDesktop = bp === 'desktop';
-  const isMobile  = bp === 'mobile';
+  const isMobile = bp === 'mobile';
 
   // ── Responsive viewport size ──────────────────────────────────────────────
   const viewportStyle = (() => {
-    if (isMobile)  return { aspectRatio: '4/3', maxHeight: '56vw', minHeight: 220 };
+    if (isMobile) return { aspectRatio: '4/3', maxHeight: '56vw', minHeight: 220 };
     if (bp === 'tablet') return { aspectRatio: '16/9', maxHeight: 420 };
     return { height: 420, maxHeight: 420, aspectRatio: 'unset' };
   })();
@@ -99,11 +101,11 @@ export default function ScanPage() {
       }
     } catch (err) {
       if (err.name === 'NotAllowedError')
-        setCameraError('Camera bị từ chối. Vui lòng cấp quyền trong cài đặt trình duyệt.');
+        setCameraError(t('scan_cam_denied', 'Camera access denied. Please allow it in browser settings.'));
       else if (err.name === 'NotFoundError')
-        setCameraError('Không tìm thấy camera trên thiết bị này.');
+        setCameraError(t('scan_cam_not_found', 'No camera found on this device.'));
       else
-        setCameraError('Không thể mở camera. ' + err.message);
+        setCameraError(t('scan_cam_error', 'Cannot open camera. ') + err.message);
     }
   }, []);
 
@@ -119,8 +121,8 @@ export default function ScanPage() {
   }, [mode, startCamera, stopCamera]);
 
   // ── Zoom / Flash ──────────────────────────────────────────────────────────
-  const cycleZoom   = () => setZoomIdx(i => (i + 1) % ZOOM_LEVELS.length);
-  const zoomScale   = ZOOM_LEVELS[zoomIdx];
+  const cycleZoom = () => setZoomIdx(i => (i + 1) % ZOOM_LEVELS.length);
+  const zoomScale = ZOOM_LEVELS[zoomIdx];
   const toggleFlash = async () => {
     if (!streamRef.current) return;
     const track = streamRef.current.getVideoTracks()[0];
@@ -133,18 +135,18 @@ export default function ScanPage() {
 
   // ── Realtime scan API ─────────────────────────────────────────────────────
   const callRealtimeScan = async (blob) => {
-  setScanning(true); setScanError(''); setResult(null); setDetected(false); setShowResult(false);
-  try {
-    // blob là Blob từ canvas.toBlob() — đúng type, không cần FormData
-    const { result: data } = await scanWithImgBB(blob, 'capture.jpg');
-    setResult(data); setDetected(true); setShowResult(true);
-    setTimeout(() => { setDetected(false); setShowResult(false); }, 6000);
-  } catch (err) {
-    setScanError(err.response?.data?.message ?? err.message ?? 'Scan thất bại');
-  } finally {
-    setScanning(false);
-  }
-};
+    setScanning(true); setScanError(''); setResult(null); setDetected(false); setShowResult(false);
+    try {
+      // blob là Blob từ canvas.toBlob() — đúng type, không cần FormData
+      const { result: data } = await scanWithImgBB(blob, 'capture.jpg');
+      setResult(data); setDetected(true); setShowResult(true);
+      setTimeout(() => { setDetected(false); setShowResult(false); }, 6000);
+    } catch (err) {
+      setScanError(err.response?.data?.message ?? err.message ?? 'Scan thất bại');
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const handleCapture = () => {
     if (!videoRef.current || !canvasRef.current || scanning) return;
@@ -156,19 +158,19 @@ export default function ScanPage() {
 
   // ── Upload helpers ────────────────────────────────────────────────────────
   const scanUploadItem = async (item) => {
-  setUploadFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'scanning' } : f));
-  try {
-    // item.file là File object từ input[type=file] — đúng type
-    const { result: data, imageUrl } = await scanWithImgBB(item.file, item.file.name);
-    setUploadFiles(prev => prev.map(f =>
-      f.id === item.id ? { ...f, status: 'done', result: { ...data, imageUrl } } : f
-    ));
-    setActiveUploadIdx(item.id);
-  } catch (err) {
-    const msg = err.response?.data?.message ?? err.message ?? 'Scan thất bại';
-    setUploadFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'error', error: msg } : f));
-  }
-};
+    setUploadFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'scanning' } : f));
+    try {
+      // item.file là File object từ input[type=file] — đúng type
+      const { result: data, imageUrl } = await scanWithImgBB(item.file, item.file.name);
+      setUploadFiles(prev => prev.map(f =>
+        f.id === item.id ? { ...f, status: 'done', result: { ...data, imageUrl } } : f
+      ));
+      setActiveUploadIdx(item.id);
+    } catch (err) {
+      const msg = err.response?.data?.message ?? err.message ?? 'Scan thất bại';
+      setUploadFiles(prev => prev.map(f => f.id === item.id ? { ...f, status: 'error', error: msg } : f));
+    }
+  };
 
   const addFiles = (fileList) => {
     const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -217,9 +219,9 @@ export default function ScanPage() {
   };
 
   // ── Drag & Drop ───────────────────────────────────────────────────────────
-  const handleDrop      = (e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); };
-  const handleDragOver  = (e) => { e.preventDefault(); setDragOver(true); };
-  const handleDragLeave = ()  => setDragOver(false);
+  const handleDrop = (e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); };
+  const handleDragOver = (e) => { e.preventDefault(); setDragOver(true); };
+  const handleDragLeave = () => setDragOver(false);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const getConverted = (r) => {
@@ -227,9 +229,10 @@ export default function ScanPage() {
     return `$${(r.valueVnd / 25420).toFixed(2)} USD · ₩${Math.round(r.valueVnd / 18.9).toLocaleString()} KRW`;
   };
 
-  const mainColor  = result ? getCurrencyColor(result.currencyType, result.isFake) : '#c8f23d';
+  const subtitle = 'Scan';
+  const mainColor = result ? getCurrencyColor(result.currencyType, result.isFake) : '#c8f23d';
   const activeItem = uploadFiles.find(f => f.id === activeUploadIdx);
-  const thumbSize  = bp === 'tablet' ? 88 : 72;
+  const thumbSize = bp === 'tablet' ? 88 : 72;
 
   return (
     <div className="page active" id="page-scan">
@@ -291,7 +294,7 @@ export default function ScanPage() {
                   {!cameraReady && !cameraError && (
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, background: 'var(--bg2)', borderRadius: 20, zIndex: 1 }}>
                       <div style={{ fontSize: 36, animation: 'pulse 1.5s infinite' }}>📷</div>
-                      <div style={{ color: 'var(--muted)', fontSize: 13 }}>Đang mở camera...</div>
+                      <div style={{ color: 'var(--muted)', fontSize: 13 }}>{t('scan_opening_cam', 'Opening camera...')}</div>
                     </div>
                   )}
 
@@ -299,7 +302,7 @@ export default function ScanPage() {
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, padding: 24, background: 'var(--bg2)', borderRadius: 20, zIndex: 1, textAlign: 'center' }}>
                       <div style={{ fontSize: 36 }}>⚠️</div>
                       <div style={{ color: 'var(--accent3)', fontSize: 13, lineHeight: 1.5 }}>{cameraError}</div>
-                      <button onClick={startCamera} style={{ marginTop: 8, padding: '8px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Thử lại</button>
+                      <button onClick={startCamera} style={{ marginTop: 8, padding: '8px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>{t('scan_retry', 'Retry')}</button>
                     </div>
                   )}
 
@@ -314,7 +317,7 @@ export default function ScanPage() {
                       )}
                     </div>
                     <div style={{ fontFamily: 'DM Mono,monospace', fontSize: isMobile ? 18 : 22, fontWeight: 700, color: scanning ? '#888' : (result ? mainColor : 'rgba(255,255,255,0.3)'), lineHeight: 1.2 }}>
-                      {scanning ? '🔍 Đang nhận diện...' : result ? result.denomination : (cameraReady ? 'Scanning...' : '—')}
+                      {scanning ? '🔍 ' + t('scan_detecting', 'Detecting...') : result ? result.denomination : (cameraReady ? t('scan_scanning', 'Scanning...') : '—')}
                       {result && !scanning && (
                         <span style={{ fontSize: 13, fontWeight: 400, marginLeft: 10, color: 'rgba(255,255,255,0.5)' }}>{(result.confidence * 100).toFixed(1)}%</span>
                       )}
@@ -327,7 +330,7 @@ export default function ScanPage() {
                   {/* FAKE banner */}
                   {result?.isFake && showResult && (
                     <div style={{ position: 'absolute', top: 70, left: 0, right: 0, zIndex: 6, background: 'rgba(20,20,180,0.88)', borderTop: '2px solid #ff6b6b', borderBottom: '1px solid #ff6b6b', padding: '8px 14px', textAlign: 'center' }}>
-                      <span style={{ fontFamily: 'DM Mono,monospace', fontSize: 12, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>!! TIỀN GIẢ / VÀNG MÃ — KHÔNG SỬ DỤNG !!</span>
+                      <span style={{ fontFamily: 'DM Mono,monospace', fontSize: 12, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>{t('scan_fake_warning', '!! COUNTERFEIT / VOTIVE — DO NOT USE !!')}</span>
                     </div>
                   )}
 
@@ -352,7 +355,7 @@ export default function ScanPage() {
                       <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 6, letterSpacing: 1 }}>RESULT</div>
                       {(() => {
                         const color = getCurrencyColor(result.currencyType, result.isFake);
-                        const pct   = Math.round(result.confidence * 100);
+                        const pct = Math.round(result.confidence * 100);
                         return (
                           <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
@@ -379,12 +382,12 @@ export default function ScanPage() {
                   {scanning && (
                     <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', borderRadius: 20, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10 }}>
                       <div style={{ fontSize: 30, animation: 'pulse 0.8s infinite' }}>🔍</div>
-                      <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>AI đang nhận diện...</div>
+                      <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{t('scan_ai_analyzing', 'AI is analyzing...')}</div>
                     </div>
                   )}
 
                   <div style={{ position: 'absolute', bottom: 10, left: 12, zIndex: 4, fontFamily: 'DM Mono,monospace', fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
-                    {isMobile ? 'Nhấn 📷 để quét' : 'Press 📷 to capture'}
+                    {isMobile ? t('scan_hint_mobile', 'Tap 📷 to scan') : t('scan_hint_desktop', 'Press 📷 to capture')}
                   </div>
                 </div>
 
@@ -402,18 +405,18 @@ export default function ScanPage() {
                       {!result && !scanning && (
                         <div style={{ textAlign: 'center', color: 'var(--muted)' }}>
                           <div style={{ fontSize: 32, marginBottom: 10 }}>💵</div>
-                          <div style={{ fontSize: 13 }}>Kết quả nhận diện sẽ hiện ở đây</div>
+                          <div style={{ fontSize: 13 }}>{t('scan_result_placeholder', 'Detection result will appear here')}</div>
                         </div>
                       )}
                       {scanning && (
                         <div style={{ textAlign: 'center', width: '100%', color: 'var(--muted)' }}>
                           <div style={{ fontSize: 32, marginBottom: 10, animation: 'pulse 0.8s infinite' }}>🔍</div>
-                          <div style={{ fontSize: 13 }}>AI đang phân tích...</div>
+                          <div style={{ fontSize: 13 }}>{t('scan_ai_processing', 'AI is processing...')}</div>
                         </div>
                       )}
                       {result && !scanning && (() => {
                         const color = getCurrencyColor(result.currencyType, result.isFake);
-                        const pct   = Math.round(result.confidence * 100);
+                        const pct = Math.round(result.confidence * 100);
                         return (
                           <div style={{ width: '100%' }}>
                             <div style={{ fontFamily: 'DM Mono,monospace', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: 2, marginBottom: 8 }}>SCAN RESULT</div>
@@ -443,7 +446,7 @@ export default function ScanPage() {
                                 {CURRENCY_FLAG[result.currencyType] ?? ''} {result.currencyType}
                               </span>
                               <span style={{ fontSize: 11, padding: '3px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 20, color: 'var(--muted)' }}>
-                                {result.authenticity === 'real' ? '✅ Thật' : '❌ Giả'}
+                                {result.authenticity === 'real' ? t('scan_authentic', '✅ Genuine') : t('scan_fake', '❌ Fake')}
                               </span>
                               <span style={{ fontSize: 11, padding: '3px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 20, color: 'var(--muted)', fontFamily: 'DM Mono,monospace' }}>
                                 {result.className}
@@ -468,16 +471,16 @@ export default function ScanPage() {
                         disabled={scanning || !cameraReady}
                         style={{ opacity: scanning ? 0.5 : 1, flex: 2, fontSize: 14, gap: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
-                        {scanning ? '⏳ Scanning...' : '📷 Capture'}
+                        {scanning ? '⏳ ' + t('scan_scanning', 'Scanning...') : '📷 ' + t('scan_capture', 'Capture')}
                       </button>
                       <button className="scan-btn-secondary" onClick={toggleFlash} style={{ opacity: flashOn ? 1 : 0.6, flex: 1 }}>
                         {flashOn ? '🔦' : '⚡'}
                       </button>
                     </div>
                     <div className="scan-tip" style={{ textAlign: 'center' }}>
-                      {scanning ? 'AI đang phân tích...' : result
+                      {scanning ? t('scan_ai_analyzing', 'AI is analyzing...') : result
                         ? `✅ ${result.currencyType} · ${(result.confidence * 100).toFixed(1)}%`
-                        : 'Hướng camera vào tờ tiền · Nhấn Capture'}
+                        : t('scan_realtime_hint', 'Point camera at banknote · Tap Capture')}
                     </div>
                   </div>
                 )}
@@ -496,9 +499,9 @@ export default function ScanPage() {
                     </button>
                   </div>
                   <div className="scan-tip">
-                    {scanning ? 'AI đang phân tích...' : result
+                    {scanning ? t('scan_ai_analyzing', 'AI is analyzing...') : result
                       ? `✅ ${result.currencyType} · ${(result.confidence * 100).toFixed(1)}%`
-                      : 'Hướng camera vào tờ tiền · Nhấn 📷 để quét'}
+                      : t('scan_mobile_hint', 'Point camera at banknote · Tap 📷 to scan')}
                   </div>
                 </>
               )}
@@ -527,10 +530,10 @@ export default function ScanPage() {
               >
                 <div style={{ fontSize: isMobile ? 32 : 44, marginBottom: 10 }}>🖼️</div>
                 <div style={{ fontSize: isMobile ? 13 : 15, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
-                  {isMobile ? 'Nhấn để chọn ảnh' : 'Kéo thả ảnh vào đây hoặc nhấn để chọn'}
+                  {isMobile ? t('scan_upload_tap', 'Tap to select image') : t('scan_upload_drag', 'Drag & drop images here or tap to select')}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
-                  {!isMobile && 'Hỗ trợ '}JPG, PNG, WEBP · Tối đa 10MB {!isMobile && '· Nhiều ảnh cùng lúc'}
+                  {!isMobile && t('scan_supports', 'Supports ')}JPG, PNG, WEBP · {t('scan_max_size', 'Max 10MB')} {!isMobile && '· ' + t('scan_multi', 'Multiple files at once')}
                 </div>
                 <div style={{ display: 'inline-flex', gap: 6 }}>
                   {['JPG', 'PNG', 'WEBP', '≤10MB'].map(t => (
@@ -548,13 +551,13 @@ export default function ScanPage() {
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-                      {uploadFiles.length} ảnh đã chọn
+                      {uploadFiles.length} {t('scan_photos_selected', 'photos selected')}
                       <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 6 }}>
-                        · {uploadFiles.filter(f => f.status === 'done').length} xong
+                        · {uploadFiles.filter(f => f.status === 'done').length} {t('scan_done', 'done')}
                       </span>
                     </span>
                     <button onClick={clearAll} style={{ background: 'none', border: 'none', color: 'var(--accent3)', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
-                      Xóa tất cả
+                      {t('scan_clear_all', 'Clear all')}
                     </button>
                   </div>
 
@@ -565,8 +568,8 @@ export default function ScanPage() {
                       {/* Left: list dọc */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 560, overflowY: 'auto', paddingRight: 4 }}>
                         {uploadFiles.map(item => {
-                          const r      = item.result;
-                          const color  = r ? getCurrencyColor(r.currencyType, r.isFake) : 'var(--muted)';
+                          const r = item.result;
+                          const color = r ? getCurrencyColor(r.currencyType, r.isFake) : 'var(--muted)';
                           const active = activeUploadIdx === item.id;
                           return (
                             <div
@@ -619,7 +622,7 @@ export default function ScanPage() {
                           onClick={() => fileInputRef.current?.click()}
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 10, borderRadius: 12, border: '2px dashed var(--border)', cursor: 'pointer', color: 'var(--muted)', fontSize: 13, background: 'var(--bg2)' }}
                         >
-                          <span style={{ fontSize: 18 }}>+</span> Thêm ảnh
+                          <span style={{ fontSize: 18 }}>+</span> {t('scan_add_more', 'Add more')}
                         </div>
                       </div>
 
@@ -677,7 +680,7 @@ export default function ScanPage() {
 
               {uploadFiles.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--muted)', fontSize: 13 }}>
-                  Chưa có ảnh nào — kéo thả hoặc nhấn vào ô trên để thêm
+                  {t('scan_no_files', 'No images yet — drag & drop or click above to add')}
                 </div>
               )}
             </div>
@@ -692,10 +695,11 @@ export default function ScanPage() {
 
 // ── UploadDetailCard component ────────────────────────────────────────────────
 function UploadDetailCard({ item, getConverted, retryItem }) {
+  const { t } = useTranslation();
   if (!item) return null;
-  const r     = item.result;
+  const r = item.result;
   const color = r ? getCurrencyColor(r.currencyType, r.isFake) : '#c8f23d';
-  const pct   = r ? Math.round(r.confidence * 100) : 0;
+  const pct = r ? Math.round(r.confidence * 100) : 0;
 
   return (
     <div style={{
@@ -710,7 +714,7 @@ function UploadDetailCard({ item, getConverted, retryItem }) {
         {item.status === 'scanning' && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10 }}>
             <div style={{ fontSize: 36, animation: 'pulse 0.8s infinite' }}>🔍</div>
-            <div style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>AI đang phân tích ảnh...</div>
+            <div style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>{t('scan_ai_analyzing_img', 'AI is analyzing the image...')}</div>
             <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{item.file.name}</div>
           </div>
         )}
@@ -718,7 +722,7 @@ function UploadDetailCard({ item, getConverted, retryItem }) {
         {item.status === 'done' && r?.isFake && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, background: 'rgba(20,20,180,0.9)', borderBottom: '2px solid #ff6b6b', padding: '8px 14px', textAlign: 'center' }}>
             <span style={{ fontFamily: 'DM Mono,monospace', fontSize: 12, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>
-              !! TIỀN GIẢ / VÀNG MÃ — KHÔNG SỬ DỤNG !!
+              {t('scan_fake_warning', '!! COUNTERFEIT / VOTIVE — DO NOT USE !!')}
             </span>
           </div>
         )}
@@ -755,7 +759,7 @@ function UploadDetailCard({ item, getConverted, retryItem }) {
 
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>Độ chính xác</span>
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{t('scan_accuracy', 'Accuracy')}</span>
               <span style={{ fontSize: 12, fontWeight: 700, color, fontFamily: 'DM Mono,monospace' }}>{pct}%</span>
             </div>
             <div style={{ height: 6, background: 'var(--bg3)', borderRadius: 3, overflow: 'hidden' }}>
@@ -768,7 +772,7 @@ function UploadDetailCard({ item, getConverted, retryItem }) {
               {CURRENCY_FLAG[r.currencyType] ?? ''} {r.currencyType}
             </span>
             <span style={{ fontSize: 11, padding: '3px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 20, color: 'var(--muted)' }}>
-              {r.authenticity === 'real' ? '✅ Thật' : '❌ Giả'}
+              {r.authenticity === 'real' ? t('scan_authentic', '✅ Genuine') : t('scan_fake', '❌ Fake')}
             </span>
             <span style={{ fontSize: 11, padding: '3px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 20, color: 'var(--muted)', fontFamily: 'DM Mono,monospace' }}>
               {r.className}
@@ -788,7 +792,7 @@ function UploadDetailCard({ item, getConverted, retryItem }) {
           <div style={{ fontSize: 32, marginBottom: 8 }}>😞</div>
           <div style={{ fontSize: 13, color: 'var(--accent3)', marginBottom: 12 }}>{item.error}</div>
           <button onClick={() => retryItem(item)} style={{ padding: '8px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
-            🔄 Thử lại
+            🔄 {t('scan_retry', 'Retry')}
           </button>
         </div>
       )}

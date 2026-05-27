@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../../components/layout/Navbar';
 import scanApi from '../../api/scanApi';
 import dayjs from 'dayjs';
@@ -46,11 +47,12 @@ const useBreakpoint = () => {
 
 // ── Detail Panel (dùng cho cả modal và sidebar) ───────────────────────────────
 function DetailPanel({ item, onClose }) {
+  const { t } = useTranslation();
   if (!item) return null;
-  const fake  = item.detectedDenomination?.includes('FAKE') || item.detectedDenomination?.startsWith('[FAKE]');
+  const fake = item.detectedDenomination?.includes('FAKE') || item.detectedDenomination?.startsWith('[FAKE]');
   const color = getDenomColor(item.detectedDenomination);
-  const pct   = item.confidence ? Math.round(item.confidence * 100) : null;
-  const raw   = parseRaw(item.rawResult);
+  const pct = item.confidence ? Math.round(item.confidence * 100) : null;
+  const raw = parseRaw(item.rawResult);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
@@ -65,14 +67,14 @@ function DetailPanel({ item, onClose }) {
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: 'var(--muted)' }}>
             <div style={{ fontSize: 36 }}>📷</div>
-            <div style={{ fontSize: 12 }}>Không có ảnh lưu</div>
+            <div style={{ fontSize: 12 }}>{t('scan_hist_no_image', 'No stored image')}</div>
           </div>
         )}
 
         {fake && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, background: 'rgba(20,20,180,0.92)', borderBottom: '2px solid #ff6b6b', padding: '6px 12px', textAlign: 'center' }}>
             <span style={{ fontFamily: 'DM Mono,monospace', fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>
-              !! TIỀN GIẢ / VÀNG MÃ — KHÔNG SỬ DỤNG !!
+              {t('scan_fake_warning', '!! COUNTERFEIT / VOTIVE — DO NOT USE !!')}
             </span>
           </div>
         )}
@@ -117,7 +119,7 @@ function DetailPanel({ item, onClose }) {
         {pct !== null && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ fontSize: 11, color: 'var(--muted)' }}>Độ chính xác</span>
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}>{t('scan_accuracy', 'Accuracy')}</span>
               <span style={{ fontSize: 11, fontWeight: 700, color, fontFamily: 'DM Mono,monospace' }}>{pct}%</span>
             </div>
             <div style={{ height: 5, background: 'var(--bg3)', borderRadius: 3, overflow: 'hidden' }}>
@@ -136,7 +138,7 @@ function DetailPanel({ item, onClose }) {
             )}
             {raw.authenticity && (
               <span style={{ fontSize: 11, padding: '3px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 20, color: 'var(--muted)' }}>
-                {raw.authenticity === 'real' ? '✅ Thật' : '❌ Giả'}
+                {raw.authenticity === 'real' ? t('scan_authentic', '✅ Genuine') : t('scan_fake', '❌ Fake')}
               </span>
             )}
             {raw.class && (
@@ -150,7 +152,7 @@ function DetailPanel({ item, onClose }) {
         {/* ImgBB link */}
         {item.imageUrl && (
           <div style={{ background: 'var(--bg3)', borderRadius: 8, padding: '8px 10px' }}>
-            <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>🔗 Ảnh ImgBB</div>
+            <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>🔗 {t('scan_hist_imgbb_link', 'ImgBB Image')}</div>
             <a href={item.imageUrl} target="_blank" rel="noreferrer"
               style={{ fontSize: 11, color: 'var(--accent)', wordBreak: 'break-all', textDecoration: 'none' }}>
               {item.imageUrl}
@@ -162,7 +164,7 @@ function DetailPanel({ item, onClose }) {
         {fake && (
           <div style={{ background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.25)', borderRadius: 10, padding: '10px 12px' }}>
             <div style={{ fontSize: 12, color: '#ff6b6b', fontWeight: 600, lineHeight: 1.5 }}>
-              ⚠️ Tiền giả hoặc vàng mã được phát hiện. Tuyệt đối không sử dụng trong giao dịch.
+              {t('scan_hist_fake_detected', '⚠️ Counterfeit or votive money detected. Do not use in any transactions.')}
             </div>
           </div>
         )}
@@ -173,9 +175,9 @@ function DetailPanel({ item, onClose }) {
 
 // ── History Row Item ──────────────────────────────────────────────────────────
 function HistoryItem({ h, isActive, onClick, onDelete }) {
-  const fake  = h.detectedDenomination?.includes('FAKE') || h.detectedDenomination?.startsWith('[FAKE]');
+  const fake = h.detectedDenomination?.includes('FAKE') || h.detectedDenomination?.startsWith('[FAKE]');
   const color = getDenomColor(h.detectedDenomination);
-  const pct   = h.confidence ? Math.round(h.confidence * 100) : null;
+  const pct = h.confidence ? Math.round(h.confidence * 100) : null;
 
   return (
     <div
@@ -238,15 +240,16 @@ function HistoryItem({ h, isActive, onClick, onDelete }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function ScanHistoryPage() {
+  const { t } = useTranslation();
   const bp = useBreakpoint();
-  const [history, setHistory]   = useState([]);
-  const [loading, setLoading]   = useState(true);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   const isDesktop = bp === 'desktop';
-  const isTablet  = bp === 'tablet';
-  const isMobile  = bp === 'mobile';
+  const isTablet = bp === 'tablet';
+  const isMobile = bp === 'mobile';
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -268,7 +271,7 @@ export default function ScanHistoryPage() {
       await scanApi.deleteHistory(id);
       setHistory(prev => prev.filter(h => h.id !== id));
       if (selected?.id === id) { setSelected(null); setModalOpen(false); }
-    } catch {}
+    } catch { }
   };
 
   const handleSelect = (item) => {
@@ -300,15 +303,15 @@ export default function ScanHistoryPage() {
             {loading && (
               <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
                 <div style={{ fontSize: 26, marginBottom: 8, animation: 'pulse 1.5s infinite' }}>⏳</div>
-                <div style={{ fontSize: 13 }}>Đang tải...</div>
+                <div style={{ fontSize: 13 }}>{t('scan_hist_loading', 'Loading...')}</div>
               </div>
             )}
 
             {!loading && history.length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
                 <div style={{ fontSize: 40, marginBottom: 10 }}>📷</div>
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Chưa có lịch sử scan</div>
-                <div style={{ fontSize: 12 }}>Bắt đầu scan tiền để xem kết quả ở đây.</div>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{t('scan_hist_empty_title', 'No scan history yet')}</div>
+                <div style={{ fontSize: 12 }}>{t('scan_hist_empty_sub', 'Start scanning money to see results here.')}</div>
               </div>
             )}
 
@@ -334,7 +337,7 @@ export default function ScanHistoryPage() {
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: 12, color: 'var(--muted)' }}>
                 <div style={{ fontSize: 40 }}>👈</div>
-                <div style={{ fontSize: 13 }}>Chọn một bản ghi để xem chi tiết</div>
+                <div style={{ fontSize: 13 }}>{t('scan_hist_select_to_view', 'Select a record to view details')}</div>
               </div>
             )}
           </div>
@@ -358,7 +361,7 @@ export default function ScanHistoryPage() {
           {loading && (
             <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
               <div style={{ fontSize: 26, animation: 'pulse 1.5s infinite', marginBottom: 8 }}>⏳</div>
-              <div style={{ fontSize: 13 }}>Đang tải...</div>
+              <div style={{ fontSize: 13 }}>{t('scan_hist_loading', 'Loading...')}</div>
             </div>
           )}
           {!loading && history.length === 0 && <EmptyState />}
@@ -390,7 +393,7 @@ export default function ScanHistoryPage() {
         {loading && (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
             <div style={{ fontSize: 26, animation: 'pulse 1.5s infinite', marginBottom: 8 }}>⏳</div>
-            <div style={{ fontSize: 13 }}>Đang tải...</div>
+            <div style={{ fontSize: 13 }}>{t('scan_hist_loading', 'Loading...')}</div>
           </div>
         )}
         {!loading && history.length === 0 && <EmptyState />}
@@ -410,11 +413,12 @@ export default function ScanHistoryPage() {
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 function EmptyState() {
+  const { t } = useTranslation();
   return (
     <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
       <span style={{ fontSize: 44 }}>📷</span>
-      <p style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Chưa có lịch sử scan</p>
-      <p style={{ fontSize: 12, margin: 0 }}>Bắt đầu scan tiền để xem kết quả ở đây.</p>
+      <p style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>{t('scan_hist_empty_title', 'No scan history yet')}</p>
+      <p style={{ fontSize: 12, margin: 0 }}>{t('scan_hist_empty_sub', 'Start scanning money to see results here.')}</p>
     </div>
   );
 }

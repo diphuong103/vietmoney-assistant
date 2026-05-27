@@ -67,7 +67,7 @@ app:
     api-secret: ${CLOUDINARY_API_SECRET:FFL-VG3T4j8aELxoj8z9h20ZyU4}
 
   exchange-rate:
-    api-url: "https://v6.exchangerate-api.com/v6/611b5efa4b7a9afb5a343b21/latest/VND"
+    api-url: "EXCHANGE_RATE_API_URL=https://v6.exchangerate-api.com/v6/7b6716afac6ba73f36f8a92d/latest/VND"
 
   cors:
-    allowed-origins: http://localhost:5173,http://localhost:5174,http://localhost:3000
+    allowed-origins: http://localhost:5173,http://localhost:5174,http://localhost:3000,http://192.168.*.*:5173,http://10.*.*.*:5173

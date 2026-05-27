@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../../components/layout/Navbar';
 
 import img500kFront from '../../assets/images/500k_1.png';
@@ -68,7 +69,7 @@ const CARDS = [
     denom: '10k',
     label: '₫10,000',
     frontImg: img10kFront,
-    backImg: img10kBack, 
+    backImg: img10kBack,
     security: ['Cotton paper', 'Watermark', 'Red-brown color'],
     color: '#8b6914',
   },
@@ -126,6 +127,7 @@ const DENOMS = [
 // ─── 3D Bill Viewer Component ─────────────────────────────────────────────────
 
 function BillViewer3D({ card }) {
+  const { t } = useTranslation();
   const billRef = useRef(null);
   const stageRef = useRef(null);
   const rafRef = useRef(null);
@@ -203,7 +205,7 @@ function BillViewer3D({ card }) {
   const handleFlip = () => { stateRef.current.auto = false; stateRef.current.targetY += 180; };
   const handleAuto = (el) => {
     stateRef.current.auto = !stateRef.current.auto;
-    el.textContent = stateRef.current.auto ? '⏹ Dừng' : '▶ Auto';
+    el.textContent = stateRef.current.auto ? '⏹ ' + t('guide_stop', 'Stop') : '▶ Auto';
   };
 
   const accentColor = card.color || '#2a6dd9';
@@ -233,7 +235,7 @@ function BillViewer3D({ card }) {
                   <div className="bv-placeholder" style={{ background: `linear-gradient(135deg, ${accentColor}22, ${accentColor}44)`, borderColor: `${accentColor}55` }}>
                     <span className="bv-ph-denom" style={{ color: accentColor }}>{card.denom}</span>
                     <span className="bv-ph-label">{card.label}</span>
-                    <span className="bv-ph-sub">Mặt trước</span>
+                    <span className="bv-ph-sub">{t('guide_front', 'Front')}</span>
                   </div>
                 )}
               <div className="bv-gleam" />
@@ -246,7 +248,7 @@ function BillViewer3D({ card }) {
                   <div className="bv-placeholder" style={{ background: `linear-gradient(135deg, ${accentColor}33, ${accentColor}55)`, borderColor: `${accentColor}55` }}>
                     <span className="bv-ph-denom" style={{ color: accentColor }}>{card.denom}</span>
                     <span className="bv-ph-label">{card.label}</span>
-                    <span className="bv-ph-sub">Mặt sau</span>
+                    <span className="bv-ph-sub">{t('guide_back', 'Back')}</span>
                   </div>
                 )}
               <div className="bv-gleam" />
@@ -257,10 +259,10 @@ function BillViewer3D({ card }) {
 
       {/* Controls */}
       <div className="bv-controls">
-        <button className="bv-btn" onClick={handleFlip}>Lật ↺</button>
+        <button className="bv-btn" onClick={handleFlip}>{t('guide_flip', 'Flip')} ↺</button>
         <button className="bv-btn" onClick={e => handleAuto(e.currentTarget)}>▶ Auto</button>
       </div>
-      <div className="bv-hint">Kéo để xoay 360°</div>
+      <div className="bv-hint">{t('guide_drag_hint', 'Drag to rotate 360°')}</div>
 
       {/* Security features */}
       <div className="bv-security">

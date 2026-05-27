@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
-const API_URL = 'http://localhost:8000/chat/stream';
-const CONFIRM_SEARCH_URL = 'http://localhost:8000/chat/confirm-search'; // đổi từ /chat/web-search
+const AI_BASE = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000';
+const API_URL = `${AI_BASE}/chat/stream`;
+const CONFIRM_SEARCH_URL = `${AI_BASE}/chat/confirm-search`;
 
 export default function useStreamChat() {
     const [messages, setMessages] = useState([

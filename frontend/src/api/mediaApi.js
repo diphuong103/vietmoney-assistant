@@ -46,7 +46,7 @@ const uploadMultipleMedia = async (
         const overall = Math.round(
           ((completed + current) /
             files.length) *
-            100
+          100
         );
 
         if (onProgress) {

@@ -5,17 +5,20 @@ import authApi, { clearSession, getStoredUser } from '../../api/authApi';
 import toast from 'react-hot-toast';
 import axiosClient from '../../api/axiosClient';
 
-const NATIONALITIES = ['Vietnamese','Korean','Japanese','Chinese','American','French','German','British','Australian','Other'];
-const CITIES = ['Hà Nội','Hồ Chí Minh','Đà Nẵng','Hội An','Huế','Nha Trang','Phú Quốc','Hạ Long','Cần Thơ','Đà Lạt'];
+import { useTranslation } from 'react-i18next';
+
+const NATIONALITIES = ['Vietnamese', 'Korean', 'Japanese', 'Chinese', 'American', 'French', 'German', 'British', 'Australian', 'Other'];
+const CITIES = ['Hà Nội', 'Hồ Chí Minh', 'Đà Nẵng', 'Hội An', 'Huế', 'Nha Trang', 'Phú Quốc', 'Hạ Long', 'Cần Thơ', 'Đà Lạt'];
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const [user, setUser]         = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const [editing, setEditing]   = useState(false);
-  const [saving, setSaving]     = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [loggingOut, setLogout] = useState(false);
-  const [form, setForm]         = useState({
+  const [form, setForm] = useState({
     fullName: '', nationality: '', travelDestination: '',
   });
 
@@ -58,7 +61,7 @@ export default function ProfilePage() {
       setUser(updated);
       localStorage.setItem('user', JSON.stringify(updated));
       setEditing(false);
-      toast.success('Cập nhật thành công!');
+      toast.success(t('profile_update_success', 'Cập nhật thành công!'));
     } catch {
       // toast auto
     } finally {
@@ -96,7 +99,7 @@ export default function ProfilePage() {
         <Navbar title={<>Viet<span style={{ color: 'var(--accent)' }}>Money</span></>} subtitle="Profile" />
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>
           <div style={{ fontSize: 28, animation: 'pulse 1.5s infinite' }}>👤</div>
-          <div style={{ fontSize: 13, marginTop: 8 }}>Đang tải...</div>
+          <div style={{ fontSize: 13, marginTop: 8 }}>{t('loading', 'Đang tải...')}</div>
         </div>
       </div>
     );
@@ -109,7 +112,7 @@ export default function ProfilePage() {
         subtitle="Profile"
         actions={
           user && !editing && (
-            <button className="icon-btn" onClick={() => setEditing(true)} title="Chỉnh sửa">✏️</button>
+            <button className="icon-btn" onClick={() => setEditing(true)} title={t('edit_btn', 'Chỉnh sửa')}>✏️</button>
           )
         }
       />
@@ -155,39 +158,39 @@ export default function ProfilePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--muted)', marginBottom: 4 }}>
-                  Họ và Tên
+                  {t('profile_fullname', 'Họ và Tên')}
                 </label>
                 <input
                   value={form.fullName}
-                  onChange={e => setForm(f => ({...f, fullName: e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))}
                   style={inputStyle}
-                  placeholder="Nhập họ và tên"
+                  placeholder={t('profile_fullname_placeholder', 'Nhập họ và tên')}
                 />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--muted)', marginBottom: 4 }}>
-                  Quốc tịch
+                  {t('profile_nationality', 'Quốc tịch')}
                 </label>
                 <select
                   value={form.nationality}
-                  onChange={e => setForm(f => ({...f, nationality: e.target.value}))}
-                  style={{...inputStyle, cursor: 'pointer'}}
+                  onChange={e => setForm(f => ({ ...f, nationality: e.target.value }))}
+                  style={{ ...inputStyle, cursor: 'pointer' }}
                 >
-                  <option value="">-- Chọn --</option>
-                  {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
+                  <option value="">-- {t('profile_select', 'Chọn')} --</option>
+                  {NATIONALITIES.map(n => <option key={n} value={n}>{t(`nat_${n}`, n)}</option>)}
                 </select>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--muted)', marginBottom: 4 }}>
-                  Điểm đến du lịch
+                  {t('profile_destination', 'Điểm đến du lịch')}
                 </label>
                 <select
                   value={form.travelDestination}
-                  onChange={e => setForm(f => ({...f, travelDestination: e.target.value}))}
-                  style={{...inputStyle, cursor: 'pointer'}}
+                  onChange={e => setForm(f => ({ ...f, travelDestination: e.target.value }))}
+                  style={{ ...inputStyle, cursor: 'pointer' }}
                 >
-                  <option value="">-- Chọn --</option>
-                  {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  <option value="">-- {t('profile_select', 'Chọn')} --</option>
+                  {CITIES.map(c => <option key={c} value={c}>{t(`city_${c}`, c)}</option>)}
                 </select>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -195,13 +198,13 @@ export default function ProfilePage() {
                   flex: 1, padding: '10px', background: 'var(--bg3)', color: 'var(--text)',
                   border: '1px solid var(--border)', borderRadius: 10, cursor: 'pointer',
                   fontWeight: 600, fontSize: 13,
-                }}>Hủy</button>
+                }}>{t('profile_cancel', 'Hủy')}</button>
                 <button onClick={handleSave} disabled={saving} style={{
                   flex: 1, padding: '10px', background: 'var(--accent)', color: '#000',
                   border: 'none', borderRadius: 10, cursor: saving ? 'not-allowed' : 'pointer',
                   fontWeight: 700, fontSize: 13,
                 }}>
-                  {saving ? '⏳ Đang lưu...' : '💾 Lưu'}
+                  {saving ? `⏳ ${t('profile_saving', 'Đang lưu...')}` : `💾 ${t('profile_save', 'Lưu')}`}
                 </button>
               </div>
             </div>
@@ -210,8 +213,8 @@ export default function ProfilePage() {
               {[
                 { icon: '👤', label: 'Username', value: user?.username },
                 { icon: '📧', label: 'Email', value: user?.email },
-                { icon: '🌍', label: 'Quốc tịch', value: user?.nationality ?? '—' },
-                { icon: '✈️', label: 'Điểm đến', value: user?.travelDestination ?? '—' },
+                { icon: '🌍', label: t('profile_nationality', 'Quốc tịch'), value: user?.nationality ? t(`nat_${user.nationality}`, user.nationality) : '—' },
+                { icon: '✈️', label: t('profile_destination', 'Điểm đến'), value: user?.travelDestination ? t(`city_${user.travelDestination}`, user.travelDestination) : '—' },
               ].map((item, i) => (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', gap: 10,
@@ -244,7 +247,7 @@ export default function ProfilePage() {
             transition: 'background 0.2s',
           }}
         >
-          {loggingOut ? '⏳ Đang đăng xuất...' : '🚪 Đăng xuất'}
+          {loggingOut ? `⏳ ${t('logging_out', 'Đang đăng xuất...')}` : `🚪 ${t('logout', 'Đăng xuất')}`}
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../../components/layout/Navbar';
 import Modal from '../../components/common/Modal';
 import useCategories from '../../hooks/useCategories';
@@ -41,9 +42,9 @@ const calcBudgetSpent = (budget, transactions) => {
 const buildWarnings = ({ dailyPct, dailyBudget, spentToday, activeBudget, computedSpent, totalIncome, totalExpense }) => {
   const w = [];
   if (dailyPct >= 90)
-    w.push({ icon: '🔴', color: '#E24B4A', title: 'Daily budget exceeded!', desc: `Used ${Math.round(dailyPct)}% of today's budget. Take control now!` });
+    w.push({ icon: '🔴', color: '#E24B4A', title: 'warn_exceed_title', desc: 'warn_exceed_desc', params: { pct: Math.round(dailyPct) } });
   else if (dailyPct >= 70)
-    w.push({ icon: '🟠', color: '#EF9F27', title: 'Approaching daily limit', desc: `${Math.round(dailyPct)}% used · ₫${fmtM(dailyBudget - spentToday)} remaining today.` });
+    w.push({ icon: '🟠', color: '#EF9F27', title: 'warn_approach_title', desc: 'warn_approach_desc', params: { pct: Math.round(dailyPct), remaining: fmtM(dailyBudget - spentToday) } });
 
   if (activeBudget) {
     const left = daysLeft(activeBudget.endDate);
@@ -52,17 +53,17 @@ const buildWarnings = ({ dailyPct, dailyBudget, spentToday, activeBudget, comput
       const avgPerDay = remaining / left;
       const dailyLimit = Number(activeBudget.totalAmount) / daysBetween(activeBudget.startDate, activeBudget.endDate);
       if (avgPerDay < dailyLimit * 0.6)
-        w.push({ icon: '⚡', color: '#7F77DD', title: 'At risk of overspending', desc: `₫${fmtM(remaining)} left in ${left} days (₫${fmtM(avgPerDay)}/day avg needed).` });
+        w.push({ icon: '⚡', color: '#7F77DD', title: 'warn_risk_title', desc: 'warn_risk_desc', params: { remaining: fmtM(remaining), left, avg: fmtM(avgPerDay) } });
     }
     if (left <= 3 && left > 0)
-      w.push({ icon: '📅', color: '#378ADD', title: 'Budget period ending soon', desc: `"${activeBudget.name}" has ${left} day${left > 1 ? 's' : ''} left. Prepare a new period.` });
+      w.push({ icon: '📅', color: '#378ADD', title: 'warn_ending_title', desc: 'warn_ending_desc', params: { name: activeBudget.name, left } });
   }
 
   if (totalExpense > totalIncome && totalIncome > 0)
-    w.push({ icon: '📉', color: '#E24B4A', title: 'Expenses exceed income', desc: `Spent ₫${fmtM(totalExpense)} vs earned ₫${fmtM(totalIncome)}.` });
+    w.push({ icon: '📉', color: '#E24B4A', title: 'warn_expense_title', desc: 'warn_expense_desc', params: { spent: fmtM(totalExpense), earned: fmtM(totalIncome) } });
 
   if (w.length === 0)
-    w.push({ icon: '✅', color: '#3B6D11', title: 'Finances look healthy', desc: 'All indicators are within safe thresholds. Keep it up!' });
+    w.push({ icon: '✅', color: '#3B6D11', title: 'warn_healthy_title', desc: 'warn_healthy_desc' });
 
   return w;
 };
@@ -245,6 +246,7 @@ const useStyles = () => ({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function BudgetPage() {
+  const { t } = useTranslation();
   const { categories = [], addCategory, deleteCategory } = useCategories();
   const { transactions, fetchTransactions, addTransaction, updateTransaction, removeTransaction } = useTransactionStore();
   const { dailyBudget, spentToday, remaining, percentUsed, fetchDailyBudget } = useBudgetStore();
@@ -443,23 +445,23 @@ export default function BudgetPage() {
   const txnFormBody = (
     <>
       <div className="type-tabs">
-        <button className={`type-tab${txnForm.type === 'EXPENSE' ? ' active-expense' : ''}`} onClick={() => setTxnField('type', 'EXPENSE')}>Expense</button>
-        <button className={`type-tab${txnForm.type === 'INCOME' ? ' active-income' : ''}`} onClick={() => setTxnField('type', 'INCOME')}>Income</button>
+        <button className={`type-tab${txnForm.type === 'EXPENSE' ? ' active-expense' : ''}`} onClick={() => setTxnField('type', 'EXPENSE')}>{t('budget_expense', 'Expense')}</button>
+        <button className={`type-tab${txnForm.type === 'INCOME' ? ' active-income' : ''}`} onClick={() => setTxnField('type', 'INCOME')}>{t('budget_income', 'Income')}</button>
       </div>
       <div className="form-field">
-        <label className="form-label">Amount (VND)</label>
+        <label className="form-label">{t('budget_amount', 'Amount (VND)')}</label>
         <input type="number" className="form-input" placeholder="0" min="0"
           value={txnForm.amount} onChange={e => setTxnField('amount', e.target.value)} />
       </div>
       <div className="form-field">
-        <label className="form-label">Note</label>
-        <input type="text" className="form-input" placeholder="e.g. Lunch, Grab…"
+        <label className="form-label">{t('budget_note_label', 'Note')}</label>
+        <input type="text" className="form-input" placeholder={t('budget_note_placeholder', 'e.g. Lunch, Grab…')}
           value={txnForm.note} onChange={e => setTxnField('note', e.target.value)} />
       </div>
       <div className="form-field">
-        <label className="form-label">Category</label>
+        <label className="form-label">{t('budget_category_label', 'Category')}</label>
         <select className="form-input" value={txnForm.catId} onChange={e => setTxnField('catId', e.target.value)}>
-          <option value="">— None —</option>
+          <option value="">— {t('budget_none', 'None')} —</option>
           {categories.filter(c => (c.type || '').toUpperCase() === txnForm.type).map(c => (
             <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
           ))}
@@ -474,13 +476,13 @@ export default function BudgetPage() {
 
       <Navbar
         title={<>{'Viet'}<span style={{ color: 'var(--accent)' }}>{'Money'}</span></>}
-        subtitle="Budget"
+        subtitle={t('nav_budget', 'Ngân sách')}
         actions={
           <>
-            <button className="icon-btn" onClick={openNewBudget} title="Tạo ngân sách mới">🎯</button>
+            <button className="icon-btn" onClick={openNewBudget} title={t('budget_create', 'Tạo ngân sách mới')}>🎯</button>
             <button
               onClick={() => { resetTxnForm(); setAddOpen(true); }}
-              title="Thêm giao dịch"
+              title={t('budget_add_txn', 'Thêm giao dịch')}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '0 14px', height: 38, borderRadius: 12,
@@ -490,7 +492,7 @@ export default function BudgetPage() {
                 transition: 'all .2s',
               }}
             >
-              ＋ Thêm
+              ＋ {t('budget_add_btn', 'Thêm')}
             </button>
           </>
         }
@@ -574,9 +576,9 @@ export default function BudgetPage() {
           {/* stat grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 8 }}>
             {[
-              { label: 'Income', value: `₫${fmtM(totalIncome)}`, dot: '#1D9E75', dotBg: 'rgba(29,158,117,0.2)', color: '#5DCAA5' },
-              { label: 'Spent', value: `₫${fmtM(totalExpense)}`, dot: '#E24B4A', dotBg: 'rgba(226,75,74,0.2)', color: '#F09595' },
-              { label: 'Budget', value: `₫${fmtM(totalBudget)}`, dot: '#378ADD', dotBg: 'rgba(55,138,221,0.2)', color: '#85B7EB' },
+              { label: t('budget_income', 'Income'), value: `₫${fmtM(totalIncome)}`, dot: '#1D9E75', dotBg: 'rgba(29,158,117,0.2)', color: '#5DCAA5' },
+              { label: t('budget_spent', 'Spent'), value: `₫${fmtM(totalExpense)}`, dot: '#E24B4A', dotBg: 'rgba(226,75,74,0.2)', color: '#F09595' },
+              { label: t('budget_label', 'Budget'), value: `₫${fmtM(totalBudget)}`, dot: '#378ADD', dotBg: 'rgba(55,138,221,0.2)', color: '#85B7EB' },
             ].map(({ label, value, dot, dotBg, color }) => (
               <div key={label} style={{
                 background: 'rgba(255,255,255,0.05)',
@@ -627,8 +629,8 @@ export default function BudgetPage() {
                   color: 'rgba(255,255,255,0.3)',
                   marginBottom: 6
                 }}>
-                  <span>{pct}% used</span>
-                  <span>Remaining ₫{fmtM(Math.max(0, totalBudget - totalExpense))}</span>
+                  <span>{pct}% {t('budget_used', 'used')}</span>
+                  <span>{t('budget_remaining', 'Remaining')} ₫{fmtM(Math.max(0, totalBudget - totalExpense))}</span>
                 </div>
 
                 <div style={{
@@ -670,7 +672,7 @@ export default function BudgetPage() {
                   color: '#F09595'
                 }}>
                   <span style={{ fontSize: 14 }}>⚠</span>
-                  <span>Wallet balance is negative — top up immediately!</span>
+                  <span>{t('budget_warn_negative', 'Wallet balance is negative — top up immediately!')}</span>
                 </div>
               );
 
@@ -729,34 +731,34 @@ export default function BudgetPage() {
         <div className="bento-grid" style={{ gridTemplateColumns: 'repeat(2,1fr)', gap: 10, padding: 0 }}>
           <div className="bento-card" style={{ cursor: 'default' }}>
             <div className="card-icon" style={{ fontSize: 18 }}>📊</div>
-            <div className="card-label">Daily Limit</div>
+            <div className="card-label">{t('budget_daily_limit', 'Daily Limit')}</div>
             <div className="card-value" style={{ fontSize: 18 }}>₫{fmtM(dailyBudget || 0)}</div>
             {dailyBudget > 0 && (
               <div style={{ marginTop: 6 }}>
                 <ProgressBar pct={percentUsed} color="var(--accent,#378ADD)" height={5} />
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{Math.round(percentUsed)}% used</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{Math.round(percentUsed)}% {t('budget_used', 'used')}</div>
               </div>
             )}
           </div>
           <div className="bento-card" style={{ cursor: 'default' }}>
             <div className="card-icon" style={{ fontSize: 18 }}>💳</div>
-            <div className="card-label">Remaining Today</div>
+            <div className="card-label">{t('budget_remaining_today', 'Remaining Today')}</div>
             <div className="card-value" style={{ fontSize: 18, color: remaining < 0 ? '#E24B4A' : undefined }}>₫{fmtM(Math.max(0, remaining))}</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Spent: ₫{fmtM(spentToday)} · Earned: ₫{fmtM(incomeToday)}</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{t('budget_spent', 'Spent')}: ₫{fmtM(spentToday)} · {t('budget_earned', 'Earned')}: ₫{fmtM(incomeToday)}</div>
           </div>
         </div>
       </div>
 
       {/* ── PERIOD BUDGETS ── */}
       <SectionTitle action={<button className="icon-btn" onClick={openNewBudget} style={{ fontSize: 18, fontWeight: 700 }}>＋</button>}>
-        Period Budgets
+        {t('budget_period', 'Period Budgets')}
       </SectionTitle>
       <div style={S.px}>
         {budgetsEnriched.length === 0 ? (
           <div style={{ ...S.card, textAlign: 'center', padding: '24px 16px', color: 'var(--muted)' }}>
             <div style={{ fontSize: 28, marginBottom: 8 }}>🎯</div>
-            <div style={{ fontSize: 13, fontWeight: 500 }}>No budgets yet</div>
-            <div style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>Tap + to create your first budget</div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>{t('budget_no_data', 'No budgets yet')}</div>
+            <div style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>{t('budget_no_data_hint', 'Tap + to create your first budget')}</div>
           </div>
         ) : budgetsEnriched.map(b => {
           const today = toDateKey(new Date());
@@ -774,10 +776,10 @@ export default function BudgetPage() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
                     <span style={{ fontSize: 14, fontWeight: 600 }}>{b.name}</span>
-                    {isActive && <Badge variant="blue">Active</Badge>}
+                    {isActive && <Badge variant="blue">{t('budget_active', 'Active')}</Badge>}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'DM Mono,monospace' }}>
-                    {fmtDate(b.startDate)} → {fmtDate(b.endDate)} · {bTotalDays} days · {bLeft} left
+                    {fmtDate(b.startDate)} → {fmtDate(b.endDate)} · {bTotalDays} {t('budget_days', 'days')} · {bLeft} {t('budget_left', 'left')}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 2 }}>
@@ -787,23 +789,23 @@ export default function BudgetPage() {
               </div>
 
               <div style={S.grid2}>
-                <div style={S.statBox('#E24B4A')}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>SPENT (PERIOD)</div><div style={{ fontSize: 15, fontWeight: 700, color: '#A32D2D' }}>₫{fmtM(spent)}</div></div>
-                <div style={S.statBox('#378ADD')}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>TOTAL BUDGET</div><div style={{ fontSize: 15, fontWeight: 700, color: '#185FA5' }}>₫{fmtM(bTotal)}</div></div>
-                <div style={S.statBox(bRemaining < 0 ? '#E24B4A' : '#639922')}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>REMAINING</div><div style={{ fontSize: 15, fontWeight: 700, color: bRemaining < 0 ? '#A32D2D' : '#3B6D11' }}>₫{fmtM(bRemaining)}</div></div>
-                <div style={S.statBox(bPct >= 80 ? '#E24B4A' : bPct >= 60 ? '#EF9F27' : '#639922')}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>% OF BUDGET</div><div style={{ fontSize: 15, fontWeight: 700, color: bPct >= 80 ? '#A32D2D' : bPct >= 60 ? '#854F0B' : '#3B6D11' }}>{bPct}%</div></div>
+                <div style={S.statBox('#E24B4A')}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_spent_period', 'SPENT (PERIOD)')}</div><div style={{ fontSize: 15, fontWeight: 700, color: '#A32D2D' }}>₫{fmtM(spent)}</div></div>
+                <div style={S.statBox('#378ADD')}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_total_budget', 'TOTAL BUDGET')}</div><div style={{ fontSize: 15, fontWeight: 700, color: '#185FA5' }}>₫{fmtM(bTotal)}</div></div>
+                <div style={S.statBox(bRemaining < 0 ? '#E24B4A' : '#639922')}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_remaining', 'REMAINING')}</div><div style={{ fontSize: 15, fontWeight: 700, color: bRemaining < 0 ? '#A32D2D' : '#3B6D11' }}>₫{fmtM(bRemaining)}</div></div>
+                <div style={S.statBox(bPct >= 80 ? '#E24B4A' : bPct >= 60 ? '#EF9F27' : '#639922')}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_pct_used', '% OF BUDGET')}</div><div style={{ fontSize: 15, fontWeight: 700, color: bPct >= 80 ? '#A32D2D' : bPct >= 60 ? '#854F0B' : '#3B6D11' }}>{bPct}%</div></div>
               </div>
 
               <ProgressBar pct={bPct} color="var(--accent,#378ADD)" height={5} />
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5, marginBottom: isActive && dailyBudget > 0 ? 14 : 0, fontFamily: 'DM Mono,monospace' }}>
-                Daily limit: ₫{fmtM(bDailyLimit)}/day
-                {bLeft > 0 && bRemaining > 0 && <> · Must spend ≤₫{fmtM(bRemaining / bLeft)}/day</>}
+                {t('budget_daily_limit_1', 'Daily limit:')} ₫{fmtM(bDailyLimit)}/{t('budget_per_day', 'day')}
+                {bLeft > 0 && bRemaining > 0 && <> · {t('budget_must_spend', 'Must spend')} ≤₫{fmtM(bRemaining / bLeft)}/{t('budget_per_day', 'day')}</>}
               </div>
 
               {isActive && dailyBudget > 0 && (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '12px 0' }}>
                     <div style={{ flex: 1, borderTop: '0.5px solid var(--border,var(--color-border-tertiary))' }} />
-                    <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>Today</span>
+                    <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>{t('budget_today', 'Today')}</span>
                     <div style={{ flex: 1, borderTop: '0.5px solid var(--border,var(--color-border-tertiary))' }} />
                   </div>
                   <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
@@ -811,15 +813,15 @@ export default function BudgetPage() {
                       <RingProgress pct={percentUsed} size={72} />
                       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                         <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1, color: percentUsed >= 90 ? '#E24B4A' : percentUsed >= 70 ? '#EF9F27' : 'var(--text,var(--color-text-primary))' }}>{Math.round(percentUsed)}%</span>
-                        <span style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'DM Mono,monospace', marginTop: 1 }}>used</span>
+                        <span style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'DM Mono,monospace', marginTop: 1 }}>{t('budget_used', 'used')}</span>
                       </div>
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={S.grid2}>
-                        <div style={S.statBox()}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>TODAY LIMIT</div><div style={{ fontSize: 13, fontWeight: 700, color: '#185FA5' }}>₫{fmtM(dailyBudget)}</div></div>
-                        <div style={S.statBox()}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>SPENT TODAY</div><div style={{ fontSize: 13, fontWeight: 700, color: '#A32D2D' }}>₫{fmtM(spentToday)}</div></div>
-                        <div style={S.statBox()}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>LEFT TODAY</div><div style={{ fontSize: 13, fontWeight: 700, color: remaining < 0 ? '#E24B4A' : '#3B6D11' }}>₫{fmtM(Math.max(0, remaining))}</div></div>
-                        <div style={S.statBox()}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>EARNED TODAY</div><div style={{ fontSize: 13, fontWeight: 700, color: '#3B6D11' }}>₫{fmtM(incomeToday)}</div></div>
+                        <div style={S.statBox()}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_today_limit', 'TODAY LIMIT')}</div><div style={{ fontSize: 13, fontWeight: 700, color: '#185FA5' }}>₫{fmtM(dailyBudget)}</div></div>
+                        <div style={S.statBox()}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_spent_today', 'SPENT TODAY')}</div><div style={{ fontSize: 13, fontWeight: 700, color: '#A32D2D' }}>₫{fmtM(spentToday)}</div></div>
+                        <div style={S.statBox()}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_left_today', 'LEFT TODAY')}</div><div style={{ fontSize: 13, fontWeight: 700, color: remaining < 0 ? '#E24B4A' : '#3B6D11' }}>₫{fmtM(Math.max(0, remaining))}</div></div>
+                        <div style={S.statBox()}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_earned_today', 'EARNED TODAY')}</div><div style={{ fontSize: 13, fontWeight: 700, color: '#3B6D11' }}>₫{fmtM(incomeToday)}</div></div>
                       </div>
                       <ProgressBar pct={percentUsed} color="var(--accent,#378ADD)" height={4} />
                     </div>
@@ -832,15 +834,15 @@ export default function BudgetPage() {
       </div>
 
       {/* ── LINE CHART ── */}
-      <SectionTitle>Spending — Last 30 Days</SectionTitle>
+      <SectionTitle>{t('budget_spending_30d', 'Spending — Last 30 Days')}</SectionTitle>
       <div style={S.px}>
         <div style={S.card}>
           {chartReady && expenseCatTotals.length > 0 ? (
             <DailyLineChart transactions={transactions} catTotals={expenseCatTotals} />
           ) : !chartReady ? (
-            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>Loading chart…</div>
+            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>{t('budget_chart_loading', 'Loading chart…')}</div>
           ) : (
-            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>No expense categories to display</div>
+            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13 }}>{t('budget_no_expenses', 'No expense categories to display')}</div>
           )}
         </div>
       </div>
@@ -849,7 +851,7 @@ export default function BudgetPage() {
       <SectionTitle action={
         <button
           onClick={() => setCatOpen(true)}
-          title="Quản lý danh mục"
+          title={t('budget_manage_cat', 'Quản lý danh mục')}
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
             padding: '4px 12px', borderRadius: 99,
@@ -859,12 +861,12 @@ export default function BudgetPage() {
             transition: 'all .2s',
           }}
         >
-          ✏️ Danh mục
+          ✏️ {t('budget_category_btn', 'Danh mục')}
         </button>
-      }>Category Analysis</SectionTitle>
+      }>{t('budget_cat_analysis', 'Category Analysis')}</SectionTitle>
       <div style={S.px}>
         <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-          {[{ key: 'expense', label: 'Expense', color: '#E24B4A' }, { key: 'income', label: 'Income', color: '#3B6D11' }, { key: 'all', label: 'All', color: '#378ADD' }].map(tab => {
+          {[{ key: 'expense', label: t('budget_expense', 'Expense'), color: '#E24B4A' }, { key: 'income', label: t('budget_income', 'Income'), color: '#3B6D11' }, { key: 'all', label: t('budget_all', 'All'), color: '#378ADD' }].map(tab => {
             const active = analysisCatTab === tab.key;
             return (
               <button key={tab.key} onClick={() => { setAnalysisCatTab(tab.key); setActiveCatIdx(0); }}
@@ -877,7 +879,7 @@ export default function BudgetPage() {
 
         <div style={S.card}>
           {activeCatTotals.length === 0 || analysisTotalBase === 0 ? (
-            <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--muted)', fontSize: 13 }}>No spending data available.</div>
+            <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--muted)', fontSize: 13 }}>{t('budget_no_data_spend', 'No spending data available.')}</div>
           ) : (
             <>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
@@ -900,9 +902,9 @@ export default function BudgetPage() {
               </div>
 
               <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                {analysisCatTab !== 'income' && <div style={{ flex: 1, ...S.statBox('#E24B4A') }}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>TOTAL EXPENSE</div><div style={{ fontSize: 13, fontWeight: 700, color: '#A32D2D' }}>₫{fmtM(totalExpense)}</div></div>}
-                {analysisCatTab !== 'expense' && <div style={{ flex: 1, ...S.statBox('#639922') }}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>TOTAL INCOME</div><div style={{ fontSize: 13, fontWeight: 700, color: '#3B6D11' }}>₫{fmtM(totalIncome)}</div></div>}
-                {analysisCatTab === 'all' && <div style={{ flex: 1, ...S.statBox(walletBalance >= 0 ? '#378ADD' : '#E24B4A') }}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>NET FLOW</div><div style={{ fontSize: 13, fontWeight: 700, color: walletBalance >= 0 ? '#185FA5' : '#A32D2D' }}>{walletBalance >= 0 ? '+' : ''}₫{fmtM(totalIncome - totalExpense)}</div></div>}
+                {analysisCatTab !== 'income' && <div style={{ flex: 1, ...S.statBox('#E24B4A') }}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_total_expense', 'TOTAL EXPENSE')}</div><div style={{ fontSize: 13, fontWeight: 700, color: '#A32D2D' }}>₫{fmtM(totalExpense)}</div></div>}
+                {analysisCatTab !== 'expense' && <div style={{ flex: 1, ...S.statBox('#639922') }}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_total_income', 'TOTAL INCOME')}</div><div style={{ fontSize: 13, fontWeight: 700, color: '#3B6D11' }}>₫{fmtM(totalIncome)}</div></div>}
+                {analysisCatTab === 'all' && <div style={{ flex: 1, ...S.statBox(walletBalance >= 0 ? '#378ADD' : '#E24B4A') }}><div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_net_flow', 'NET FLOW')}</div><div style={{ fontSize: 13, fontWeight: 700, color: walletBalance >= 0 ? '#185FA5' : '#A32D2D' }}>{walletBalance >= 0 ? '+' : ''}₫{fmtM(totalIncome - totalExpense)}</div></div>}
               </div>
 
               {activeCatTotals.map((c, i) => (
@@ -926,7 +928,7 @@ export default function BudgetPage() {
 
               {topExpenseCat && analysisCatTab !== 'income' && (
                 <div style={{ marginTop: 12, padding: '10px 12px', background: topExpenseCat.color + '14', border: `0.5px solid ${topExpenseCat.color}40`, borderRadius: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>Top expense category</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>{t('budget_top_expense_cat', 'Top expense category')}</span>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>{topExpenseCat.icon} {topExpenseCat.name} · ₫{fmtM(topExpenseCat.total)}</span>
                 </div>
               )}
@@ -938,7 +940,7 @@ export default function BudgetPage() {
       {/* ── EXPENSE CATEGORY DETAIL ── */}
       {expenseCatTotals.length > 0 && (
         <>
-          <SectionTitle>Expense Category Detail</SectionTitle>
+          <SectionTitle>{t('budget_expense_detail', 'Expense Category Detail')}</SectionTitle>
           <div style={S.px}>
             <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 10, scrollbarWidth: 'none' }}>
               {expenseCatTotals.map((c, i) => {
@@ -958,19 +960,19 @@ export default function BudgetPage() {
               return (
                 <div style={S.card}>
                   <div style={S.grid2}>
-                    <div style={S.statBox(c.color)}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>TOTAL SPENT</div><div style={{ fontSize: 15, fontWeight: 700, color: c.color }}>₫{fmtM(c.total)}</div></div>
-                    <div style={S.statBox()}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>% OF EXPENSES</div><div style={{ fontSize: 15, fontWeight: 700 }}>{pctOf(c.total, totalExpense)}%</div></div>
-                    <div style={S.statBox()}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>TODAY</div><div style={{ fontSize: 15, fontWeight: 700, color: '#854F0B' }}>₫{fmtM(c.todayTotal)}</div></div>
-                    <div style={S.statBox(c.color)}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>PEAK DAY</div><div style={{ fontSize: 15, fontWeight: 700, color: c.color }}>{dayLbls[maxIdx] || '—'}</div><div style={{ fontSize: 11, color: 'var(--muted)' }}>₫{fmtM(maxDay)}</div></div>
+                    <div style={S.statBox(c.color)}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_total_spent', 'TOTAL SPENT')}</div><div style={{ fontSize: 15, fontWeight: 700, color: c.color }}>₫{fmtM(c.total)}</div></div>
+                    <div style={S.statBox()}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_pct_expenses', '% OF EXPENSES')}</div><div style={{ fontSize: 15, fontWeight: 700 }}>{pctOf(c.total, totalExpense)}%</div></div>
+                    <div style={S.statBox()}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_today_uppercase', 'TODAY')}</div><div style={{ fontSize: 15, fontWeight: 700, color: '#854F0B' }}>₫{fmtM(c.todayTotal)}</div></div>
+                    <div style={S.statBox(c.color)}><div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 2 }}>{t('budget_peak_day', 'PEAK DAY')}</div><div style={{ fontSize: 15, fontWeight: 700, color: c.color }}>{dayLbls[maxIdx] || '—'}</div><div style={{ fontSize: 11, color: 'var(--muted)' }}>₫{fmtM(maxDay)}</div></div>
                   </div>
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8, fontWeight: 500 }}>Last 7 days</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8, fontWeight: 500 }}>{t('budget_last_7d', 'Last 7 days')}</div>
                     <WeekBars data={c.sparkline} color={c.color} />
                   </div>
                   {c.txns.length > 0 && (
                     <>
                       <hr style={S.divider} />
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.05em' }}>Recent</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.05em' }}>{t('budget_recent', 'Recent')}</div>
                       {c.txns.map((t, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < c.txns.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -994,10 +996,10 @@ export default function BudgetPage() {
 
       {/* ── RECENT TRANSACTIONS ── */}
       <SectionTitle>
-        Recent Transactions
+        {t('budget_recent_txns', 'Recent Transactions')}
         {filteredTxns.length > 0 && hasFilters && (
           <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--muted)', marginLeft: 6 }}>
-            {filteredTxns.length} result{filteredTxns.length !== 1 ? 's' : ''}
+            {filteredTxns.length} {t('budget_results', 'results')}
           </span>
         )}
       </SectionTitle>
@@ -1006,7 +1008,7 @@ export default function BudgetPage() {
         {/* Search */}
         <div style={{ position: 'relative', marginBottom: 8 }}>
           <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, pointerEvents: 'none', opacity: 0.4 }}>🔍</span>
-          <input type="text" className="form-input" placeholder="Search note or category…"
+          <input type="text" className="form-input" placeholder={t('budget_search_hint', 'Search note or category…')}
             value={txnSearch} onChange={e => setTxnSearch(e.target.value)}
             style={{ paddingLeft: 36, paddingRight: txnSearch ? 32 : 12 }} />
           {txnSearch && (
@@ -1019,7 +1021,7 @@ export default function BudgetPage() {
 
         {/* Filter pills row */}
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 8, scrollbarWidth: 'none' }}>
-          {[{ key: 'ALL', label: 'All' }, { key: 'EXPENSE', label: '↓ Expense' }, { key: 'INCOME', label: '↑ Income' }].map(f => {
+          {[{ key: 'ALL', label: t('budget_all', 'All') }, { key: 'EXPENSE', label: t('budget_expense_arrow', '↓ Expense') }, { key: 'INCOME', label: t('budget_income_arrow', '↑ Income') }].map(f => {
             const active = txnFilterType === f.key;
             const color = f.key === 'EXPENSE' ? '#E24B4A' : f.key === 'INCOME' ? '#1D9E75' : 'var(--accent,#378ADD)';
             return (
@@ -1045,15 +1047,15 @@ export default function BudgetPage() {
         {/* Active filter summary */}
         {hasFilters && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11, color: 'var(--muted)' }}>Active:</span>
+            <span style={{ fontSize: 11, color: 'var(--muted)' }}>{t('budget_active_filter', 'Active:')}</span>
             {txnFilterType !== 'ALL' && (
               <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: txnFilterType === 'EXPENSE' ? '#FCEBEB' : '#EAF3DE', color: txnFilterType === 'EXPENSE' ? '#A32D2D' : '#3B6D11' }}>
-                {txnFilterType === 'EXPENSE' ? '↓ Expense' : '↑ Income'}
+                {txnFilterType === 'EXPENSE' ? t('budget_expense_arrow', '↓ Expense') : t('budget_income_arrow', '↑ Income')}
               </span>
             )}
             {txnFilterCat && (() => { const c = categories.find(x => String(x.id) === txnFilterCat); return c ? <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: (c.color || '#888') + '18', color: c.color || '#888' }}>{c.icon} {c.name}</span> : null; })()}
             {txnSearch && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: 'var(--bg3,var(--color-background-secondary))', color: 'var(--muted)' }}>"{txnSearch}"</span>}
-            <button onClick={clearFilters} style={{ fontSize: 11, color: '#E24B4A', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontWeight: 600 }}>Clear ✕</button>
+            <button onClick={clearFilters} style={{ fontSize: 11, color: '#E24B4A', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontWeight: 600 }}>{t('budget_clear', 'Clear')} ✕</button>
           </div>
         )}
 
@@ -1062,8 +1064,8 @@ export default function BudgetPage() {
           {filteredTxns.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--muted)', fontSize: 13 }}>
               <div style={{ fontSize: 30, marginBottom: 10 }}>{transactions.length === 0 ? '💸' : '🔎'}</div>
-              <div style={{ fontWeight: 500 }}>{transactions.length === 0 ? 'No transactions yet. Tap + to add one!' : 'No transactions match your filters.'}</div>
-              {hasFilters && <button onClick={clearFilters} style={{ marginTop: 10, fontSize: 12, color: 'var(--accent,#378ADD)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Clear filters</button>}
+              <div style={{ fontWeight: 500 }}>{transactions.length === 0 ? t('budget_no_txns', 'No transactions yet. Tap + to add one!') : t('budget_no_match', 'No transactions match your filters.')}</div>
+              {hasFilters && <button onClick={clearFilters} style={{ marginTop: 10, fontSize: 12, color: 'var(--accent,#378ADD)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>{t('budget_clear_filters', 'Clear filters')}</button>}
             </div>
           ) : (
             <>
@@ -1097,19 +1099,19 @@ export default function BudgetPage() {
               {/* Pagination footer */}
               <div style={{ marginTop: 10, paddingTop: 10, borderTop: '0.5px solid var(--border,var(--color-border-tertiary))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'DM Mono,monospace' }}>
-                  {visibleTxns.length} / {filteredTxns.length} shown
+                  {visibleTxns.length} / {filteredTxns.length} {t('budget_shown', 'shown')}
                 </span>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {hasMore && (
                     <button onClick={() => setTxnPage(p => p + 1)}
                       style={{ fontSize: 12, fontWeight: 600, padding: '5px 16px', borderRadius: 99, cursor: 'pointer', background: 'var(--bg3,var(--color-background-secondary))', border: '0.5px solid var(--border,var(--color-border-tertiary))', color: 'var(--accent,#378ADD)' }}>
-                      Load more ↓
+                      {t('budget_load_more', 'Load more')} ↓
                     </button>
                   )}
                   {txnPage > 1 && (
                     <button onClick={() => setTxnPage(1)}
                       style={{ fontSize: 12, fontWeight: 600, padding: '5px 16px', borderRadius: 99, cursor: 'pointer', background: 'transparent', border: '0.5px solid var(--border,var(--color-border-tertiary))', color: 'var(--muted)' }}>
-                      Collapse ↑
+                      {t('budget_collapse', 'Collapse')} ↑
                     </button>
                   )}
                 </div>
@@ -1120,7 +1122,7 @@ export default function BudgetPage() {
       </div>
 
       {/* ── SMART WARNINGS ── */}
-      <SectionTitle>Smart Warnings</SectionTitle>
+      <SectionTitle>{t('budget_smart_warn', 'Smart Warnings')}</SectionTitle>
       <div style={S.px}>
         <div style={S.card}>
           {warnings.map((w, i) => (
@@ -1129,8 +1131,10 @@ export default function BudgetPage() {
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '6px 0' }}>
                 <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: w.color + '18', border: `0.5px solid ${w.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{w.icon}</div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{w.title}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{w.desc}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{t(w.title)}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                    {w.params ? t(w.desc, w.params) : t(w.desc)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1143,36 +1147,36 @@ export default function BudgetPage() {
       {/* ── MODAL: ADD TRANSACTION ── */}
       <Modal open={addOpen} onClose={() => { setAddOpen(false); resetTxnForm(); }}>
         <div className="fab-modal">
-          <h3>Add Transaction</h3>
+          <h3>{t('budget_add_txn_title', 'Add Transaction')}</h3>
           {txnFormBody}
-          <button className="submit-form-btn" onClick={submitTxn}>Save Transaction</button>
+          <button className="submit-form-btn" onClick={submitTxn}>{t('budget_save_txn', 'Save Transaction')}</button>
         </div>
       </Modal>
 
       {/* ── MODAL: EDIT TRANSACTION ── */}
       <Modal open={editTxnOpen} onClose={() => { setEditTxnOpen(false); setEditingTxn(null); resetTxnForm(); }}>
         <div className="fab-modal">
-          <h3>✏️ Edit Transaction</h3>
+          <h3>✏️ {t('budget_edit_txn_title', 'Edit Transaction')}</h3>
           {txnFormBody}
-          <button className="submit-form-btn" onClick={submitEditTxn}>Update Transaction</button>
+          <button className="submit-form-btn" onClick={submitEditTxn}>{t('budget_update_txn', 'Update Transaction')}</button>
         </div>
       </Modal>
 
       {/* ── MODAL: BUDGET FORM ── */}
       <Modal open={budgetFormOpen} onClose={() => setBudgetFormOpen(false)}>
         <div className="fab-modal">
-          <h3>{editingBudget ? '✏️ Edit Budget' : '🎯 New Budget'}</h3>
-          <div className="form-field"><label className="form-label">Budget Name</label><input type="text" className="form-input" placeholder="e.g. May Expenses" value={budgetForm.name} onChange={e => setBudgetForm(p => ({ ...p, name: e.target.value }))} /></div>
-          <div className="form-field"><label className="form-label">Total Amount (VND)</label><input type="number" className="form-input" placeholder="0" min="0" value={budgetForm.totalAmount} onChange={e => setBudgetForm(p => ({ ...p, totalAmount: e.target.value }))} /></div>
-          <div className="form-field"><label className="form-label">Currency</label><select className="form-input" value={budgetForm.currency} onChange={e => setBudgetForm(p => ({ ...p, currency: e.target.value }))}><option value="VND">VND</option><option value="USD">USD</option></select></div>
-          <div className="form-field"><label className="form-label">Start Date</label><input type="date" className="form-input" value={budgetForm.startDate} onChange={e => setBudgetForm(p => ({ ...p, startDate: e.target.value }))} /></div>
-          <div className="form-field"><label className="form-label">End Date</label><input type="date" className="form-input" value={budgetForm.endDate} onChange={e => setBudgetForm(p => ({ ...p, endDate: e.target.value }))} /></div>
+          <h3>{editingBudget ? `✏️ ${t('budget_edit_budget', 'Edit Budget')}` : `🎯 ${t('budget_new_budget', 'New Budget')}`}</h3>
+          <div className="form-field"><label className="form-label">{t('budget_name', 'Budget Name')}</label><input type="text" className="form-input" placeholder={t('budget_name_ph', 'e.g. May Expenses')} value={budgetForm.name} onChange={e => setBudgetForm(p => ({ ...p, name: e.target.value }))} /></div>
+          <div className="form-field"><label className="form-label">{t('budget_total_amount', 'Total Amount (VND)')}</label><input type="number" className="form-input" placeholder="0" min="0" value={budgetForm.totalAmount} onChange={e => setBudgetForm(p => ({ ...p, totalAmount: e.target.value }))} /></div>
+          <div className="form-field"><label className="form-label">{t('budget_currency', 'Currency')}</label><select className="form-input" value={budgetForm.currency} onChange={e => setBudgetForm(p => ({ ...p, currency: e.target.value }))}><option value="VND">VND</option><option value="USD">USD</option></select></div>
+          <div className="form-field"><label className="form-label">{t('budget_start_date', 'Start Date')}</label><input type="date" className="form-input" value={budgetForm.startDate} onChange={e => setBudgetForm(p => ({ ...p, startDate: e.target.value }))} /></div>
+          <div className="form-field"><label className="form-label">{t('budget_end_date', 'End Date')}</label><input type="date" className="form-input" value={budgetForm.endDate} onChange={e => setBudgetForm(p => ({ ...p, endDate: e.target.value }))} /></div>
           {budgetForm.startDate && budgetForm.endDate && budgetForm.totalAmount && (
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10, padding: '8px 12px', background: 'var(--bg3,var(--color-background-secondary))', borderRadius: 10, fontFamily: 'DM Mono,monospace' }}>
-              💡 Daily limit ≈ ₫{fmtM(parseFloat(budgetForm.totalAmount) / Math.max(1, daysBetween(budgetForm.startDate, budgetForm.endDate)))}/day · {daysBetween(budgetForm.startDate, budgetForm.endDate)} days
+              💡 {t('budget_daily_limit_1', 'Daily limit')} ≈ ₫{fmtM(parseFloat(budgetForm.totalAmount) / Math.max(1, daysBetween(budgetForm.startDate, budgetForm.endDate)))}/{t('budget_per_day', 'day')} · {daysBetween(budgetForm.startDate, budgetForm.endDate)} {t('budget_days', 'days')}
             </div>
           )}
-          <button className="submit-form-btn" onClick={saveBudget}>{editingBudget ? 'Update Budget' : 'Create Budget'}</button>
+          <button className="submit-form-btn" onClick={saveBudget}>{editingBudget ? t('budget_update_btn', 'Update Budget') : t('budget_create_btn', 'Create Budget')}</button>
         </div>
       </Modal>
 

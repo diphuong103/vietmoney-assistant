@@ -12,6 +12,7 @@ import mediaApi from '../../api/mediaApi';
 
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { useTranslation } from 'react-i18next';
 
 dayjs.extend(relativeTime);
 
@@ -78,9 +79,9 @@ const CATEGORY_PALETTE = {
 };
 
 const STATUS_PALETTE = {
-  PENDING: { accent: '#F59E0B', bg: 'rgba(245,158,11,.15)', text: '#F59E0B', label: 'Đang xử lý', icon: '⏳' },
-  APPROVED: { accent: '#10B981', bg: 'rgba(16,185,129,.15)', text: '#10B981', label: 'Đã duyệt', icon: '✅' },
-  REJECTED: { accent: '#EF4444', bg: 'rgba(239,68,68,.15)', text: '#EF4444', label: 'Bị từ chối', icon: '❌' },
+  PENDING: { accent: '#F59E0B', bg: 'rgba(245,158,11,.15)', text: '#F59E0B', key: 'status_pending', defaultLabel: 'Đang xử lý', icon: '⏳' },
+  APPROVED: { accent: '#10B981', bg: 'rgba(16,185,129,.15)', text: '#10B981', key: 'status_approved', defaultLabel: 'Đã duyệt', icon: '✅' },
+  REJECTED: { accent: '#EF4444', bg: 'rgba(239,68,68,.15)', text: '#EF4444', key: 'status_rejected', defaultLabel: 'Bị từ chối', icon: '❌' },
 };
 
 const CATEGORY_OPTIONS = Object.entries(CATEGORY_PALETTE).map(([key, val]) => ({
@@ -475,21 +476,23 @@ function CategoryBadge({ category }) {
 
 // FIX 1: StatusBadge giờ an toàn với undefined/null
 function StatusBadge({ status }) {
+  const { t } = useTranslation();
   if (!status) return null;
   const s = getStatus(status);
   if (!s) return null;
   return (
     <span className="np-status-badge" style={{ background: s.bg, color: s.text }}>
-      {s.icon} {s.label}
+      {s.icon} {t(s.key, s.defaultLabel)}
     </span>
   );
 }
 
 function TextBlock({ block, onChange }) {
+  const { t } = useTranslation();
   return (
     <textarea
       className="np-textarea"
-      placeholder="Viết nội dung..."
+      placeholder={t('editor_content_placeholder', 'Viết nội dung...')}
       value={block.content}
       onChange={(e) => onChange(block.id, { content: e.target.value })}
     />
@@ -498,14 +501,15 @@ function TextBlock({ block, onChange }) {
 
 // FIX 2: Caption onChange không còn mutate object gốc
 function MediaBlock({ block, onChange, onPick, removeMedia }) {
+  const { t } = useTranslation();
   return (
     <div className="np-media-box">
       <div className="np-media-actions">
         <button className="np-btn" onClick={() => onPick(block.id, false)}>
-          📷 Thêm ảnh
+          📷 {t('editor_add_image', 'Thêm ảnh')}
         </button>
         <button className="np-btn" onClick={() => onPick(block.id, true)}>
-          🎬 Thêm video
+          🎬 {t('editor_add_video', 'Thêm video')}
         </button>
       </div>
       {block.items.length > 0 && (
@@ -518,7 +522,7 @@ function MediaBlock({ block, onChange, onPick, removeMedia }) {
               <button className="np-remove" onClick={() => removeMedia(block.id, idx)}>✕</button>
               <input
                 className="np-caption"
-                placeholder="Chú thích..."
+                placeholder={t('editor_caption', 'Chú thích...')}
                 value={item.caption}
                 onChange={(e) => {
                   // Tạo object mới hoàn toàn thay vì mutate
@@ -541,6 +545,7 @@ function MediaBlock({ block, onChange, onPick, removeMedia }) {
 ═══════════════════════════════════════ */
 
 const ArticleCard = memo(function ArticleCard({ article, showStatus = false, onLikeChange }) {
+  const { t } = useTranslation();
   const cat = getCat(article.category);
 
   const [liked, setLiked] = useState(article.likedByMe || article.liked || false);
@@ -639,7 +644,7 @@ const ArticleCard = memo(function ArticleCard({ article, showStatus = false, onL
 
         {article.status === 'REJECTED' && article.rejectionReason && (
           <div className="np-rejection">
-            <strong>Lý do từ chối</strong>
+            <strong>{t('news_reject_reason', 'Lý do từ chối')}</strong>
             {article.rejectionReason}
           </div>
         )}
@@ -662,7 +667,7 @@ const ArticleCard = memo(function ArticleCard({ article, showStatus = false, onL
           className={`np-action-btn ${liked ? 'liked' : ''}`}
           onClick={handleLike}
           disabled={liking}
-          title={liked ? 'Bỏ thích' : 'Thích'}
+          title={liked ? t('news_unlike', 'Bỏ thích') : t('news_like', 'Thích')}
         >
           {liked ? '♥' : '♡'} {likeCount}
         </button>
@@ -671,7 +676,7 @@ const ArticleCard = memo(function ArticleCard({ article, showStatus = false, onL
           className={`np-action-btn ${saved ? 'saved' : ''}`}
           onClick={handleSave}
           disabled={saving}
-          title={saved ? 'Bỏ lưu' : 'Lưu bài viết'}
+          title={saved ? t('news_unsave', 'Bỏ lưu') : t('news_save', 'Lưu bài viết')}
         >
           {saved ? '🔖' : '🔖'} {saveCount}
         </button>
@@ -687,6 +692,7 @@ const ArticleCard = memo(function ArticleCard({ article, showStatus = false, onL
 ═══════════════════════════════════════ */
 
 function ArticleEditor({ onSubmit, submitting }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('GENERAL');
   const [blocks, setBlocks] = useState([mkText()]);
@@ -744,7 +750,7 @@ function ArticleEditor({ onSubmit, submitting }) {
   };
 
   const publish = async () => {
-    if (!title.trim()) return alert('Vui lòng nhập tiêu đề');
+    if (!title.trim()) return alert(t('news_alert_title', 'Vui lòng nhập tiêu đề'));
     try {
       const textContent = blocks
         .filter((b) => b.type === 'text')
@@ -772,7 +778,7 @@ function ArticleEditor({ onSubmit, submitting }) {
       setCategory('GENERAL');
       setBlocks([mkText()]);
     } catch {
-      alert('Đăng bài thất bại');
+      alert(t('news_alert_fail', 'Đăng bài thất bại'));
     }
   };
 
@@ -791,7 +797,7 @@ function ArticleEditor({ onSubmit, submitting }) {
     <div className="np-editor">
       <textarea
         className="np-title-input"
-        placeholder="Tiêu đề bài viết..."
+        placeholder={t('editor_title_placeholder', 'Tiêu đề bài viết...')}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
       />
@@ -823,7 +829,7 @@ function ArticleEditor({ onSubmit, submitting }) {
               <button
                 className="np-block-remove"
                 onClick={() => removeBlock(block.id)}
-                title="Xoá block này"
+                title={t('editor_remove_block', 'Xoá block này')}
               >
                 ✕
               </button>
@@ -838,13 +844,13 @@ function ArticleEditor({ onSubmit, submitting }) {
 
       <div className="np-editor-actions">
         <button className="np-btn" onClick={() => setBlocks((p) => [...p, mkText()])}>
-          + Văn bản
+          + {t('editor_add_text', 'Văn bản')}
         </button>
         <button className="np-btn" onClick={() => setBlocks((p) => [...p, mkMedia()])}>
           + Media
         </button>
         <button className="np-btn np-publish" disabled={submitting} onClick={publish}>
-          {submitting ? 'Đang đăng...' : '🚀 Đăng bài'}
+          {submitting ? t('editor_publishing', 'Đang đăng...') : `🚀 ${t('editor_publish', 'Đăng bài')}`}
         </button>
       </div>
 
@@ -857,14 +863,15 @@ function ArticleEditor({ onSubmit, submitting }) {
    MY ARTICLES TAB
 ═══════════════════════════════════════ */
 
-const STATUS_FILTERS = [
-  { value: '', label: 'Tất cả' },
-  { value: 'PENDING', label: '⏳ Đang xử lý' },
-  { value: 'APPROVED', label: '✅ Đã duyệt' },
-  { value: 'REJECTED', label: '❌ Bị từ chối' },
-];
-
 function MyArticles() {
+  const { t } = useTranslation();
+  const STATUS_FILTERS = [
+    { value: '', label: t('status_all', 'Tất cả') },
+    { value: 'PENDING', label: `⏳ ${t('status_pending', 'Đang xử lý')}` },
+    { value: 'APPROVED', label: `✅ ${t('status_approved', 'Đã duyệt')}` },
+    { value: 'REJECTED', label: `❌ ${t('status_rejected', 'Bị từ chối')}` },
+  ];
+
   const [statusFilter, setStatusFilter] = useState('');
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -917,11 +924,11 @@ function MyArticles() {
       </div>
 
       {loading ? (
-        <div className="np-empty"><div className="np-empty-text">Đang tải...</div></div>
+        <div className="np-empty"><div className="np-empty-text">{t('loading', 'Đang tải...')}</div></div>
       ) : articles.length === 0 ? (
         <div className="np-empty">
           <div className="np-empty-icon">📝</div>
-          <div className="np-empty-text">Chưa có bài viết nào</div>
+          <div className="np-empty-text">{t('news_empty', 'Chưa có bài viết nào')}</div>
         </div>
       ) : (
         <div className="np-feed">
@@ -939,6 +946,7 @@ function MyArticles() {
 ═══════════════════════════════════════ */
 
 export default function NewsPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState('feed');
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -972,9 +980,9 @@ export default function NewsPage() {
   };
 
   const TABS = [
-    { key: 'feed', label: '📰 Feed' },
-    { key: 'write', label: '✍️ Viết bài' },
-    { key: 'my', label: '📋 Bài của tôi' },
+    { key: 'feed', label: `📰 ${t('tab_feed', 'Feed')}` },
+    { key: 'write', label: `✍️ ${t('tab_write', 'Viết bài')}` },
+    { key: 'my', label: `📋 ${t('tab_my', 'Bài của tôi')}` },
   ];
 
   return (
@@ -1010,7 +1018,7 @@ export default function NewsPage() {
             ) : articles.length === 0 ? (
               <div className="np-empty">
                 <div className="np-empty-icon">🗞️</div>
-                <div className="np-empty-text">Chưa có bài viết nào</div>
+                <div className="np-empty-text">{t('news_empty', 'Chưa có bài viết nào')}</div>
               </div>
             ) : (
               articles.map((a) => <ArticleCard key={a.id} article={a} />)

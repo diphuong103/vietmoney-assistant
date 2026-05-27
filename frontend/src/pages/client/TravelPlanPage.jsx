@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../../components/layout/Navbar';
 import travelPlanApi from '../../api/travelPlanApi';
 import dayjs from 'dayjs';
@@ -57,17 +58,17 @@ function calcProgress(plan) {
   if (!plan.startDate || !plan.endDate) return 0;
   const start = dayjs(plan.startDate), end = dayjs(plan.endDate), now = dayjs();
   if (now.isBefore(start)) return 0;
-  if (now.isAfter(end))    return 100;
+  if (now.isAfter(end)) return 100;
   return Math.round((now.diff(start, 'day') / (end.diff(start, 'day') || 1)) * 100);
 }
 
 function normalizeItem(item) {
   return {
-    id:           item.id,
-    timeSlot:     item.timeSlot      ?? item.time     ?? '',
-    location:     item.location      ?? '',
-    description:  item.description   ?? item.activity ?? '',
-    estimatedCost:item.estimatedCost ?? item.cost     ?? '',
+    id: item.id,
+    timeSlot: item.timeSlot ?? item.time ?? '',
+    location: item.location ?? '',
+    description: item.description ?? item.activity ?? '',
+    estimatedCost: item.estimatedCost ?? item.cost ?? '',
   };
 }
 
@@ -83,11 +84,11 @@ function normalizeScheduleFromAi(itinerary) {
   const result = {};
   Object.keys(itinerary).forEach(k => {
     result[parseInt(k)] = (itinerary[k] ?? []).map(item => ({
-      id:           null,
-      timeSlot:     item.time      ?? item.timeSlot      ?? '',
-      location:     item.location  ?? '',
-      description:  item.activity  ?? item.description   ?? '',
-      estimatedCost:item.cost      ?? item.estimatedCost ?? '',
+      id: null,
+      timeSlot: item.time ?? item.timeSlot ?? '',
+      location: item.location ?? '',
+      description: item.activity ?? item.description ?? '',
+      estimatedCost: item.cost ?? item.estimatedCost ?? '',
     }));
   });
   return result;
@@ -104,6 +105,7 @@ function calcDays(startDate, endDate) {
    Item Form Modal — dùng cho cả Thêm và Sửa
 ───────────────────────────────────────────────────────────────────────── */
 function ItemFormModal({ dayNumber, dateLabel, initialData, onSave, onCancel, saving }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState(initialData ?? EMPTY_ITEM_FORM);
   const isEdit = !!initialData?.id;
 
@@ -129,10 +131,10 @@ function ItemFormModal({ dayNumber, dateLabel, initialData, onSave, onCancel, sa
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'Syne, sans-serif' }}>
-              {isEdit ? '✏️ Sửa hoạt động' : '➕ Thêm hoạt động'}
+              {isEdit ? '✏️ ' + t('travel_edit_activity', 'Edit Activity') : '➕ ' + t('travel_add_activity', 'Add Activity')}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-              Ngày {dayNumber}{dateLabel ? ` · ${dateLabel}` : ''}
+              {t('travel_day', 'Day')} {dayNumber}{dateLabel ? ` · ${dateLabel}` : ''}
             </div>
           </div>
           <button onClick={onCancel}
@@ -146,7 +148,7 @@ function ItemFormModal({ dayNumber, dateLabel, initialData, onSave, onCancel, sa
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}>
               <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
-                🕐 Giờ *
+                🕐 {t('travel_time', 'Time')} *
               </label>
               <input
                 type="time"
@@ -158,13 +160,13 @@ function ItemFormModal({ dayNumber, dateLabel, initialData, onSave, onCancel, sa
             </div>
             <div style={{ flex: 2 }}>
               <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
-                📍 Địa điểm *
+                📍 {t('travel_location', 'Location')} *
               </label>
               <input
                 value={form.location}
                 onChange={f('location')}
                 style={smInput}
-                placeholder="VD: Hồ Hoàn Kiếm"
+                placeholder={t('travel_location_ph', 'e.g. Hoan Kiem Lake')}
               />
             </div>
           </div>
@@ -172,27 +174,27 @@ function ItemFormModal({ dayNumber, dateLabel, initialData, onSave, onCancel, sa
           {/* Mô tả */}
           <div>
             <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
-              📝 Mô tả hoạt động
+              📝 {t('travel_description', 'Description')}
             </label>
             <textarea
               value={form.description}
               onChange={f('description')}
               rows={3}
               style={{ ...smInput, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder="VD: Dạo bộ quanh hồ, chụp ảnh, thưởng thức cà phê trứng"
+              placeholder={t('travel_desc_placeholder', 'e.g. Walk around the lake, take photos, enjoy egg coffee')}
             />
           </div>
 
           {/* Chi phí */}
           <div>
             <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
-              💸 Chi phí dự kiến
+              💸 {t('travel_est_cost', 'Estimated Cost')}
             </label>
             <input
               value={form.estimatedCost}
               onChange={f('estimatedCost')}
               style={smInput}
-              placeholder="VD: 150,000đ hoặc 2 người: 300,000đ"
+              placeholder={t('travel_cost_placeholder', 'e.g. 150,000đ or 2 people: 300,000đ')}
             />
           </div>
         </div>
@@ -207,7 +209,7 @@ function ItemFormModal({ dayNumber, dateLabel, initialData, onSave, onCancel, sa
               cursor: 'pointer', fontWeight: 600, fontSize: 14,
             }}
           >
-            Hủy
+            {t('travel_cancel', 'Cancel')}
           </button>
           <button
             onClick={() => onSave(form)}
@@ -221,7 +223,7 @@ function ItemFormModal({ dayNumber, dateLabel, initialData, onSave, onCancel, sa
               cursor: (saving || !form.timeSlot || !form.location.trim()) ? 'not-allowed' : 'pointer',
             }}
           >
-            {saving ? '⏳ Đang lưu...' : isEdit ? 'Cập nhật' : 'Thêm hoạt động'}
+            {saving ? '⏳ ' + t('travel_saving', 'Saving...') : isEdit ? t('travel_update', 'Update') : t('travel_add_activity', 'Add Activity')}
           </button>
         </div>
       </div>
@@ -233,25 +235,26 @@ function ItemFormModal({ dayNumber, dateLabel, initialData, onSave, onCancel, sa
    MAIN COMPONENT
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function TravelPlanPage({ embedded = false }) {
+  const { t } = useTranslation();
   const { toasts, show: showToast } = useToast();
 
-  const [plans,   setPlans]   = useState([]);
+  const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving,  setSaving]  = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [showForm,  setShowForm]  = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form,      setForm]      = useState(EMPTY_PLAN_FORM);
+  const [form, setForm] = useState(EMPTY_PLAN_FORM);
 
-  const [selectedPlan,    setSelectedPlan]    = useState(null);
-  const [scheduleByDay,   setScheduleByDay]   = useState({});
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [scheduleByDay, setScheduleByDay] = useState({});
   const [scheduleLoading, setScheduleLoading] = useState(false);
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
 
   // Modal state: { mode: 'add'|'edit', dayNumber, item? }
-  const [modal,       setModal]       = useState(null);
+  const [modal, setModal] = useState(null);
   const [modalSaving, setModalSaving] = useState(false);
 
   // Confirm delete
@@ -265,7 +268,7 @@ export default function TravelPlanPage({ embedded = false }) {
       setPlans(res.data?.data ?? []);
     } catch (err) {
       console.error('fetchPlans:', err);
-      showToast('Không tải được danh sách kế hoạch', 'error');
+      showToast(t('travel_err_load', 'Cannot load plans'), 'error');
     } finally {
       setLoading(false);
     }
@@ -278,8 +281,8 @@ export default function TravelPlanPage({ embedded = false }) {
     if (!plan) return;
     setScheduleLoading(true);
     try {
-      const res        = await travelPlanApi.getSchedule(plan.id);
-      const grouped    = res.data?.data?.scheduleByDay ?? {};
+      const res = await travelPlanApi.getSchedule(plan.id);
+      const grouped = res.data?.data?.scheduleByDay ?? {};
       const normalized = normalizeScheduleFromApi(grouped);
 
       // Nếu DB chưa có → tạo khung trống theo số ngày
@@ -317,15 +320,15 @@ export default function TravelPlanPage({ embedded = false }) {
 
   /* ── Plan form helpers ───────────────────────────────────────────────── */
   const openCreate = () => { setForm(EMPTY_PLAN_FORM); setEditingId(null); setShowForm(true); };
-  const openEdit   = (plan, e) => {
+  const openEdit = (plan, e) => {
     e.stopPropagation();
     setForm({
-      title:          plan.title          || '',
-      destination:    plan.destination    || '',
-      startDate:      plan.startDate      || '',
-      endDate:        plan.endDate        || '',
-      budget:         plan.budget         || '',
-      currency:       plan.currency       || 'VND',
+      title: plan.title || '',
+      destination: plan.destination || '',
+      startDate: plan.startDate || '',
+      endDate: plan.endDate || '',
+      budget: plan.budget || '',
+      currency: plan.currency || 'VND',
       numberOfPeople: String(plan.numberOfPeople ?? 1),
     });
     setEditingId(plan.id);
@@ -335,36 +338,36 @@ export default function TravelPlanPage({ embedded = false }) {
 
   /* ── Plan CRUD ───────────────────────────────────────────────────────── */
   const handleSubmit = async () => {
-    if (!form.title.trim())       { showToast('Vui lòng nhập tên kế hoạch', 'error'); return; }
-    if (!form.destination.trim()) { showToast('Vui lòng nhập điểm đến', 'error'); return; }
+    if (!form.title.trim()) { showToast(t('travel_err_title', 'Please enter a plan name'), 'error'); return; }
+    if (!form.destination.trim()) { showToast(t('travel_err_dest', 'Please enter a destination'), 'error'); return; }
 
     const payload = {
-      title:          form.title.trim(),
-      destination:    form.destination.trim(),
-      startDate:      form.startDate  || null,
-      endDate:        form.endDate    || null,
-      budget:         form.budget     || null,
-      currency:       form.currency,
+      title: form.title.trim(),
+      destination: form.destination.trim(),
+      startDate: form.startDate || null,
+      endDate: form.endDate || null,
+      budget: form.budget || null,
+      currency: form.currency,
       numberOfPeople: parseInt(form.numberOfPeople) || 1,
     };
 
     setSaving(true);
     try {
       if (editingId) {
-        const res     = await travelPlanApi.update(editingId, payload);
+        const res = await travelPlanApi.update(editingId, payload);
         const updated = res.data?.data ?? { id: editingId, ...payload };
         setPlans(prev => prev.map(p => p.id === editingId ? updated : p));
-        showToast('Đã cập nhật kế hoạch!');
+        showToast(t('travel_updated', 'Plan updated!'));
       } else {
-        const res     = await travelPlanApi.create(payload);
+        const res = await travelPlanApi.create(payload);
         const created = res.data?.data ?? { id: String(Date.now()), ...payload };
         setPlans(prev => [created, ...prev]);
-        showToast('Đã tạo kế hoạch mới!');
+        showToast(t('travel_created', 'New plan created!'));
       }
       closeForm();
     } catch (err) {
       console.error('submit:', err);
-      showToast('Lưu thất bại, vui lòng thử lại.', 'error');
+      showToast(t('travel_err_save', 'Save failed, please try again.'), 'error');
     } finally {
       setSaving(false);
     }
@@ -372,21 +375,21 @@ export default function TravelPlanPage({ embedded = false }) {
 
   const handleDelete = async (id, e) => {
     e.stopPropagation();
-    if (!window.confirm('Bạn có chắc muốn xóa kế hoạch này?')) return;
+    if (!window.confirm(t('travel_confirm_delete', 'Are you sure you want to delete this plan?'))) return;
     try { await travelPlanApi.delete(id); } catch (err) { console.error(err); }
     setPlans(prev => prev.filter(p => p.id !== id));
-    showToast('Đã xóa kế hoạch.');
+    showToast(t('travel_deleted', 'Plan deleted.'));
   };
 
   /* ── AI Suggest ──────────────────────────────────────────────────────── */
   const handleAiSuggest = async () => {
-    if (!selectedPlan?.destination) { showToast('Kế hoạch cần có điểm đến!', 'error'); return; }
-    if (!selectedPlan?.budget)      { showToast('Kế hoạch cần có ngân sách!', 'error'); return; }
+    if (!selectedPlan?.destination) { showToast(t('travel_err_no_dest', 'Plan needs a destination!'), 'error'); return; }
+    if (!selectedPlan?.budget) { showToast(t('travel_err_no_budget', 'Plan needs a budget!'), 'error'); return; }
 
     setAiLoading(true);
     setAiSummary('');
     try {
-      const res  = await travelPlanApi.aiSuggest(selectedPlan.id);
+      const res = await travelPlanApi.aiSuggest(selectedPlan.id);
       const data = res.data?.data;
 
       if (data?.itinerary && Object.keys(data.itinerary).length > 0) {
@@ -397,20 +400,20 @@ export default function TravelPlanPage({ embedded = false }) {
           data.totalEstimatedCost ? `Tổng dự kiến: ${data.totalEstimatedCost}` : '',
         ].filter(Boolean).join(' | ');
         setAiSummary(summaryText);
-        showToast(`✨ AI đã tạo lịch ${Object.keys(normalized).length} ngày!`);
+        showToast(`✨ ${t('travel_ai_done', 'AI created a schedule for')} ${Object.keys(normalized).length} ${t('travel_days_unit', 'days')}!`);
       } else {
         // Reload từ DB (AI xử lý xong nhưng response bị timeout)
         await loadSchedule(selectedPlan);
-        showToast('✨ AI đã tạo xong! Đang hiển thị kết quả.');
+        showToast(t('travel_ai_done_db', '✨ AI done! Showing results.'));
       }
     } catch (err) {
       console.error('aiSuggest:', err);
       // Timeout → thử reload từ DB
       try {
         await loadSchedule(selectedPlan);
-        showToast('✨ AI đã tạo! Dữ liệu đã được tải từ server.');
+        showToast(t('travel_ai_from_server', '✨ AI done! Data loaded from server.'));
       } catch {
-        showToast('AI gặp lỗi, vui lòng thử lại.', 'error');
+        showToast(t('travel_err_ai', 'AI error, please try again.'), 'error');
       }
     } finally {
       setAiLoading(false);
@@ -435,28 +438,28 @@ export default function TravelPlanPage({ embedded = false }) {
     setModalSaving(true);
 
     const payload = {
-      dayNumber:     modal.dayNumber,
-      timeSlot:      formData.timeSlot,
-      location:      formData.location.trim(),
-      description:   formData.description?.trim() || '',
+      dayNumber: modal.dayNumber,
+      timeSlot: formData.timeSlot,
+      location: formData.location.trim(),
+      description: formData.description?.trim() || '',
       estimatedCost: formData.estimatedCost?.trim() || '',
     };
 
     try {
       if (modal.mode === 'add') {
         // POST → API tạo mới
-        const res  = await travelPlanApi.addItem(selectedPlan.id, payload);
+        const res = await travelPlanApi.addItem(selectedPlan.id, payload);
         const saved = normalizeItem(res.data?.data ?? payload);
 
         setScheduleByDay(prev => ({
           ...prev,
           [modal.dayNumber]: [...(prev[modal.dayNumber] ?? []), saved],
         }));
-        showToast('Đã thêm hoạt động!');
+        showToast(t('travel_activity_added', 'Activity added!'));
 
       } else {
         // PUT → API cập nhật
-        const res   = await travelPlanApi.updateItem(selectedPlan.id, modal.item.id, payload);
+        const res = await travelPlanApi.updateItem(selectedPlan.id, modal.item.id, payload);
         const saved = normalizeItem(res.data?.data ?? { id: modal.item.id, ...payload });
 
         setScheduleByDay(prev => ({
@@ -465,13 +468,13 @@ export default function TravelPlanPage({ embedded = false }) {
             it.id === modal.item.id ? saved : it
           ),
         }));
-        showToast('Đã cập nhật hoạt động!');
+        showToast(t('travel_activity_updated', 'Activity updated!'));
       }
 
       setModal(null);
     } catch (err) {
       console.error('saveItem:', err);
-      showToast('Lưu thất bại, vui lòng thử lại.', 'error');
+      showToast(t('travel_err_save', 'Save failed, please try again.'), 'error');
     } finally {
       setModalSaving(false);
     }
@@ -479,7 +482,7 @@ export default function TravelPlanPage({ embedded = false }) {
 
   // Xóa item
   const handleDeleteItem = async (dayNumber, item) => {
-    if (!window.confirm(`Xóa hoạt động "${item.location}"?`)) return;
+    if (!window.confirm(`${t('travel_confirm_del_activity', 'Delete activity')} "${item.location}"?`)) return;
     setDeletingItemId(item.id);
     try {
       if (item.id) {
@@ -489,10 +492,10 @@ export default function TravelPlanPage({ embedded = false }) {
         ...prev,
         [dayNumber]: prev[dayNumber].filter(it => it !== item),
       }));
-      showToast('Đã xóa hoạt động.');
+      showToast(t('travel_activity_deleted', 'Activity deleted.'));
     } catch (err) {
       console.error('deleteItem:', err);
-      showToast('Xóa thất bại, vui lòng thử lại.', 'error');
+      showToast(t('travel_err_del', 'Delete failed, please try again.'), 'error');
     } finally {
       setDeletingItemId(null);
     }
@@ -502,8 +505,8 @@ export default function TravelPlanPage({ embedded = false }) {
      RENDER — Detail View
   ════════════════════════════════════════════════════════════════════════ */
   if (selectedPlan) {
-    const totalDays   = calcDays(selectedPlan.startDate, selectedPlan.endDate) || Object.keys(scheduleByDay).length;
-    const dayItems    = Array.from({ length: totalDays }, (_, i) => i + 1);
+    const totalDays = calcDays(selectedPlan.startDate, selectedPlan.endDate) || Object.keys(scheduleByDay).length;
+    const dayItems = Array.from({ length: totalDays }, (_, i) => i + 1);
     const hasSchedule = Object.values(scheduleByDay).some(d => d.length > 0);
 
     return (
@@ -561,13 +564,13 @@ export default function TravelPlanPage({ embedded = false }) {
             )}
             {selectedPlan.numberOfPeople && (
               <span style={{ background: 'var(--bg2)', padding: '4px 10px', borderRadius: 20, fontSize: 12, border: '1px solid var(--border)' }}>
-                👨‍👩‍👧‍👦 {selectedPlan.numberOfPeople} người
+                👨‍👩‍👧‍👦 {selectedPlan.numberOfPeople} {t('travel_people', 'people')}
               </span>
             )}
             {selectedPlan.startDate && selectedPlan.endDate && (
               <span style={{ background: 'var(--bg2)', padding: '4px 10px', borderRadius: 20, fontSize: 12, border: '1px solid var(--border)' }}>
                 📅 {dayjs(selectedPlan.startDate).format('DD/MM')} – {dayjs(selectedPlan.endDate).format('DD/MM/YYYY')}
-                {totalDays > 0 && <span style={{ color: 'var(--accent)', marginLeft: 4 }}>({totalDays} ngày)</span>}
+                {totalDays > 0 && <span style={{ color: 'var(--accent)', marginLeft: 4 }}>({totalDays} {t('travel_days', 'days')})</span>}
               </span>
             )}
           </div>
@@ -579,8 +582,7 @@ export default function TravelPlanPage({ embedded = false }) {
             borderRadius: 16, padding: 16, marginBottom: 24,
           }}>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: aiSummary ? 10 : 12, textAlign: 'center' }}>
-              AI dựa vào <b>địa điểm</b>, <b>ngân sách</b> và <b>thời gian</b> để tạo lịch trình tối ưu.
-              Hoặc bạn có thể <b style={{ color: 'var(--text)' }}>tự thêm từng hoạt động</b> theo từng ngày bên dưới.
+              {t('travel_ai_desc', 'AI uses destination, budget and time to create an optimal itinerary. Or you can')} <b style={{ color: 'var(--text)' }}>{t('travel_ai_manual', 'add activities manually')}</b> {t('travel_ai_per_day', 'per day below.')}
             </p>
 
             {aiSummary && (
@@ -604,7 +606,7 @@ export default function TravelPlanPage({ embedded = false }) {
                   boxShadow: aiLoading ? 'none' : '0 4px 12px rgba(200,242,61,0.35)',
                   transition: 'all 0.2s',
                 }}>
-                {aiLoading ? '⏳ AI đang lên lịch...' : '✨ AI Lên Lịch Tự Động'}
+                {aiLoading ? '⏳ ' + t('travel_ai_scheduling', 'AI is scheduling...') : '✨ ' + t('travel_ai_btn', 'AI Auto Schedule')}
               </button>
             </div>
           </div>
@@ -613,7 +615,7 @@ export default function TravelPlanPage({ embedded = false }) {
           {scheduleLoading && (
             <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)' }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>⏳</div>
-              <div style={{ fontSize: 13 }}>Đang tải lịch trình...</div>
+              <div style={{ fontSize: 13 }}>{t('travel_loading_schedule', 'Loading itinerary...')}</div>
             </div>
           )}
 
@@ -625,9 +627,9 @@ export default function TravelPlanPage({ embedded = false }) {
               borderRadius: 16, marginBottom: 16,
             }}>
               <div style={{ fontSize: 40, marginBottom: 10 }}>🤖</div>
-              <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--accent)', marginBottom: 6 }}>AI đang phân tích...</p>
+              <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--accent)', marginBottom: 6 }}>{t('travel_ai_analyzing', 'AI is analyzing...')}</p>
               <p style={{ fontSize: 13, color: 'var(--muted)' }}>
-                Đang lên lịch tại <b style={{ color: 'var(--text)' }}>{selectedPlan.destination}</b>
+                {t('travel_scheduling_at', 'Scheduling at')} <b style={{ color: 'var(--text)' }}>{selectedPlan.destination}</b>
               </p>
             </div>
           )}
@@ -649,8 +651,8 @@ export default function TravelPlanPage({ embedded = false }) {
               )}
 
               {dayItems.map(day => {
-                const items      = scheduleByDay[day] ?? [];
-                const dateLabel  = selectedPlan.startDate
+                const items = scheduleByDay[day] ?? [];
+                const dateLabel = selectedPlan.startDate
                   ? dayjs(selectedPlan.startDate).add(day - 1, 'day').format('DD/MM/YYYY (ddd)')
                   : null;
 
@@ -668,7 +670,7 @@ export default function TravelPlanPage({ embedded = false }) {
                     }}>
                       <div>
                         <span style={{ fontSize: 15, fontWeight: 700, fontFamily: 'Syne, sans-serif' }}>
-                          Ngày {day}
+                          {t('travel_day', 'Day')} {day}
                         </span>
                         {dateLabel && (
                           <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 8 }}>
@@ -680,7 +682,7 @@ export default function TravelPlanPage({ embedded = false }) {
                             fontSize: 11, color: 'var(--accent)', marginLeft: 8,
                             background: 'rgba(200,242,61,0.15)', padding: '2px 7px', borderRadius: 10,
                           }}>
-                            {items.length} hoạt động
+                            {items.length} {t('travel_activities', 'activities')}
                           </span>
                         )}
                       </div>
@@ -696,7 +698,7 @@ export default function TravelPlanPage({ embedded = false }) {
                           display: 'flex', alignItems: 'center', gap: 4,
                         }}
                       >
-                        ＋ Thêm
+                        ＋ {t('travel_add', 'Add')}
                       </button>
                     </div>
 
@@ -706,12 +708,12 @@ export default function TravelPlanPage({ embedded = false }) {
                         textAlign: 'center', padding: '16px 0',
                         color: 'var(--muted)', fontSize: 13,
                       }}>
-                        Chưa có hoạt động nào.
+                        {t('travel_no_activities', 'No activities yet.')}
                         <span
                           onClick={() => openAddModal(day)}
                           style={{ color: 'var(--accent)', cursor: 'pointer', marginLeft: 4 }}
                         >
-                          + Thêm ngay
+                          + {t('travel_add_now', 'Add now')}
                         </span>
                       </div>
                     ) : (
@@ -794,9 +796,9 @@ export default function TravelPlanPage({ embedded = false }) {
                   borderRadius: 16, color: 'var(--muted)',
                 }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
-                  <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Chưa có ngày đi</p>
+                  <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>{t('travel_no_dates', 'No dates set')}</p>
                   <p style={{ fontSize: 13 }}>
-                    Hãy cập nhật <b>ngày bắt đầu</b> và <b>ngày kết thúc</b> để tạo khung lịch trình.
+                    {t('travel_no_dates_hint', 'Update start and end dates to create the schedule structure.')}
                   </p>
                 </div>
               )}
@@ -825,20 +827,20 @@ export default function TravelPlanPage({ embedded = false }) {
       {showForm && (
         <div style={{ marginBottom: 12, padding: 16, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, fontFamily: 'Syne, sans-serif' }}>
-            ✈️ {editingId ? 'Sửa kế hoạch' : 'Kế hoạch mới'}
+            ✈️ {editingId ? t('travel_edit_plan', 'Edit Plan') : t('travel_new_plan', 'New Plan')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <input placeholder="Tên kế hoạch * (VD: Hà Nội Tuần Trăng Mật)"
+            <input placeholder={t('travel_plan_name_ph', 'Plan name * (e.g. Hanoi Honeymoon)')}
               value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={inputStyle} />
-            <input placeholder="Điểm đến * (VD: Hà Nội, Đà Nẵng, Phú Quốc...)"
+            <input placeholder={t('travel_dest_ph', 'Destination * (e.g. Hanoi, Da Nang, Phu Quoc...)')}
               value={form.destination} onChange={e => setForm(f => ({ ...f, destination: e.target.value }))} style={inputStyle} />
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Ngày bắt đầu</label>
+                <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>{t('travel_start_date', 'Start date')}</label>
                 <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} style={inputStyle} />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Ngày kết thúc</label>
+                <label style={{ fontSize: 11, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>{t('travel_end_date', 'End date')}</label>
                 <input type="date" value={form.endDate} min={form.startDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} style={inputStyle} />
               </div>
             </div>
@@ -851,7 +853,7 @@ export default function TravelPlanPage({ embedded = false }) {
               </select>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Số người đi:</span>
+              <span style={{ fontSize: 13, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{t('travel_num_people', 'Number of people')}:</span>
               <input type="number" min="1" max="50" placeholder="1"
                 value={form.numberOfPeople} onChange={e => setForm(f => ({ ...f, numberOfPeople: e.target.value }))} style={{ ...inputStyle, flex: 1 }} />
             </div>
@@ -862,7 +864,7 @@ export default function TravelPlanPage({ embedded = false }) {
                 cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14,
                 fontFamily: 'Syne, sans-serif', marginTop: 4,
               }}>
-              {saving ? '⏳ Đang lưu...' : editingId ? 'Cập nhật kế hoạch' : 'Tạo kế hoạch'}
+              {saving ? '⏳ ' + t('travel_saving', 'Saving...') : editingId ? t('travel_update_plan', 'Update Plan') : t('travel_create_plan', 'Create Plan')}
             </button>
           </div>
         </div>
@@ -873,15 +875,15 @@ export default function TravelPlanPage({ embedded = false }) {
           {loading && (
             <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
               <div style={{ fontSize: 28 }}>✈️</div>
-              <div style={{ fontSize: 13, marginTop: 8 }}>Đang tải...</div>
+              <div style={{ fontSize: 13, marginTop: 8 }}>{t('travel_loading', 'Loading...')}</div>
             </div>
           )}
 
           {!loading && plans.length === 0 && (
             <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
               <span style={{ fontSize: 48 }}>✈️</span>
-              <p style={{ fontSize: 15, fontWeight: 600 }}>Chưa có kế hoạch nào</p>
-              <p style={{ fontSize: 13 }}>Bấm ➕ để tạo kế hoạch du lịch mới.</p>
+              <p style={{ fontSize: 15, fontWeight: 600 }}>{t('travel_no_plans', 'No plans yet')}</p>
+              <p style={{ fontSize: 13 }}>{t('travel_no_plans_hint', 'Tap ➕ to create a new travel plan.')}</p>
             </div>
           )}
 
@@ -898,8 +900,8 @@ export default function TravelPlanPage({ embedded = false }) {
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
                       {plan.startDate && plan.endDate
-                        ? `${dayjs(plan.startDate).format('DD/MM')} – ${dayjs(plan.endDate).format('DD/MM/YYYY')} · ${calcDays(plan.startDate, plan.endDate)} ngày`
-                        : 'Chưa xác định thời gian'}
+                        ? `${dayjs(plan.startDate).format('DD/MM')} – ${dayjs(plan.endDate).format('DD/MM/YYYY')} · ${calcDays(plan.startDate, plan.endDate)} ${t('travel_days', 'days')}`
+                        : t('travel_no_dates_set', 'Dates not set')}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 4, marginLeft: 8, flexShrink: 0 }}>
@@ -915,7 +917,7 @@ export default function TravelPlanPage({ embedded = false }) {
                 </div>
                 {plan.budget && (
                   <div style={{ marginTop: 6, fontSize: 13 }}>
-                    Ngân sách: <b style={{ color: 'var(--accent)' }}>{plan.budget} {plan.currency || 'VND'}</b>
+                    {t('travel_budget', 'Budget')}: <b style={{ color: 'var(--accent)' }}>{plan.budget} {plan.currency || 'VND'}</b>
                   </div>
                 )}
                 <div style={{ marginTop: 10 }}>
@@ -924,7 +926,7 @@ export default function TravelPlanPage({ embedded = false }) {
                   </div>
                   {progress > 0 && (
                     <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, textAlign: 'right' }}>
-                      {progress === 100 ? '✅ Đã hoàn thành' : `${progress}% thời gian đã qua`}
+                      {progress === 100 ? '✅ ' + t('travel_completed', 'Completed') : `${progress}% ${t('travel_progress', 'time elapsed')}`}
                     </div>
                   )}
                 </div>

@@ -1,5 +1,6 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import BottomNav from './BottomNav';
 import AIChatModal from './AIChatModal';
 import VerticalDock from './VerticalDock';
@@ -22,11 +23,12 @@ const LANGS = [
 // ── ThemeToggle ───────────────────────────────────────────────────────────────
 
 function ThemeToggle({ dark, onToggle }) {
+  const { t } = useTranslation();
   return (
     <button
       className="theme-toggle-btn"
       onClick={onToggle}
-      title={dark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+      title={dark ? t('switch_theme_light', 'Chuyển sang giao diện sáng') : t('switch_theme_dark', 'Chuyển sang giao diện tối')}
       aria-label="Toggle theme"
     >
       <span className="theme-toggle-track">
@@ -42,6 +44,7 @@ function ThemeToggle({ dark, onToggle }) {
 function SearchOverlay({ open, onClose }) {
   const inputRef = useRef(null);
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -61,16 +64,16 @@ function SearchOverlay({ open, onClose }) {
   }, [open, onClose]);
 
   const SEARCH_ITEMS = [
-    { icon: '📷', label: 'AI Scanner', path: '/scan' },
-    { icon: '💱', label: 'Exchange Rates', path: '/exchange' },
-    { icon: '💰', label: 'Budget', path: '/budget' },
-    { icon: '📋', label: 'Price Wiki', path: '/wiki' },
-    { icon: '🗺️', label: 'ATM Map', path: '/atm-map' },
-    { icon: '📅', label: 'Travel Plans', path: '/plans' },
-    { icon: '📰', label: 'News', path: '/news' },
-    { icon: '🎓', label: 'Currency Guide', path: '/wiki/guide' },
-    { icon: '🏝️', label: 'Tourist Spots', path: '/spots' },
-    { icon: '👤', label: 'Profile', path: '/profile' },
+    { icon: '📷', label: t('search_ai_scanner', 'AI Scanner'), path: '/scan' },
+    { icon: '💱', label: t('search_exchange', 'Exchange Rates'), path: '/exchange' },
+    { icon: '💰', label: t('search_budget', 'Budget'), path: '/budget' },
+    { icon: '📋', label: t('search_wiki', 'Price Wiki'), path: '/wiki' },
+    { icon: '🗺️', label: t('search_atm', 'ATM Map'), path: '/atm-map' },
+    { icon: '📅', label: t('search_plans', 'Travel Plans'), path: '/plans' },
+    { icon: '📰', label: t('search_news', 'News'), path: '/news' },
+    { icon: '🎓', label: t('search_guide', 'Currency Guide'), path: '/wiki/guide' },
+    { icon: '🏝️', label: t('search_spots', 'Tourist Spots'), path: '/spots' },
+    { icon: '👤', label: t('search_profile', 'Profile'), path: '/profile' },
   ];
 
   const filtered = query.trim()
@@ -86,7 +89,7 @@ function SearchOverlay({ open, onClose }) {
             ref={inputRef}
             className="search-input"
             type="text"
-            placeholder="Search features, pages..."
+            placeholder={t('search_placeholder_2', 'Search features, pages...')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -105,7 +108,7 @@ function SearchOverlay({ open, onClose }) {
             </button>
           ))}
           {filtered.length === 0 && (
-            <div className="search-no-results">No results found for "{query}"</div>
+            <div className="search-no-results">{t('no_results', { query, defaultValue: 'No results found for "{{query}}"' })}</div>
           )}
         </div>
       </div>
@@ -118,9 +121,10 @@ function SearchOverlay({ open, onClose }) {
 export default function ClientLayout() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { t, i18n } = useTranslation();
 
   const [langOpen, setLangOpen] = useState(false);
-  const [activeLang, setActiveLang] = useState(getLanguage());
+  const [activeLang, setActiveLang] = useState(i18n.language || getLanguage());
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const [chatOpen, setChatOpen] = useState(false);
   const [plansOpen, setPlansOpen] = useState(false);
@@ -180,7 +184,7 @@ export default function ClientLayout() {
         <button
           className="float-btn admin-panel-btn"
           onClick={() => navigate('/admin')}
-          title="Quản trị"
+          title={t('admin_panel', 'Quản trị')}
           style={{
             position: 'fixed', top: 100
             , right: 16, zIndex: 200,
@@ -192,7 +196,7 @@ export default function ClientLayout() {
             transition: 'all 0.2s ease',
           }}
         >
-          🛡️ Quản trị
+          🛡️ {t('admin_panel', 'Quản trị')}
         </button>
       )}
 
@@ -242,7 +246,7 @@ export default function ClientLayout() {
 
           {/* Theme toggle row — trên cùng trong dropdown */}
           <div className="lang-theme-row">
-            <span className="lang-theme-label">Giao diện</span>
+            <span className="lang-theme-label">{t('appearance_section', 'Giao diện')}</span>
             <ThemeToggle dark={dark} onToggle={() => setDark(d => !d)} />
           </div>
 
@@ -255,9 +259,9 @@ export default function ClientLayout() {
               className={`lang-option${activeLang === l.code ? ' active' : ''}`}
               onClick={() => {
                 setActiveLang(l.code);
-                setLanguage(l.code);
+                setLanguage(l.code); // i18n.changeLanguage is triggered within setLanguage
                 setLangOpen(false);
-                window.location.reload();
+                // Removed window.location.reload() for seamless language switching
               }}
             >
               <span className="flag">{l.flag}</span>
@@ -284,7 +288,7 @@ export default function ClientLayout() {
         <Suspense fallback={
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
             <div style={{ fontSize: 28 }}>✈️</div>
-            <div style={{ fontSize: 13, marginTop: 8 }}>Đang tải...</div>
+            <div style={{ fontSize: 13, marginTop: 8 }}>{t('loading', 'Đang tải...')}</div>
           </div>
         }>
           {plansOpen && <TravelPlanPage embedded />}
