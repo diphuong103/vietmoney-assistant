@@ -35,15 +35,32 @@ public class Article {
     @Enumerated(EnumType.STRING)
     private ArticleCategory category;
 
+    //
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tourist_spot_id")
+    private TouristSpot touristSpot;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "travel_plan_id")
+    private TravelPlan travelPlan;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "city_price_wiki_id")
+    private CityPriceWiki cityPriceWiki;
+    //
+
+    private String location;
+
     @Enumerated(EnumType.STRING)
     private ArticleVisibility visibility;
 
     @Enumerated(EnumType.STRING)
     private ArticleStatus status;
 
-    private String tags;
 
     private Boolean deleted;
+
+    private Boolean isFeatured;
 
     private Boolean isEdited;
 
@@ -67,7 +84,11 @@ public class Article {
 
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "article", cascade = CascadeType.ALL)
+    @OneToMany(
+            mappedBy = "article",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
     @Builder.Default
     private List<ArticleMedia> mediaList = new ArrayList<>();
 
@@ -77,11 +98,15 @@ public class Article {
         updatedAt = LocalDateTime.now();
 
         if (status == null) {
-            status = ArticleStatus.PENDING;
+            status = ArticleStatus.DRAFT;
         }
 
         if (visibility == null) {
             visibility = ArticleVisibility.PUBLIC;
+        }
+
+        if (isFeatured == null) {
+            isFeatured = false;
         }
 
         deleted = false;

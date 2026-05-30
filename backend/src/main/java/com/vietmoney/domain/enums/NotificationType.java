@@ -8,4 +8,5 @@ public enum NotificationType {
     ARTICLE_REJECTED,
     ARTICLE_LIKED,
     TRAVEL_REMINDER
+
 }

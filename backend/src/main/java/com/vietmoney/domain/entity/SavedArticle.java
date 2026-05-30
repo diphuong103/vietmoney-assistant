@@ -2,14 +2,18 @@ package com.vietmoney.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "saved_articles")
+@Table(
+        name = "saved_articles",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        columnNames = {"article_id", "user_id"}
+                )
+        }
+)
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
-@EntityListeners(AuditingEntityListener.class)
 public class SavedArticle {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,6 +26,17 @@ public class SavedArticle {
     @JoinColumn(name = "article_id", nullable = false)
     private Article article;
 
-    @CreatedDate
-    private LocalDateTime savedAt;
+    private String folder;
+
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+
+        createdAt = LocalDateTime.now();
+
+        if (folder == null) {
+            folder = "DEFAULT";
+        }
+    }
 }

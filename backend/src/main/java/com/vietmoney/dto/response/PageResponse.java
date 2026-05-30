@@ -23,4 +23,8 @@ public class PageResponse<T> {
                 .last(page.isLast())
                 .build();
     }
+
+    public static <T> PageResponse<T> from(Page<T> page) {
+        return of(page);
+    }
 }

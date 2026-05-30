@@ -1,17 +1,24 @@
 package com.vietmoney.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ArticleStatusResponse {
+
     private boolean liked;
+
     private boolean saved;
+
     private long likeCount;
+
     private long saveCount;
+
+    private long commentCount;
+
+    private long shareCount;
+
+    private long viewCount;
 }

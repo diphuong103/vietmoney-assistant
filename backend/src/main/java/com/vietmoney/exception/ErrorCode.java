@@ -15,6 +15,12 @@ public enum ErrorCode {
     OTP_INVALID(400, "OTP không hợp lệ hoặc đã hết hạn", HttpStatus.BAD_REQUEST),
     // Resources
     ARTICLE_NOT_FOUND(404, "Bài viết không tồn tại", HttpStatus.NOT_FOUND),
+    COMMENT_NOT_FOUND(
+            404,
+            "Bình luận không tồn tại",
+            HttpStatus.NOT_FOUND
+    ),
+
     BUDGET_NOT_FOUND(404, "Ngân sách không tồn tại", HttpStatus.NOT_FOUND),
     CATEGORY_ALREADY_EXISTS(409, "Danh mục đã tồn tại", HttpStatus.CONFLICT),
     CATEGORY_NOT_FOUND(404, "Danh mục không tồn tại", HttpStatus.NOT_FOUND),
