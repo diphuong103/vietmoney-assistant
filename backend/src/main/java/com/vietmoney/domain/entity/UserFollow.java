@@ -7,32 +7,32 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "article_likes",
+        name = "user_follows",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        columnNames = {"article_id", "user_id"}
+                        columnNames = {"follower_id", "following_id"}
                 )
         }
 )
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ArticleLike {
+public class UserFollow {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "follower_id", nullable = false)
+    private User follower;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "article_id", nullable = false)
-    private Article article;
+    @JoinColumn(name = "following_id", nullable = false)
+    private User following;
 
-    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @PrePersist

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -28,38 +29,77 @@ public class ExchangeRateService {
     private final Map<String, BigDecimal> cachedRates = new ConcurrentHashMap<>();
     private LocalDateTime lastUpdated;
 
+    // Fallback rates (VND base) — dùng khi API hết quota
+    private static final Map<String, BigDecimal> FALLBACK_RATES = Map.of(
+            "USD", new BigDecimal("0.000040"),
+            "EUR", new BigDecimal("0.000037"),
+            "JPY", new BigDecimal("0.0060"),
+            "KRW", new BigDecimal("0.054"),
+            "SGD", new BigDecimal("0.000054"),
+            "THB", new BigDecimal("0.0014"),
+            "VND", BigDecimal.ONE
+    );
+
     public ExchangeRateResponse getCurrentRates() {
+        Map<String, BigDecimal> rates = cachedRates.isEmpty() ? FALLBACK_RATES : cachedRates;
         return ExchangeRateResponse.builder()
                 .baseCurrency("VND")
-                .rates(cachedRates)
+                .rates(rates)
                 .updatedAt(lastUpdated)
                 .build();
     }
 
     public BigDecimal convert(BigDecimal amount, String fromCurrency, String toCurrency) {
-        if (cachedRates.isEmpty()) return amount; // Fallback
-        BigDecimal fromRate = cachedRates.getOrDefault(fromCurrency, BigDecimal.ONE);
-        BigDecimal toRate = cachedRates.getOrDefault(toCurrency, BigDecimal.ONE);
-        // Base is VND. amount * (toRate / fromRate) ? Wait.
-        // If 1 USD = 24000 VND. fromRate=24000 (if base is something else). Actually API returns base VND usually or base USD.
-        // Assuming rates map: currency -> value relative to base.
+        Map<String, BigDecimal> rates = cachedRates.isEmpty() ? FALLBACK_RATES : cachedRates;
+        BigDecimal fromRate = rates.getOrDefault(fromCurrency.toUpperCase(), BigDecimal.ONE);
+        BigDecimal toRate   = rates.getOrDefault(toCurrency.toUpperCase(),   BigDecimal.ONE);
         if (fromRate.compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO;
-        return amount.divide(fromRate, 4, java.math.RoundingMode.HALF_UP).multiply(toRate);
+        // amount (fromCurrency) → VND → toCurrency
+        return amount.divide(fromRate, 8, java.math.RoundingMode.HALF_UP)
+                .multiply(toRate)
+                .setScale(4, java.math.RoundingMode.HALF_UP);
     }
 
-    @Scheduled(fixedRate = 300000) // Every 5 minutes
+    // Tăng lên 1 giờ để tránh hết quota free plan (1500 req/month ≈ 2 req/giờ)
+    @Scheduled(fixedRate = 3_600_000)
     public void syncExchangeRates() {
         try {
             log.info("Syncing exchange rates...");
-            Map response = restTemplate.getForObject(apiUrl, Map.class);
-            if (response != null && response.containsKey("rates")) {
-                Map<String, Number> rates = (Map<String, Number>) response.get("rates");
-                rates.forEach((k, v) -> cachedRates.put(k, BigDecimal.valueOf(v.doubleValue())));
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.getForObject(apiUrl, Map.class);
+
+            if (response == null) {
+                log.warn("Exchange rate API returned null response");
+                return;
             }
-            lastUpdated = LocalDateTime.now();
-            messagingTemplate.convertAndSend("/topic/exchange-rates", getCurrentRates());
+
+            // exchangerate-api.com trả về field "conversion_rates" hoặc "rates"
+            Map<String, Number> rates = null;
+            if (response.containsKey("conversion_rates")) {
+                //noinspection unchecked
+                rates = (Map<String, Number>) response.get("conversion_rates");
+            } else if (response.containsKey("rates")) {
+                //noinspection unchecked
+                rates = (Map<String, Number>) response.get("rates");
+            }
+
+            if (rates != null) {
+                rates.forEach((k, v) ->
+                        cachedRates.put(k.toUpperCase(), BigDecimal.valueOf(v.doubleValue()))
+                );
+                lastUpdated = LocalDateTime.now();
+                log.info("Exchange rates synced successfully. {} currencies cached.", cachedRates.size());
+                messagingTemplate.convertAndSend("/topic/exchange-rates", getCurrentRates());
+            } else {
+                log.warn("Exchange rate API response missing 'rates'/'conversion_rates': {}", response);
+            }
+
+        } catch (HttpClientErrorException.TooManyRequests e) {
+            log.warn("Exchange rate API quota reached. Using cached/fallback rates.");
+        } catch (HttpClientErrorException e) {
+            log.error("Exchange rate API HTTP error {}: {}", e.getStatusCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("Failed to sync exchange rates", e);
+            log.error("Failed to sync exchange rates: {}", e.getMessage());
         }
     }
 }

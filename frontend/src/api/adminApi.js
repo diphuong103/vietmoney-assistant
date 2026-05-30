@@ -20,19 +20,19 @@ const adminApi = {
 
   /* ── Article Management ──────────────────────── */
   getArticles: (params) =>
-    axiosClient.get('/admin/articles', { params }),
+      axiosClient.get('/articles/admin/status', { params }),
 
-  getPendingArticles: (params) =>
-    axiosClient.get('/admin/articles', { params: { ...params, status: 'pending' } }),
+    getPendingArticles: (params) =>
+      axiosClient.get('/articles/admin/status', { params: { ...params, status: 'pending' } }),
 
-  approveArticle: (id) =>
-    axiosClient.put(`/articles/admin/${id}/approve`),
+    approveArticle: (id) =>
+      axiosClient.put(`/articles/admin/${id}/approve`),
 
-  rejectArticle: (id, reason) =>
-    axiosClient.put(`/articles/admin/${id}/reject`, null, { params: { reason } }),
+    rejectArticle: (id, reason) =>
+      axiosClient.put(`/articles/admin/${id}/reject`, null, { params: { reason } }),
 
-  deleteArticle: (id) =>
-    axiosClient.delete(`/articles/${id}`),
-};
+    deleteArticle: (id) =>
+      axiosClient.delete(`/articles/${id}`),
+  };
 
 export default adminApi;
