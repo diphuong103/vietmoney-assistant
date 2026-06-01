@@ -24,6 +24,9 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getMe(
             @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new AppException(ErrorCode.INVALID_TOKEN);
+        }
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         return ResponseEntity.ok(ApiResponse.success(toProfile(user)));
@@ -36,10 +39,14 @@ public class UserController {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (updates.containsKey("fullName"))          user.setFullName(updates.get("fullName"));
-        if (updates.containsKey("nationality"))       user.setNationality(updates.get("nationality"));
-        if (updates.containsKey("travelDestination")) user.setTravelDestination(updates.get("travelDestination"));
-        if (updates.containsKey("avatarUrl"))         user.setAvatarUrl(updates.get("avatarUrl"));
+        if (updates.containsKey("fullName"))
+            user.setFullName(updates.get("fullName"));
+        if (updates.containsKey("nationality"))
+            user.setNationality(updates.get("nationality"));
+        if (updates.containsKey("travelDestination"))
+            user.setTravelDestination(updates.get("travelDestination"));
+        if (updates.containsKey("avatarUrl"))
+            user.setAvatarUrl(updates.get("avatarUrl"));
 
         userRepository.save(user);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thành công", toProfile(user)));

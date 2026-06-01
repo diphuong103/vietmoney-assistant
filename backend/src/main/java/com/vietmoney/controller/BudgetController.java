@@ -1,6 +1,7 @@
 package com.vietmoney.controller;
 
 import com.vietmoney.dto.request.BudgetRequest;
+import com.vietmoney.dto.response.ApiResponse;
 import com.vietmoney.dto.response.BudgetResponse;
 import com.vietmoney.dto.response.DailyBudgetResponse;
 import com.vietmoney.service.BudgetService;
@@ -8,9 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/budgets")
@@ -20,28 +19,30 @@ public class BudgetController {
     private final BudgetService budgetService;
 
     @PostMapping
-    public BudgetResponse create(@RequestBody BudgetRequest request) {
-        return budgetService.create(request);
+    public ResponseEntity<ApiResponse<BudgetResponse>> create(@RequestBody BudgetRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Tạo ngân sách thành công", budgetService.create(request)));
     }
 
     @GetMapping
-    public List<BudgetResponse> getMyBudgets() {
-        return budgetService.getMyBudgets();
+    public ResponseEntity<ApiResponse<List<BudgetResponse>>> getMyBudgets() {
+        return ResponseEntity.ok(ApiResponse.success(budgetService.getMyBudgets()));
     }
 
     @PutMapping("/{id}")
-    public BudgetResponse update(@PathVariable Long id,
-                                 @RequestBody BudgetRequest request) {
-        return budgetService.update(id, request);
+    public ResponseEntity<ApiResponse<BudgetResponse>> update(@PathVariable Long id,
+            @RequestBody BudgetRequest request) {
+        return ResponseEntity
+                .ok(ApiResponse.success("Cập nhật ngân sách thành công", budgetService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         budgetService.delete(id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa ngân sách thành công", null));
     }
 
     @GetMapping("/daily")
-    public ResponseEntity<DailyBudgetResponse> getDailyBudget() {
-        return ResponseEntity.ok(budgetService.getDailyBudget());
+    public ResponseEntity<ApiResponse<DailyBudgetResponse>> getDailyBudget() {
+        return ResponseEntity.ok(ApiResponse.success(budgetService.getDailyBudget()));
     }
 }

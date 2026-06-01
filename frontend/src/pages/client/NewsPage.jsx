@@ -22,7 +22,7 @@ dayjs.extend(relativeTime);
    _viewedIds: articleId đã tính view (không tính lại)
    _fetchCache: Promise đang chạy hoặc data đã fetch (tránh double fetch)
 ═══════════════════════════════════════ */
-const _viewedIds  = new Set();
+const _viewedIds = new Set();
 const _fetchCache = new Map(); // articleId → { promise, data }
 
 /* ═══════════════════════════════════════
@@ -88,9 +88,9 @@ const CATEGORY_PALETTE = {
 };
 
 const STATUS_PALETTE = {
-  PENDING:  { accent: '#F59E0B', bg: 'rgba(245,158,11,.15)', text: '#F59E0B', label: 'Đang xử lý', icon: '⏳' },
-  APPROVED: { accent: '#10B981', bg: 'rgba(16,185,129,.15)', text: '#10B981', label: 'Đã duyệt',   icon: '✅' },
-  REJECTED: { accent: '#EF4444', bg: 'rgba(239,68,68,.15)',  text: '#EF4444', label: 'Bị từ chối', icon: '❌' },
+  PENDING: { accent: '#F59E0B', bg: 'rgba(245,158,11,.15)', text: '#F59E0B', label: 'Đang xử lý', icon: '⏳' },
+  APPROVED: { accent: '#10B981', bg: 'rgba(16,185,129,.15)', text: '#10B981', label: 'Đã duyệt', icon: '✅' },
+  REJECTED: { accent: '#EF4444', bg: 'rgba(239,68,68,.15)', text: '#EF4444', label: 'Bị từ chối', icon: '❌' },
 };
 
 const CATEGORY_OPTIONS = Object.entries(CATEGORY_PALETTE).map(([key, val]) => ({
@@ -104,12 +104,12 @@ const CATEGORY_OPTIONS = Object.entries(CATEGORY_PALETTE).map(([key, val]) => ({
 ═══════════════════════════════════════ */
 
 let _bid = 0;
-const uid     = () => `b${++_bid}`;
-const mkText  = (content = '') => ({ id: uid(), type: 'text',  content });
-const mkMedia = ()              => ({ id: uid(), type: 'media', items: [] });
+const uid = () => `b${++_bid}`;
+const mkText = (content = '') => ({ id: uid(), type: 'text', content });
+const mkMedia = () => ({ id: uid(), type: 'media', items: [] });
 
-const getCat    = (raw = '') => CATEGORY_PALETTE[raw?.toUpperCase()?.trim()] || CATEGORY_PALETTE.GENERAL;
-const getStatus = (raw)      => (raw ? STATUS_PALETTE[raw.toUpperCase()] || null : null);
+const getCat = (raw = '') => CATEGORY_PALETTE[raw?.toUpperCase()?.trim()] || CATEGORY_PALETTE.GENERAL;
+const getStatus = (raw) => (raw ? STATUS_PALETTE[raw.toUpperCase()] || null : null);
 
 function initials(name = '') {
   const p = name.trim().split(/\s+/);
@@ -1051,18 +1051,18 @@ function MediaBlock({ block, onChange, onPick, removeMedia }) {
 ═══════════════════════════════════════ */
 
 function CommentItem({ comment, articleId, currentUser, onReplyPosted, onCommentDeleted }) {
-  const [showReplies,    setShowReplies]    = useState(false);
-  const [replies,        setReplies]        = useState([]);
-  const [replyLoading,   setReplyLoading]   = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
+  const [replies, setReplies] = useState([]);
+  const [replyLoading, setReplyLoading] = useState(false);
   const [showReplyInput, setShowReplyInput] = useState(false);
-  const [replyText,      setReplyText]      = useState('');
-  const [sending,        setSending]        = useState(false);
-  const [liked,          setLiked]          = useState(false);
-  const [likeCount,      setLikeCount]      = useState(comment.likeCount || 0);
-  const [deleted,        setDeleted]        = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
+  const [deleted, setDeleted] = useState(false);
   const replyRef = useRef(null);
 
-  const avatarColor = ['#0D9488','#3B82F6','#8B5CF6','#F59E0B','#EC4899','#10B981'][
+  const avatarColor = ['#0D9488', '#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899', '#10B981'][
     (comment.userId || 0) % 6
   ];
 
@@ -1259,19 +1259,19 @@ function CommentsSection({
   likeLoading, saveLoading,
   currentUser,
 }) {
-  const [comments,    setComments]    = useState([]);
-  const [loading,     setLoading]     = useState(true);
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
-  const [sending,     setSending]     = useState(false);
-  const [page,        setPage]        = useState(0);
-  const [hasMore,     setHasMore]     = useState(false);
+  const [sending, setSending] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const inputRef = useRef(null);
 
   const loadComments = useCallback(async (pageNum, append) => {
     try {
       if (!append) setLoading(true);
       const res = await articleApi.getComments(article.id, { page: pageNum, size: 10 });
-      const data       = res?.data?.data?.content    || [];
+      const data = res?.data?.data?.content || [];
       const totalPages = res?.data?.data?.totalPages || 1;
       if (append) {
         setComments(prev => [...prev, ...data]);
@@ -1483,7 +1483,7 @@ function ArticleDetailModal({
       articleApi
         .getRelated(articleId, { page: 0, size: 4 })
         .then(r => { if (!cancelled) setRelated(r?.data?.data?.content || []); })
-        .catch(() => {});
+        .catch(() => { });
       return () => { cancelled = true; };
     }
 
@@ -1496,7 +1496,7 @@ function ArticleDetailModal({
       articleApi
         .getRelated(articleId, { page: 0, size: 4 })
         .then(r => { if (!cancelled) setRelated(r?.data?.data?.content || []); })
-        .catch(() => {});
+        .catch(() => { });
       return () => { cancelled = true; };
     }
 
@@ -1530,7 +1530,7 @@ function ArticleDetailModal({
       articleApi
         .getRelated(articleId, { page: 0, size: 4 })
         .then(r => { if (!cancelled) setRelated(r?.data?.data?.content || []); })
-        .catch(() => {});
+        .catch(() => { });
     });
 
     return () => { cancelled = true; };
@@ -1695,79 +1695,6 @@ const ArticleCard = memo(function ArticleCard({
     onSave?.(article.id);
   };
 
-  const [liked, setLiked] = useState(article.likedByMe || article.liked || false);
-  const [likeCount, setLikeCount] = useState(article.likeCount || 0);
-  const [saved, setSaved] = useState(article.savedByMe || article.saved || false);
-  const [saveCount, setSaveCount] = useState(article.saveCount || 0);
-  const [liking, setLiking] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const handleLike = async () => {
-    if (liking) return;
-
-    const oldLiked = liked;
-    const oldCount = likeCount;
-
-    // cập nhật UI trước cho mượt
-    setLiked(!oldLiked);
-    setLikeCount(oldLiked ? Math.max(0, oldCount - 1) : oldCount + 1);
-
-    try {
-      setLiking(true);
-      const res = await articleApi.toggleLike(article.id);
-
-      // Đồng bộ từ response backend
-      const data = res?.data?.data ?? res?.data ?? null;
-      if (data) {
-        if (typeof data.liked === 'boolean') setLiked(data.liked);
-        if (typeof data.likeCount === 'number') setLikeCount(data.likeCount);
-        if (typeof data.saved === 'boolean') setSaved(data.saved);
-        if (typeof data.saveCount === 'number') setSaveCount(data.saveCount);
-      }
-
-      if (onLikeChange) onLikeChange(article.id, data);
-    } catch (e) {
-      // lỗi thì rollback
-      setLiked(oldLiked);
-      setLikeCount(oldCount);
-      console.error('Like failed:', e?.response?.status, e?.message);
-    } finally {
-      setLiking(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (saving) return;
-
-    const oldSaved = saved;
-    const oldCount = saveCount;
-
-    // Optimistic update
-    setSaved(!oldSaved);
-    setSaveCount(oldSaved ? Math.max(0, oldCount - 1) : oldCount + 1);
-
-    try {
-      setSaving(true);
-      const res = await articleApi.save(article.id);
-
-      // Đồng bộ từ response backend
-      const data = res?.data?.data ?? res?.data ?? null;
-      if (data) {
-        if (typeof data.saved === 'boolean') setSaved(data.saved);
-        if (typeof data.saveCount === 'number') setSaveCount(data.saveCount);
-        if (typeof data.liked === 'boolean') setLiked(data.liked);
-        if (typeof data.likeCount === 'number') setLikeCount(data.likeCount);
-      }
-    } catch (e) {
-      // lỗi thì rollback
-      setSaved(oldSaved);
-      setSaveCount(oldCount);
-      console.error('Save failed:', e?.response?.status, e?.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   return (
     <article className="np-card">
       <div className="np-card-header">
@@ -1872,12 +1799,13 @@ const ArticleCard = memo(function ArticleCard({
 ═══════════════════════════════════════ */
 
 function ArticleEditor({ onSubmit, submitting }) {
-  const [title,    setTitle]    = useState('');
+  const { t } = useTranslation();
+  const [title, setTitle] = useState('');
   const [category, setCategory] = useState('GENERAL');
-  const [blocks,   setBlocks]   = useState([mkText()]);
+  const [blocks, setBlocks] = useState([mkText()]);
 
-  const fileRef    = useRef(null);
-  const activeRef  = useRef(null);
+  const fileRef = useRef(null);
+  const activeRef = useRef(null);
   const isVideoRef = useRef(false);
 
   const updateBlock = useCallback((id, patch) => {
@@ -1903,11 +1831,11 @@ function ArticleEditor({ onSubmit, submitting }) {
   }, []);
 
   const pickFiles = (id, isVideo) => {
-    activeRef.current  = id;
+    activeRef.current = id;
     isVideoRef.current = isVideo;
     if (fileRef.current) {
       fileRef.current.accept = isVideo ? 'video/*' : 'image/*';
-      fileRef.current.value  = '';
+      fileRef.current.value = '';
       fileRef.current.click();
     }
   };
@@ -1944,11 +1872,11 @@ function ArticleEditor({ onSubmit, submitting }) {
       }
 
       const media = uploaded.map((u, i) => ({
-        mediaUrl:  u.url,
+        mediaUrl: u.url,
         mediaType: mediaItems[i].isVideo ? 'VIDEO' : 'IMAGE',
-        fileSize:  u.fileSize,
-        mimeType:  u.mimeType,
-        caption:   mediaItems[i].caption,
+        fileSize: u.fileSize,
+        mimeType: u.mimeType,
+        caption: mediaItems[i].caption,
       }));
 
       await onSubmit({ title, content: textContent, category: category.toUpperCase(), media });
@@ -2043,16 +1971,16 @@ function ArticleEditor({ onSubmit, submitting }) {
 ═══════════════════════════════════════ */
 
 const STATUS_FILTERS = [
-  { value: '',         label: 'Tất cả'       },
-  { value: 'PENDING',  label: '⏳ Đang xử lý' },
-  { value: 'APPROVED', label: '✅ Đã duyệt'   },
+  { value: '', label: 'Tất cả' },
+  { value: 'PENDING', label: '⏳ Đang xử lý' },
+  { value: 'APPROVED', label: '✅ Đã duyệt' },
   { value: 'REJECTED', label: '❌ Bị từ chối' },
 ];
 
 function MyArticles({ onOpenDetail, onHashtagClick, articleStates, onLike, onSave }) {
   const [statusFilter, setStatusFilter] = useState('');
-  const [articles,     setArticles]     = useState([]);
-  const [loading,      setLoading]      = useState(true);
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
@@ -2110,8 +2038,8 @@ function MyArticles({ onOpenDetail, onHashtagClick, articleStates, onLike, onSav
           <div className="np-empty-text">
             {statusFilter === 'PENDING' ? 'Không có bài đang chờ duyệt'
               : statusFilter === 'APPROVED' ? 'Không có bài đã duyệt'
-              : statusFilter === 'REJECTED' ? 'Không có bài bị từ chối'
-              : 'Chưa có bài viết nào'}
+                : statusFilter === 'REJECTED' ? 'Không có bài bị từ chối'
+                  : 'Chưa có bài viết nào'}
           </div>
         </div>
       ) : (
@@ -2140,7 +2068,7 @@ function MyArticles({ onOpenDetail, onHashtagClick, articleStates, onLike, onSav
 
 function SavedArticles({ onOpenDetail, onHashtagClick, articleStates, onLike, onSave }) {
   const [articles, setArticles] = useState([]);
-  const [loading,  setLoading]  = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -2150,6 +2078,7 @@ function SavedArticles({ onOpenDetail, onHashtagClick, articleStates, onLike, on
         setArticles(raw.map(s => s.article || s));
       } catch (e) {
         console.error('saved fail', e);
+        setArticles([]);
       } finally {
         setLoading(false);
       }
@@ -2199,16 +2128,17 @@ function SavedArticles({ onOpenDetail, onHashtagClick, articleStates, onLike, on
 
 function TrendingFeed({ onOpenDetail, onHashtagClick, articleStates, onLike, onSave }) {
   const [articles, setArticles] = useState([]);
-  const [loading,  setLoading]  = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const res  = await articleApi.getTrending({ page: 0, size: 20 });
+        const res = await articleApi.getTrending({ page: 0, size: 20 });
         const data = res?.data?.data?.content || [];
         setArticles(Array.isArray(data) ? data : []);
       } catch (e) {
         console.error('trending fail', e);
+        setArticles([]);
       } finally {
         setLoading(false);
       }
@@ -2255,11 +2185,11 @@ function TrendingFeed({ onOpenDetail, onHashtagClick, articleStates, onLike, onS
 ═══════════════════════════════════════ */
 
 function SearchTab({ initialKeyword = '', onOpenDetail, onHashtagClick, articleStates, onLike, onSave }) {
-  const [keyword,  setKeyword]  = useState(initialKeyword);
-  const [input,    setInput]    = useState(initialKeyword);
+  const [keyword, setKeyword] = useState(initialKeyword);
+  const [input, setInput] = useState(initialKeyword);
   const [category, setCategory] = useState('');
   const [articles, setArticles] = useState([]);
-  const [loading,  setLoading]  = useState(false);
+  const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
   const doSearch = useCallback(async (kw, cat) => {
@@ -2277,6 +2207,7 @@ function SearchTab({ initialKeyword = '', onOpenDetail, onHashtagClick, articleS
       setArticles(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error('search fail', e);
+      setArticles([]);
     } finally {
       setLoading(false);
     }
@@ -2355,15 +2286,15 @@ function SearchTab({ initialKeyword = '', onOpenDetail, onHashtagClick, articleS
 ═══════════════════════════════════════ */
 
 export default function NewsPage() {
-  const [tab,           setTab]           = useState('feed');
-  const [articles,      setArticles]      = useState([]);
-  const [loading,       setLoading]       = useState(true);
-  const [submitting,    setSubmitting]    = useState(false);
-  const [detailId,      setDetailId]      = useState(null);
+  const [tab, setTab] = useState('feed');
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [detailId, setDetailId] = useState(null);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [articleStates, setArticleStates] = useState({});
   // Cache article data sau khi fetch — tránh re-fetch & double view khi mở lại
-  const [articleCache,  setArticleCache]  = useState({});
+  const [articleCache, setArticleCache] = useState({});
 
   // Helper: merge patch vào articleStates[id]
   const patchState = useCallback((id, patch) => {
@@ -2380,14 +2311,14 @@ export default function NewsPage() {
       return {
         ...prev,
         [a.id]: {
-          liked:        a.liked        ?? false,
-          saved:        a.saved        ?? false,
-          likeCount:    a.likeCount    ?? 0,
-          saveCount:    a.saveCount    ?? 0,
+          liked: a.liked ?? false,
+          saved: a.saved ?? false,
+          likeCount: a.likeCount ?? 0,
+          saveCount: a.saveCount ?? 0,
           commentCount: a.commentCount ?? 0,
-          viewCount:    a.viewCount    ?? 0,
-          likeLoading:  false,
-          saveLoading:  false,
+          viewCount: a.viewCount ?? 0,
+          likeLoading: false,
+          saveLoading: false,
         },
       };
     });
@@ -2397,12 +2328,12 @@ export default function NewsPage() {
   const loadFeed = useCallback(async () => {
     try {
       setLoading(true);
-      const res  = await articleApi.getFeed({ page: 0, size: 20 });
+      const res = await articleApi.getFeed({ page: 0, size: 20 });
       const data = res?.data?.data?.content || res?.data?.data || [];
       setArticles(Array.isArray(data) ? data : []);
     } catch (e) {
-      // FIX 3: catch có tham số
       console.error('load fail', e?.response?.status, e?.message);
+      setArticles([]);
     } finally {
       setLoading(false);
     }
@@ -2446,14 +2377,14 @@ export default function NewsPage() {
 
     // Optimistic: cập nhật ngay
     patchState(articleId, {
-      liked:       !wasLiked,
-      likeCount:   Math.max(0, prevLikeCount + (wasLiked ? -1 : 1)),
+      liked: !wasLiked,
+      likeCount: Math.max(0, prevLikeCount + (wasLiked ? -1 : 1)),
       likeLoading: true,
     });
 
     try {
       const res = await articleApi.like(articleId);
-      const d   = res?.data?.data;
+      const d = res?.data?.data;
 
       setArticleStates(prev => {
         const s = prev[articleId] || {};
@@ -2461,9 +2392,9 @@ export default function NewsPage() {
           ...prev,
           [articleId]: {
             ...s,
-            liked:       d?.liked      ?? !wasLiked,
+            liked: d?.liked ?? !wasLiked,
             // Chỉ dùng server likeCount nếu trả về số thực, không dùng undefined/null
-            likeCount:   (typeof d?.likeCount === 'number') ? d.likeCount : s.likeCount,
+            likeCount: (typeof d?.likeCount === 'number') ? d.likeCount : s.likeCount,
             likeLoading: false,
           },
         };
@@ -2471,8 +2402,8 @@ export default function NewsPage() {
     } catch {
       // Rollback
       patchState(articleId, {
-        liked:       wasLiked,
-        likeCount:   prevLikeCount,
+        liked: wasLiked,
+        likeCount: prevLikeCount,
         likeLoading: false,
       });
     }
@@ -2491,14 +2422,14 @@ export default function NewsPage() {
 
     // Optimistic: cập nhật ngay
     patchState(articleId, {
-      saved:       !wasSaved,
-      saveCount:   Math.max(0, prevSaveCount + (wasSaved ? -1 : 1)),
+      saved: !wasSaved,
+      saveCount: Math.max(0, prevSaveCount + (wasSaved ? -1 : 1)),
       saveLoading: true,
     });
 
     try {
       const res = await articleApi.save(articleId);
-      const d   = res?.data?.data;
+      const d = res?.data?.data;
 
       setArticleStates(prev => {
         const s = prev[articleId] || {};
@@ -2506,9 +2437,9 @@ export default function NewsPage() {
           ...prev,
           [articleId]: {
             ...s,
-            saved:       d?.saved      ?? !wasSaved,
+            saved: d?.saved ?? !wasSaved,
             // KEY FIX: chỉ dùng saveCount từ server nếu là số thực
-            saveCount:   (typeof d?.saveCount === 'number') ? d.saveCount : s.saveCount,
+            saveCount: (typeof d?.saveCount === 'number') ? d.saveCount : s.saveCount,
             saveLoading: false,
           },
         };
@@ -2516,8 +2447,8 @@ export default function NewsPage() {
     } catch {
       // Rollback
       patchState(articleId, {
-        saved:       wasSaved,
-        saveCount:   prevSaveCount,
+        saved: wasSaved,
+        saveCount: prevSaveCount,
         saveLoading: false,
       });
     }
@@ -2545,7 +2476,8 @@ export default function NewsPage() {
     if (!articleStates[articleId]) {
       patchState(articleId, {
         liked: false, saved: false,
-        likeCount: 0, saveCount: 0, commentCount: 0, viewCount: 0,
+        // Bỏ khởi tạo 0 cho các count (để state là undefined)
+        // Khi đó component ArticleCard/Modal sẽ tự fallback sang `article.commentCount`
         likeLoading: false, saveLoading: false,
       });
       fetchStatusFor(articleId);
@@ -2581,12 +2513,12 @@ export default function NewsPage() {
   };
 
   const TABS = [
-    { key: 'feed',     label: '📰 Feed'      },
-    { key: 'trending', label: '🔥 Trending'  },
-    { key: 'write',    label: '✍️ Viết bài'  },
-    { key: 'my',       label: '📋 Của tôi'   },
-    { key: 'saved',    label: '🔖 Đã lưu'    },
-    { key: 'search',   label: '🔍 Tìm kiếm' },
+    { key: 'feed', label: '📰 Feed' },
+    { key: 'trending', label: '🔥 Trending' },
+    { key: 'write', label: '✍️ Viết bài' },
+    { key: 'my', label: '📋 Của tôi' },
+    { key: 'saved', label: '🔖 Đã lưu' },
+    { key: 'search', label: '🔍 Tìm kiếm' },
   ];
 
   return (
@@ -2625,12 +2557,61 @@ export default function NewsPage() {
                 <div className="np-empty-text">Chưa có bài viết nào</div>
               </div>
             ) : (
-              articles.map((a) => <ArticleCard key={a.id} article={a} />)
+              articles.map((a) => (
+                <ArticleCard
+                  key={a.id}
+                  article={a}
+                  counts={articleStates[a.id]}
+                  onLike={handleLike}
+                  onSave={handleSave}
+                  onOpenDetail={handleOpenDetail}
+                  onHashtagClick={handleHashtagClick}
+                />
+              ))
             )}
           </div>
         )}
 
-        {tab === 'my' && <MyArticles />}
+        {tab === 'my' && (
+          <MyArticles
+            onOpenDetail={handleOpenDetail}
+            onHashtagClick={handleHashtagClick}
+            articleStates={articleStates}
+            onLike={handleLike}
+            onSave={handleSave}
+          />
+        )}
+
+        {tab === 'saved' && (
+          <SavedArticles
+            onOpenDetail={handleOpenDetail}
+            onHashtagClick={handleHashtagClick}
+            articleStates={articleStates}
+            onLike={handleLike}
+            onSave={handleSave}
+          />
+        )}
+
+        {tab === 'trending' && (
+          <TrendingFeed
+            onOpenDetail={handleOpenDetail}
+            onHashtagClick={handleHashtagClick}
+            articleStates={articleStates}
+            onLike={handleLike}
+            onSave={handleSave}
+          />
+        )}
+
+        {tab === 'search' && (
+          <SearchTab
+            initialKeyword={searchKeyword}
+            onOpenDetail={handleOpenDetail}
+            onHashtagClick={handleHashtagClick}
+            articleStates={articleStates}
+            onLike={handleLike}
+            onSave={handleSave}
+          />
+        )}
       </div>
 
       {detailId && (

@@ -10,6 +10,7 @@ const TYPE_ICON = {
     ARTICLE_APPROVED: '✅',
     ARTICLE_REJECTED: '❌',
     ARTICLE_LIKED: '❤️',
+    ARTICLE_COMMENTED: '💬',
     TRAVEL_REMINDER: '✈️',
 };
 

@@ -697,14 +697,21 @@ export default function AtmMapPage({ embedded = false }) {
       center: [center.lng, center.lat],
       zoom: 14,
     });
+    gMapRef.current = map; // LƯU REF NGAY LẬP TỨC để tránh double init do StrictMode
+
     map.addControl(new goongjs.NavigationControl(), 'bottom-right');
     map.on('load', () => {
+      // Fix lỗi spam console từ style mặc định của Goong
+      if (map.getLayer('poi-tree')) {
+        map.removeLayer('poi-tree');
+      }
+
       map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
       map.addLayer({ id: 'route-bg', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': 'rgba(0,201,141,0.3)', 'line-width': 9, 'line-opacity': 0.8 } });
       map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#00C98D', 'line-width': 4, 'line-opacity': 1 } });
       map.addSource('route-done', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
       map.addLayer({ id: 'route-done-line', type: 'line', source: 'route-done', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': 'rgba(255,255,255,0.2)', 'line-width': 4, 'line-opacity': 0.8 } });
-      gMapRef.current = map;
+
       setMapReady(true);
 
       map.on('moveend', () => {
@@ -718,12 +725,10 @@ export default function AtmMapPage({ embedded = false }) {
           loadAtms(c.lat, c.lng).finally(() => setPanLoading(false));
         }, 900);
       });
-      // Suppress missing image warnings for custom sprite icons
+      // Suppress missing image warnings for custom sprite icons with proper Image buffer
       map.on('styleimagemissing', (e) => {
         if (!map.hasImage(e.id)) {
-          const canvas = document.createElement('canvas');
-          canvas.width = 1; canvas.height = 1;
-          map.addImage(e.id, canvas);
+          map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
         }
       });
     });

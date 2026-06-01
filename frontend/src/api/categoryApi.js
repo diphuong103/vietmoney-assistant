@@ -10,7 +10,7 @@ const categoryApi = {
       ...options,
     });
 
-    return response.data.data;
+    return response.data?.data ?? [];
   },
 
   create: async (payload, options = {}) => {
@@ -20,7 +20,7 @@ const categoryApi = {
       options
     );
 
-    return response.data.data;
+    return response.data?.data ?? [];
   },
 
   update: async (id, payload, options = {}) => {
@@ -30,7 +30,7 @@ const categoryApi = {
       options
     );
 
-    return response.data.data;
+    return response.data?.data ?? [];
   },
 
   delete: async (id, options = {}) => {
@@ -39,7 +39,7 @@ const categoryApi = {
       options
     );
 
-    return response.data.data;
+    return response.data?.data ?? null;
   },
 };
 

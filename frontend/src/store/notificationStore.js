@@ -22,8 +22,12 @@ export const useNotificationStore = create((set, get) => ({
             ]);
             const list = listRes?.data?.data ?? listRes?.data ?? [];
             const count = countRes?.data?.data ?? countRes?.data ?? 0;
-            set({ notifications: Array.isArray(list) ? list : [], unreadCount: Number(count) });
-        } catch { /* silent */ }
+            set({ notifications: Array.isArray(list) ? list : [], unreadCount: Number(count) || 0 });
+        } catch (error) {
+            if (error?.response?.status === 401 || error?.response?.status === 403 || error?.response?.status === 404) {
+                set({ notifications: [], unreadCount: 0 });
+            }
+        }
     },
 
     markAllRead: async () => {

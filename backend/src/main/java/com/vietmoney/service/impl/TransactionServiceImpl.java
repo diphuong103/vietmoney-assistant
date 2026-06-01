@@ -184,8 +184,22 @@ public class TransactionServiceImpl implements TransactionService {
     // ================= DELETE =================
     @Override
     public void delete(Long id) {
+        User user = getCurrentUser();
         Transaction txn = transactionRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND));
+
+        if (!txn.getUser().getId().equals(user.getId())) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+
+        // Hoàn trả spent nếu là chi tiêu có budget
+        if (txn.getBudget() != null && txn.getType() == CategoryType.EXPENSE) {
+            Budget budget = txn.getBudget();
+            if (budget.getSpentAmount() != null) {
+                budget.setSpentAmount(budget.getSpentAmount().subtract(txn.getAmount()));
+                budgetRepository.save(budget);
+            }
+        }
 
         transactionRepository.delete(txn);
     }

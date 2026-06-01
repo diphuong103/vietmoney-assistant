@@ -15,6 +15,8 @@ public class ArticleMediaDto {
     private String mimeType;
 
     public static ArticleMediaDto from(ArticleMedia m) {
+        if (m == null)
+            return null;
         return ArticleMediaDto.builder()
                 .id(m.getId())
                 .mediaUrl(m.getMediaUrl())

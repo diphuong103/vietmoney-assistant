@@ -272,7 +272,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     articleApi
-      .getAll({ size: 4 })
+      .getTrending({ size: 4 })
       .then((res) => {
         const outer = res?.data?.data ?? res?.data ?? {};
         const list = Array.isArray(outer) ? outer : outer?.content ?? [];
@@ -861,6 +861,7 @@ export default function DashboardPage() {
                 >
                   <img
                     src={
+                      art.mediaUrl ||
                       art.coverImage ||
                       art.imageUrl ||
                       art.thumbnailUrl ||

@@ -65,8 +65,6 @@ public class AiProxyService {
         });
 
         HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<ScanResultResponse> scanResponse = restTemplate.postForEntity(
-                aiServiceUrl + "/recognize", request, ScanResultResponse.class);
 
         // Python app.include_router(recognize.router, prefix="/recognize")
         // → endpoint là POST http://localhost:8001/recognize
