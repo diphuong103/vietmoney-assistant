@@ -290,7 +290,16 @@ export default function BudgetPage() {
 
   const loadBudgets = useCallback(async () => {
     if (!localStorage.getItem('accessToken')) return;
-    try { setBudgets((await budgetApi.getBudgets()) || []); } catch (e) { console.error(e); }
+    try {
+      const res = await budgetApi.getBudgets();
+      if (Array.isArray(res)) setBudgets(res);
+      else if (Array.isArray(res?.data)) setBudgets(res.data);
+      else if (res && res.id) setBudgets([res]);   // single budget object
+      else setBudgets([]);
+    } catch (e) {
+      console.error(e);
+      setBudgets([]);   // 404 or network error → safe empty array
+    }
   }, []);
 
   const refresh = useCallback(() => {
