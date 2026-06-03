@@ -359,6 +359,9 @@ ON article_reports(status);
 CREATE INDEX idx_user_follows_following
 ON user_follows(following_id);
 
+ALTER TABLE articles DROP INDEX IF EXISTS ft_articles_search;
+
+ALTER TABLE articles ADD FULLTEXT INDEX ft_articles_search (title, content);
 -- =========================================================
 -- DEFAULT HASHTAGS
 -- =========================================================

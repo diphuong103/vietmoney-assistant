@@ -1,6 +1,5 @@
 package com.vietmoney.controller;
 
-import com.vietmoney.domain.entity.SavedArticle;
 import com.vietmoney.dto.request.ArticleRequest;
 import com.vietmoney.dto.request.CommentRequest;
 import com.vietmoney.dto.response.*;

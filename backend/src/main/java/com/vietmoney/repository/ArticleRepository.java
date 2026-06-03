@@ -117,24 +117,24 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     // (xem ArticleService.searchArticles bên dưới).
     // =====================================================
 
-    @Query(
-            value = """
-            SELECT *
-            FROM articles
-            WHERE MATCH(title, content)
-            AGAINST (:keyword IN NATURAL LANGUAGE MODE)
-            AND deleted = false
-            ORDER BY created_at DESC
-            """,
-            countQuery = """
-            SELECT COUNT(*)
-            FROM articles
-            WHERE MATCH(title, content)
-            AGAINST (:keyword IN NATURAL LANGUAGE MODE)
-            AND deleted = false
-            """,
-            nativeQuery = true
-    )
+        @Query(
+                value = """
+        SELECT *
+        FROM articles
+        WHERE (title LIKE CONCAT('%', :keyword, '%')
+            OR content LIKE CONCAT('%', :keyword, '%'))
+        AND deleted = false
+        ORDER BY created_at DESC
+        """,
+                countQuery = """
+        SELECT COUNT(*)
+        FROM articles
+        WHERE (title LIKE CONCAT('%', :keyword, '%')
+            OR content LIKE CONCAT('%', :keyword, '%'))
+        AND deleted = false
+        """,
+                nativeQuery = true
+        )
     Page<Article> searchArticles(
             @Param("keyword") String keyword,
             Pageable pageable

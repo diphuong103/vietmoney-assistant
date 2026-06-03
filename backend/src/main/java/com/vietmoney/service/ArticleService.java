@@ -84,10 +84,6 @@ public class ArticleService {
         // PUBLIC FEED
         // =====================================================
 
-        /**
-         * Đọc toàn bộ article + mediaList trong cùng một transaction
-         * rồi map sang DTO trước khi session đóng → tránh LazyInitializationException
-         */
         @Transactional(readOnly = true)
         public Page<ArticleDto> getPublicFeed(int page, int size) {
                 Page<Article> articles = articleRepository.findByStatusAndVisibilityAndDeletedFalse(
@@ -208,9 +204,17 @@ public class ArticleService {
 
         @Transactional(readOnly = true)
         public Page<ArticleDto> searchArticles(String keyword, int page, int size) {
-                Page<Article> articles = articleRepository.searchArticles(
-                                keyword, pageableNoSort(page, size));
-                return mapToDto(articles);
+                if (keyword == null || keyword.trim().isEmpty()) {
+                        return Page.empty(pageableNoSort(page, size));
+                }
+                try {
+                        Page<Article> articles = articleRepository.searchArticles(
+                                        keyword, pageableNoSort(page, size));
+                        return mapToDto(articles);
+                } catch (Exception e) {
+                        log.warn("Search failed for keyword '{}': {}", keyword, e.getMessage());
+                        return Page.empty(pageableNoSort(page, size));
+                }
         }
 
         // =====================================================
@@ -352,7 +356,6 @@ public class ArticleService {
                                 : null);
 
                 article.getMediaList().clear();
-
                 if (request.getMedia() != null) {
                         for (MediaRequest mediaRequest : request.getMedia()) {
                                 ArticleMedia media = ArticleMedia.builder()
@@ -389,14 +392,12 @@ public class ArticleService {
         // SOFT DELETE
         // =====================================================
 
-        @Transactional
         public void softDeleteArticle(String username, Long articleId) {
                 User user = getUser(username);
                 Article article = getArticle(articleId);
                 if (!article.getAuthor().getId().equals(user.getId())) {
                         throw new AppException(ErrorCode.FORBIDDEN);
                 }
-
                 article.setDeleted(true);
                 articleRepository.save(article);
         }
@@ -419,47 +420,48 @@ public class ArticleService {
 
         @Transactional
         public ArticleStatusResponse toggleLike(String username, Long articleId) {
-                User user = getUser(username);
-                Article article = getArticle(articleId);
-                boolean liked;
+                User user = userRepository.findByUsername(username)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
-                Optional<ArticleLike> existingLike = articleLikeRepository.findByUserAndArticle(user, article);
+                Article article = articleRepository.findById(articleId)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết"));
+
+                Optional<ArticleLike> existingLike =
+                        articleLikeRepository.findByUserAndArticle(user, article);
+
+                boolean liked;
 
                 if (existingLike.isPresent()) {
                         articleLikeRepository.delete(existingLike.get());
-                        Long currentLikeCount = article.getLikeCount() != null ? article.getLikeCount() : 0L;
-                        article.setLikeCount(Math.max(0L, currentLikeCount - 1L));
-                        articleRepository.save(article);
+
+                        article.setLikeCount(
+                                Math.max(0, article.getLikeCount() - 1)
+                        );
+
                         liked = false;
                 } else {
-                        articleLikeRepository.save(ArticleLike.builder().user(user).article(article).build());
-                        Long currentLikeCount = article.getLikeCount() != null ? article.getLikeCount() : 0L;
-                        article.setLikeCount(currentLikeCount + 1L);
-                        articleRepository.save(article);
+                        ArticleLike articleLike = ArticleLike.builder()
+                                .user(user)
+                                .article(article)
+                                .build();
+
+                        articleLikeRepository.save(articleLike);
+
+                        article.setLikeCount(article.getLikeCount() + 1);
+
                         liked = true;
-                        try {
-                                if (!article.getAuthor().getId().equals(user.getId())) {
-                                        notificationService.sendTo(
-                                                        article.getAuthor(),
-                                                        NotificationType.ARTICLE_LIKED,
-                                                        "Bài viết mới được thích",
-                                                        user.getFullName() + " đã thích bài viết của bạn",
-                                                        "/news/" + article.getId());
-                                }
-                        } catch (Exception e) {
-                                log.warn("Không gửi được notification like cho article {}: {}",
-                                                article.getId(), e.getMessage());
-                        }
                 }
 
+                articleRepository.save(article);
+
                 return ArticleStatusResponse.builder()
-                                .liked(liked)
-                                .saved(savedArticleRepository.existsByUserAndArticle(user, article))
-                                .likeCount(articleLikeRepository.countByArticle(article))
-                                .saveCount(article.getSaveCount() != null ? article.getSaveCount() : 0)
-                                .commentCount(article.getCommentCount() != null ? article.getCommentCount() : 0)
-                                .viewCount(article.getViewCount() != null ? article.getViewCount() : 0)
-                                .build();
+                        .liked(liked)
+                        .saved(savedArticleRepository.existsByUserAndArticle(user, article))
+                        .likeCount(article.getLikeCount())
+                        .saveCount(article.getSaveCount())
+                        .commentCount(article.getCommentCount())
+                        .viewCount(article.getViewCount())
+                        .build();
         }
 
         // =====================================================
@@ -468,33 +470,49 @@ public class ArticleService {
 
         @Transactional
         public ArticleStatusResponse toggleSave(String username, Long articleId) {
-                User user = getUser(username);
-                Article article = getArticle(articleId);
+                User user = userRepository.findByUsername(username)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+                Article article = articleRepository.findById(articleId)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết"));
+
+                Optional<SavedArticle> existingSave =
+                        savedArticleRepository.findByUserAndArticle(user, article);
+
                 boolean saved;
 
-                Optional<SavedArticle> existing = savedArticleRepository.findByUserAndArticle(user, article);
+                if (existingSave.isPresent()) {
+                        savedArticleRepository.delete(existingSave.get());
 
-                if (existing.isPresent()) {
-                        savedArticleRepository.delete(existing.get());
-                        Long currentSaveCount = article.getSaveCount() != null ? article.getSaveCount() : 0L;
-                        article.setSaveCount(Math.max(0L, currentSaveCount - 1L));
+                        article.setSaveCount(
+                                Math.max(0, article.getSaveCount() - 1)
+                        );
+
                         saved = false;
                 } else {
-                        savedArticleRepository.save(SavedArticle.builder().user(user).article(article).build());
-                        Long currentSaveCount = article.getSaveCount() != null ? article.getSaveCount() : 0L;
-                        article.setSaveCount(currentSaveCount + 1L);
+                        SavedArticle savedArticle = SavedArticle.builder()
+                                .user(user)
+                                .article(article)
+                                .folder("DEFAULT")
+                                .build();
+
+                        savedArticleRepository.save(savedArticle);
+
+                        article.setSaveCount(article.getSaveCount() + 1);
+
                         saved = true;
                 }
+
                 articleRepository.save(article);
 
                 return ArticleStatusResponse.builder()
-                                .liked(articleLikeRepository.existsByUserAndArticle(user, article))
-                                .saved(saved)
-                                .likeCount(article.getLikeCount() != null ? article.getLikeCount() : 0)
-                                .saveCount(article.getSaveCount() != null ? article.getSaveCount() : 0)
-                                .commentCount(article.getCommentCount() != null ? article.getCommentCount() : 0)
-                                .viewCount(article.getViewCount() != null ? article.getViewCount() : 0)
-                                .build();
+                        .liked(articleLikeRepository.existsByUserAndArticle(user, article))
+                        .saved(saved)
+                        .likeCount(article.getLikeCount())
+                        .saveCount(article.getSaveCount())
+                        .commentCount(article.getCommentCount())
+                        .viewCount(article.getViewCount())
+                        .build();
         }
 
         // =====================================================
@@ -503,16 +521,20 @@ public class ArticleService {
 
         @Transactional(readOnly = true)
         public ArticleStatusResponse getArticleStatus(String username, Long articleId) {
-                User user = getUser(username);
-                Article article = getArticle(articleId);
+                User user = userRepository.findByUsername(username)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+                Article article = articleRepository.findById(articleId)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết"));
+
                 return ArticleStatusResponse.builder()
-                                .liked(articleLikeRepository.existsByUserAndArticle(user, article))
-                                .saved(savedArticleRepository.existsByUserAndArticle(user, article))
-                                .likeCount(articleLikeRepository.countByArticle(article))
-                                .saveCount(article.getSaveCount() != null ? article.getSaveCount() : 0)
-                                .commentCount(article.getCommentCount() != null ? article.getCommentCount() : 0)
-                                .viewCount(article.getViewCount() != null ? article.getViewCount() : 0)
-                                .build();
+                        .liked(articleLikeRepository.existsByUserAndArticle(user, article))
+                        .saved(savedArticleRepository.existsByUserAndArticle(user, article))
+                        .likeCount(article.getLikeCount())
+                        .saveCount(article.getSaveCount())
+                        .commentCount(article.getCommentCount())
+                        .viewCount(article.getViewCount())
+                        .build();
         }
 
         // =====================================================
@@ -662,8 +684,7 @@ public class ArticleService {
 
                 ArticleComment saved = articleCommentRepository.save(comment);
 
-                Long currentCommentCount = article.getCommentCount() != null ? article.getCommentCount() : 0L;
-                article.setCommentCount(currentCommentCount + 1L);
+                article.setCommentCount(article.getCommentCount() + 1);
                 articleRepository.save(article);
 
                 // Gửi notification cho tác giả bài viết (nếu người comment khác tác giả)

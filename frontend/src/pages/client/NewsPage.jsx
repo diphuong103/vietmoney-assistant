@@ -12,7 +12,6 @@ import mediaApi from '../../api/mediaApi';
 
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { useTranslation } from 'react-i18next';
 
 dayjs.extend(relativeTime);
 
@@ -30,61 +29,14 @@ const _fetchCache = new Map(); // articleId → { promise, data }
 ═══════════════════════════════════════ */
 
 const CATEGORY_PALETTE = {
-  GENERAL: {
-    accent: '#6B7280',
-    bg: 'rgba(107,114,128,.15)',
-    text: '#6B7280',
-    label: 'General',
-  },
-
-  TRAVEL: {
-    accent: '#0D9488',
-    bg: 'rgba(13,148,136,.15)',
-    text: '#0D9488',
-    label: 'Travel',
-  },
-
-  FOOD: {
-    accent: '#F59E0B',
-    bg: 'rgba(245,158,11,.15)',
-    text: '#F59E0B',
-    label: 'Food',
-  },
-
-  BUDGET: {
-    accent: '#3B82F6',
-    bg: 'rgba(59,130,246,.15)',
-    text: '#3B82F6',
-    label: 'Budget',
-  },
-
-  SCAM_ALERT: {
-    accent: '#EF4444',
-    bg: 'rgba(239,68,68,.15)',
-    text: '#EF4444',
-    label: 'Scam Alert',
-  },
-
-  TRANSPORT: {
-    accent: '#8B5CF6',
-    bg: 'rgba(139,92,246,.15)',
-    text: '#8B5CF6',
-    label: 'Transport',
-  },
-
-  HOTEL: {
-    accent: '#10B981',
-    bg: 'rgba(16,185,129,.15)',
-    text: '#10B981',
-    label: 'Hotel',
-  },
-
-  TIPS: {
-    accent: '#EC4899',
-    bg: 'rgba(236,72,153,.15)',
-    text: '#EC4899',
-    label: 'Tips',
-  },
+  GENERAL: { accent: '#6B7280', bg: 'rgba(107,114,128,.15)', text: '#6B7280', label: 'General' },
+  TRAVEL: { accent: '#0D9488', bg: 'rgba(13,148,136,.15)', text: '#0D9488', label: 'Travel' },
+  FOOD: { accent: '#F59E0B', bg: 'rgba(245,158,11,.15)', text: '#F59E0B', label: 'Food' },
+  BUDGET: { accent: '#3B82F6', bg: 'rgba(59,130,246,.15)', text: '#3B82F6', label: 'Budget' },
+  SCAM_ALERT: { accent: '#EF4444', bg: 'rgba(239,68,68,.15)', text: '#EF4444', label: 'Scam Alert' },
+  TRANSPORT: { accent: '#8B5CF6', bg: 'rgba(139,92,246,.15)', text: '#8B5CF6', label: 'Transport' },
+  HOTEL: { accent: '#10B981', bg: 'rgba(16,185,129,.15)', text: '#10B981', label: 'Hotel' },
+  TIPS: { accent: '#EC4899', bg: 'rgba(236,72,153,.15)', text: '#EC4899', label: 'Tips' },
 };
 
 const STATUS_PALETTE = {
@@ -163,7 +115,7 @@ const CSS = `
   cursor:pointer;
   background:transparent;
   color:#666;
-  font-size:14px;
+  font-size:13px;
   font-weight:600;
   font-family:inherit;
   transition:all .2s;
@@ -261,7 +213,6 @@ const CSS = `
 }
 .np-title-input::placeholder{ color:#333; }
 
-/* Category selector */
 .np-cat-row{
   padding:0 24px 16px;
   display:flex;
@@ -283,9 +234,9 @@ const CSS = `
 }
 .np-cat-chip:hover{ color:#ccc; border-color:rgba(255,255,255,.1); }
 .np-cat-chip.selected{
-  border-color: var(--cat-accent);
-  color: var(--cat-accent);
-  background: var(--cat-bg);
+  border-color:var(--cat-accent);
+  color:var(--cat-accent);
+  background:var(--cat-bg);
 }
 
 .np-divider{
@@ -294,10 +245,8 @@ const CSS = `
   margin:0 24px;
 }
 
-/* Blocks */
 .np-block{ padding:16px 24px; }
 
-/* FIX 2: block wrapper for remove button */
 .np-block-wrap{
   position:relative;
   margin-bottom:16px;
@@ -444,7 +393,6 @@ const CSS = `
   display:flex; align-items:center; gap:8px; margin-top:2px;
 }
 
-/* Badges */
 .np-badge{
   display:inline-flex; align-items:center; gap:4px;
   padding:3px 10px;
@@ -472,7 +420,6 @@ const CSS = `
   overflow:hidden;
 }
 
-/* Rejection reason */
 .np-rejection{
   margin-top:12px;
   padding:12px 14px;
@@ -980,9 +927,7 @@ function CategoryBadge({ category }) {
   );
 }
 
-// FIX 1: StatusBadge giờ an toàn với undefined/null
 function StatusBadge({ status }) {
-  const { t } = useTranslation();
   if (!status) return null;
   const s = getStatus(status);
   if (!s) return null;
@@ -994,7 +939,6 @@ function StatusBadge({ status }) {
 }
 
 function TextBlock({ block, onChange }) {
-  const { t } = useTranslation();
   return (
     <textarea
       className="np-textarea"
@@ -1005,18 +949,12 @@ function TextBlock({ block, onChange }) {
   );
 }
 
-// FIX 2: Caption onChange không còn mutate object gốc
 function MediaBlock({ block, onChange, onPick, removeMedia }) {
-  const { t } = useTranslation();
   return (
     <div className="np-media-box">
       <div className="np-media-actions">
-        <button className="np-btn" onClick={() => onPick(block.id, false)}>
-          📷 {t('editor_add_image', 'Thêm ảnh')}
-        </button>
-        <button className="np-btn" onClick={() => onPick(block.id, true)}>
-          🎬 {t('editor_add_video', 'Thêm video')}
-        </button>
+        <button className="np-btn" onClick={() => onPick(block.id, false)}>📷 Thêm ảnh</button>
+        <button className="np-btn" onClick={() => onPick(block.id, true)}>🎬 Thêm video</button>
       </div>
       {block.items.length > 0 && (
         <div className="np-media-grid">
@@ -1031,7 +969,6 @@ function MediaBlock({ block, onChange, onPick, removeMedia }) {
                 placeholder="Chú thích..."
                 value={item.caption}
                 onChange={(e) => {
-                  // Tạo object mới hoàn toàn thay vì mutate
                   const updated = block.items.map((it, i) =>
                     i === idx ? { ...it, caption: e.target.value } : it
                   );
@@ -1696,18 +1633,19 @@ const ArticleCard = memo(function ArticleCard({
   };
 
   return (
-    <article className="np-card">
-      <div className="np-card-header">
+    <article
+      className="np-card"
+      onClick={() => onOpenDetail?.(article.id)}
+      style={{ cursor: 'pointer' }}
+    >
+      <div className="np-card-header" style={{ position: 'relative' }}>
         <div className="np-avatar" style={{ background: cat.accent }}>
           {initials(article.authorName || 'VM')}
         </div>
-
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="np-author-name">{article.authorName || 'VietMoney'}</div>
-
           <div className="np-author-meta">
             <CategoryBadge category={article.category} />
-            {/* FIX 1: chỉ render StatusBadge khi showStatus=true */}
             {showStatus && <StatusBadge status={article.status} />}
           </div>
         </div>
@@ -1799,7 +1737,6 @@ const ArticleCard = memo(function ArticleCard({
 ═══════════════════════════════════════ */
 
 function ArticleEditor({ onSubmit, submitting }) {
-  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('GENERAL');
   const [blocks, setBlocks] = useState([mkText()]);
@@ -1809,19 +1746,18 @@ function ArticleEditor({ onSubmit, submitting }) {
   const isVideoRef = useRef(false);
 
   const updateBlock = useCallback((id, patch) => {
-    setBlocks((prev) => prev.map((b) => b.id === id ? { ...b, ...patch } : b));
+    setBlocks(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b));
   }, []);
 
-  // FIX 2: hàm xoá block
   const removeBlock = useCallback((id) => {
-    setBlocks((prev) => {
-      const next = prev.filter((b) => b.id !== id);
+    setBlocks(prev => {
+      const next = prev.filter(b => b.id !== id);
       return next.length > 0 ? next : [mkText()];
     });
   }, []);
 
   const removeMedia = useCallback((blockId, idx) => {
-    setBlocks((prev) => prev.map((b) => {
+    setBlocks(prev => prev.map(b => {
       if (b.id !== blockId) return b;
       const items = [...b.items];
       URL.revokeObjectURL(items[idx].preview);
@@ -1840,16 +1776,16 @@ function ArticleEditor({ onSubmit, submitting }) {
     }
   };
 
-  const handleFiles = (e) => {
+  const handleFiles = e => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    const mapped = files.map((file) => ({
+    const mapped = files.map(file => ({
       file,
       preview: URL.createObjectURL(file),
       isVideo: file.type.startsWith('video/'),
       caption: '',
     }));
-    setBlocks((prev) => prev.map((b) =>
+    setBlocks(prev => prev.map(b =>
       b.id === activeRef.current
         ? { ...b, items: [...(b.items || []), ...mapped] }
         : b
@@ -1860,15 +1796,14 @@ function ArticleEditor({ onSubmit, submitting }) {
     if (!title.trim()) return alert('Vui lòng nhập tiêu đề');
     try {
       const textContent = blocks
-        .filter((b) => b.type === 'text')
-        .map((b) => b.content)
+        .filter(b => b.type === 'text')
+        .map(b => b.content)
         .join('\n\n');
 
-      const mediaItems = blocks.flatMap((b) => b.type === 'media' ? b.items : []);
-
+      const mediaItems = blocks.flatMap(b => b.type === 'media' ? b.items : []);
       let uploaded = [];
       if (mediaItems.length > 0) {
-        uploaded = await mediaApi.uploadMultipleMedia(mediaItems.map((m) => m.file));
+        uploaded = await mediaApi.uploadMultipleMedia(mediaItems.map(m => m.file));
       }
 
       const media = uploaded.map((u, i) => ({
@@ -1880,7 +1815,6 @@ function ArticleEditor({ onSubmit, submitting }) {
       }));
 
       await onSubmit({ title, content: textContent, category: category.toUpperCase(), media });
-
       setTitle('');
       setCategory('GENERAL');
       setBlocks([mkText()]);
@@ -1889,16 +1823,13 @@ function ArticleEditor({ onSubmit, submitting }) {
     }
   };
 
-  // Cleanup previews on unmount
   useEffect(() => {
     return () => {
-      blocks.forEach((b) => {
-        if (b.type === 'media') b.items.forEach((item) => URL.revokeObjectURL(item.preview));
+      blocks.forEach(b => {
+        if (b.type === 'media') b.items.forEach(item => URL.revokeObjectURL(item.preview));
       });
     };
   }, []); // eslint-disable-line
-
-  const cat = getCat(category);
 
   return (
     <div className="np-editor">
@@ -1906,40 +1837,26 @@ function ArticleEditor({ onSubmit, submitting }) {
         className="np-title-input"
         placeholder="Tiêu đề bài viết..."
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={e => setTitle(e.target.value)}
       />
-
-      {/* Category picker */}
       <div className="np-cat-row">
-        {CATEGORY_OPTIONS.map((opt) => (
+        {CATEGORY_OPTIONS.map(opt => (
           <button
             key={opt.value}
             className={`np-cat-chip${category === opt.value ? ' selected' : ''}`}
-            style={{
-              '--cat-accent': opt.accent,
-              '--cat-bg': getCat(opt.value).bg,
-            }}
+            style={{ '--cat-accent': opt.accent, '--cat-bg': getCat(opt.value).bg }}
             onClick={() => setCategory(opt.value)}
           >
             {opt.label}
           </button>
         ))}
       </div>
-
       <div className="np-divider" />
-
-      {/* Blocks — FIX 2: mỗi block có nút ✕ để xoá */}
       <div className="np-block">
-        {blocks.map((block) => (
+        {blocks.map(block => (
           <div key={block.id} className="np-block-wrap">
             {blocks.length > 1 && (
-              <button
-                className="np-block-remove"
-                onClick={() => removeBlock(block.id)}
-                title={t('editor_remove_block', 'Xoá block này')}
-              >
-                ✕
-              </button>
+              <button className="np-block-remove" onClick={() => removeBlock(block.id)} title="Xoá block này">✕</button>
             )}
             {block.type === 'text'
               ? <TextBlock block={block} onChange={updateBlock} />
@@ -1948,19 +1865,13 @@ function ArticleEditor({ onSubmit, submitting }) {
           </div>
         ))}
       </div>
-
       <div className="np-editor-actions">
-        <button className="np-btn" onClick={() => setBlocks((p) => [...p, mkText()])}>
-          + {t('editor_add_text', 'Văn bản')}
-        </button>
-        <button className="np-btn" onClick={() => setBlocks((p) => [...p, mkMedia()])}>
-          + Media
-        </button>
+        <button className="np-btn" onClick={() => setBlocks(p => [...p, mkText()])}>+ Văn bản</button>
+        <button className="np-btn" onClick={() => setBlocks(p => [...p, mkMedia()])}>+ Media</button>
         <button className="np-btn np-publish" disabled={submitting} onClick={publish}>
           {submitting ? 'Đang đăng...' : '🚀 Đăng bài'}
         </button>
       </div>
-
       <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={handleFiles} />
     </div>
   );
@@ -1989,8 +1900,7 @@ function MyArticles({ onOpenDetail, onHashtagClick, articleStates, onLike, onSav
       const data = res?.data?.data?.content || [];
       setArticles(Array.isArray(data) ? data : []);
     } catch (e) {
-      // FIX 3: catch phải có tham số để dùng
-      console.error('load fail', e?.response?.status, e?.message);
+      console.error('load fail', e);
     } finally {
       setLoading(false);
     }
@@ -2000,34 +1910,31 @@ function MyArticles({ onOpenDetail, onHashtagClick, articleStates, onLike, onSav
 
   return (
     <div>
-      {/* Status filter pills */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
         {STATUS_FILTERS.map(f => {
           const s = getStatus(f.value);
           const active = statusFilter === f.value;
           return (
-            <button
-              key={f.value}
-              onClick={() => setStatusFilter(f.value)}
-              style={{
-                padding: '7px 16px',
-                border: `1px solid ${active ? (s?.accent || '#0D9488') : 'rgba(255,255,255,.1)'}`,
-                borderRadius: 20,
-                cursor: 'pointer',
-                background: active ? (s?.bg || 'rgba(13,148,136,.15)') : 'transparent',
-                color: active ? (s?.text || '#0D9488') : '#666',
-                fontSize: 13,
-                fontWeight: 600,
-                fontFamily: 'inherit',
-                transition: 'all .2s',
-              }}
-            >
+            <button key={f.value} onClick={() => setStatusFilter(f.value)} style={{
+              padding: '7px 16px',
+              border: `1px solid ${active ? (s?.accent || '#0D9488') : 'rgba(255,255,255,.1)'}`,
+              borderRadius: 20, cursor: 'pointer',
+              background: active ? (s?.bg || 'rgba(13,148,136,.15)') : 'transparent',
+              color: active ? (s?.text || '#0D9488') : '#666',
+              fontSize: 13, fontWeight: 600, fontFamily: 'inherit', transition: 'all .2s',
+            }}>
               {f.label}
             </button>
           );
         })}
       </div>
-
+      {!loading && (
+        <div style={{ marginBottom: 16, fontSize: 13, color: '#555' }}>
+          {statusFilter
+            ? `${articles.length} bài ${STATUS_FILTERS.find(f => f.value === statusFilter)?.label?.toLowerCase()}`
+            : `${articles.length} bài viết`}
+        </div>
+      )}
       {loading ? (
         <div className="np-empty"><div className="np-empty-text">Đang tải...</div></div>
       ) : articles.length === 0 ? (
@@ -2078,7 +1985,6 @@ function SavedArticles({ onOpenDetail, onHashtagClick, articleStates, onLike, on
         setArticles(raw.map(s => s.article || s));
       } catch (e) {
         console.error('saved fail', e);
-        setArticles([]);
       } finally {
         setLoading(false);
       }
@@ -2138,7 +2044,6 @@ function TrendingFeed({ onOpenDetail, onHashtagClick, articleStates, onLike, onS
         setArticles(Array.isArray(data) ? data : []);
       } catch (e) {
         console.error('trending fail', e);
-        setArticles([]);
       } finally {
         setLoading(false);
       }
@@ -2272,8 +2177,16 @@ function SearchTab({ initialKeyword = '', onOpenDetail, onHashtagClick, articleS
         </div>
       ) : (
         <div className="np-feed">
-          {articles.map((a) => (
-            <ArticleCard key={a.id} article={a} showStatus />
+          {articles.map(a => (
+            <ArticleCard
+              key={a.id}
+              article={a}
+              counts={articleStates[a.id]}
+              onOpenDetail={onOpenDetail}
+              onHashtagClick={h => { setInput('#' + h); doSearch('#' + h, ''); }}
+              onLike={onLike}
+              onSave={onSave}
+            />
           ))}
         </div>
       )}
@@ -2282,7 +2195,25 @@ function SearchTab({ initialKeyword = '', onOpenDetail, onHashtagClick, articleS
 }
 
 /* ═══════════════════════════════════════
-   MAIN PAGE
+   MAIN PAGE — NewsPage
+
+   articleStates = single source of truth cho tất cả interaction states
+   Shape: {
+     [articleId]: {
+       liked, saved,
+       likeCount, saveCount, commentCount, viewCount,
+       likeLoading, saveLoading,
+     }
+   }
+
+   FIX SAVE COUNT:
+   - handleSave chỉ update saveCount từ server nếu server trả về số thực
+   - Không dùng `?? undefined` — nếu server không trả về saveCount thì giữ giá trị optimistic
+
+   FIX INSTANT:
+   - Optimistic update xảy ra TRƯỚC khi gọi API
+   - Nếu API lỗi → rollback
+   - statusReady đã bỏ → button không bị disabled khi chờ sync
 ═══════════════════════════════════════ */
 
 export default function NewsPage() {
@@ -2330,10 +2261,13 @@ export default function NewsPage() {
       setLoading(true);
       const res = await articleApi.getFeed({ page: 0, size: 20 });
       const data = res?.data?.data?.content || res?.data?.data || [];
-      setArticles(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setArticles(list);
+      list.forEach(a => initStateFromArticle(a));
+      // Sync like/save status từ server trong background
+      list.forEach(a => fetchStatusFor(a.id));
     } catch (e) {
-      console.error('load fail', e?.response?.status, e?.message);
-      setArticles([]);
+      console.error('load fail', e);
     } finally {
       setLoading(false);
     }
@@ -2476,8 +2410,7 @@ export default function NewsPage() {
     if (!articleStates[articleId]) {
       patchState(articleId, {
         liked: false, saved: false,
-        // Bỏ khởi tạo 0 cho các count (để state là undefined)
-        // Khi đó component ArticleCard/Modal sẽ tự fallback sang `article.commentCount`
+        likeCount: 0, saveCount: 0, commentCount: 0, viewCount: 0,
         likeLoading: false, saveLoading: false,
       });
       fetchStatusFor(articleId);
@@ -2505,8 +2438,7 @@ export default function NewsPage() {
     try {
       setSubmitting(true);
       await articleApi.create({ ...payload, visibility: 'PUBLIC', status: 'PENDING' });
-      setTab('feed');
-      await loadFeed();
+      setTab('my');
     } finally {
       setSubmitting(false);
     }
@@ -2532,7 +2464,7 @@ export default function NewsPage() {
 
       <div className="np-wrap">
         <div className="np-tabs">
-          {TABS.map((t) => (
+          {TABS.map(t => (
             <button
               key={t.key}
               className={`np-tab${tab === t.key ? ' active' : ''}`}
@@ -2557,26 +2489,36 @@ export default function NewsPage() {
                 <div className="np-empty-text">Chưa có bài viết nào</div>
               </div>
             ) : (
-              articles.map((a) => (
+              articles.map(a => (
                 <ArticleCard
                   key={a.id}
                   article={a}
                   counts={articleStates[a.id]}
-                  onLike={handleLike}
-                  onSave={handleSave}
                   onOpenDetail={handleOpenDetail}
                   onHashtagClick={handleHashtagClick}
+                  onLike={handleLike}
+                  onSave={handleSave}
                 />
               ))
             )}
           </div>
         )}
 
-        {tab === 'my' && (
-          <MyArticles
+        {tab === 'trending' && (
+          <TrendingFeed
+            articleStates={articleStates}
             onOpenDetail={handleOpenDetail}
             onHashtagClick={handleHashtagClick}
+            onLike={handleLike}
+            onSave={handleSave}
+          />
+        )}
+
+        {tab === 'my' && (
+          <MyArticles
             articleStates={articleStates}
+            onOpenDetail={handleOpenDetail}
+            onHashtagClick={handleHashtagClick}
             onLike={handleLike}
             onSave={handleSave}
           />
@@ -2584,19 +2526,9 @@ export default function NewsPage() {
 
         {tab === 'saved' && (
           <SavedArticles
+            articleStates={articleStates}
             onOpenDetail={handleOpenDetail}
             onHashtagClick={handleHashtagClick}
-            articleStates={articleStates}
-            onLike={handleLike}
-            onSave={handleSave}
-          />
-        )}
-
-        {tab === 'trending' && (
-          <TrendingFeed
-            onOpenDetail={handleOpenDetail}
-            onHashtagClick={handleHashtagClick}
-            articleStates={articleStates}
             onLike={handleLike}
             onSave={handleSave}
           />
@@ -2604,10 +2536,11 @@ export default function NewsPage() {
 
         {tab === 'search' && (
           <SearchTab
+            key={searchKeyword}
             initialKeyword={searchKeyword}
+            articleStates={articleStates}
             onOpenDetail={handleOpenDetail}
             onHashtagClick={handleHashtagClick}
-            articleStates={articleStates}
             onLike={handleLike}
             onSave={handleSave}
           />

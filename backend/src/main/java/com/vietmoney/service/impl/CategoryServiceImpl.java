@@ -26,6 +26,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
     private final UserRepository userRepository;
+    private final com.vietmoney.repository.TransactionRepository transactionRepository;
 
     private User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -52,8 +53,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional(readOnly = true)
     public List<CategoryResponse> getMyCategories() {
         return categoryMapper.toResponseList(
-                categoryRepository.findByUserIdOrderByCreatedAtDesc(getCurrentUser().getId())
-        );
+                categoryRepository.findByUserIdOrderByCreatedAtDesc(getCurrentUser().getId()));
     }
 
     @Override
@@ -61,9 +61,7 @@ public class CategoryServiceImpl implements CategoryService {
     public List<CategoryResponse> getMyCategoriesByType(CategoryType type) {
         return categoryMapper.toResponseList(
                 categoryRepository.findByUserIdAndTypeOrderByCreatedAtDesc(
-                        getCurrentUser().getId(), type
-                )
-        );
+                        getCurrentUser().getId(), type));
     }
 
     @Override
@@ -81,17 +79,21 @@ public class CategoryServiceImpl implements CategoryService {
         return categoryMapper.toResponse(categoryRepository.save(category));
     }
 
-    @Override
-    public void deleteCategory(Long id) {
-        User user = getCurrentUser();
+        @Override
+        public void deleteCategory(Long id) {
+            User user = getCurrentUser();
 
-        Category category = categoryRepository.findByIdAndUserId(id, user.getId())
-                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+            Category category = categoryRepository.findByIdAndUserId(id, user.getId())
+                    .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
 
-        if (Boolean.TRUE.equals(category.getIsDefault())) {
-            throw new AppException(ErrorCode.DEFAULT_CATEGORY_CANNOT_DELETE);
+            if (Boolean.TRUE.equals(category.getIsDefault())) {
+                throw new AppException(ErrorCode.DEFAULT_CATEGORY_CANNOT_DELETE);
+            }
+
+            if (transactionRepository.existsByCategoryId(category.getId())) {
+                throw new AppException(ErrorCode.CATEGORY_IN_USE);
+            }
+
+            categoryRepository.delete(category);
         }
-
-        categoryRepository.delete(category);
-    }
 }
