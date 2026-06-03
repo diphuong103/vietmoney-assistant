@@ -21,6 +21,10 @@ ai-service/app/models/*.pt
 backend/src/main/resources/application.yml
 backend/src/main/resources/application-*.yml
 
+backend/src/main/resources/application.yml
+backend/src/main/resources/application-dev.yml
+backend/src/main/resources/application-prod.yml
+
 # IDE
 .idea/
 .vscode/

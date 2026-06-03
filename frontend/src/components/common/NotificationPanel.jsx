@@ -43,7 +43,15 @@ export default function NotificationPanel({ open, onClose }) {
     const handleClick = async (notif) => {
         if (!notif.read) await markRead(notif.id);
         onClose();
-        if (notif.link) navigate(notif.link);
+        if (notif.link) {
+            // Parse /news/{articleId} links → navigate with state so NewsPage opens the modal
+            const newsMatch = notif.link.match(/^\/news\/(\d+)$/);
+            if (newsMatch) {
+                navigate('/news', { state: { openArticleId: Number(newsMatch[1]) } });
+            } else {
+                navigate(notif.link);
+            }
+        }
     };
 
     if (!open) return null;

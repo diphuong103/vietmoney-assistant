@@ -858,7 +858,27 @@ export default function DashboardPage() {
                   className="lp-masonry-card"
                   key={art.id ?? i}
                   onClick={() => navigate('/news')}
+                  style={{ position: 'relative' }}
                 >
+                  {i < 3 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 10,
+                      left: 10,
+                      zIndex: 2,
+                      background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+                      color: '#fff',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '3px 10px',
+                      borderRadius: 12,
+                      boxShadow: '0 2px 8px rgba(255,107,53,.4)',
+                      letterSpacing: '.3px',
+                    }}>
+                      #{i + 1} 🔥
+                    </div>
+                  )}
+
                   <img
                     src={
                       art.mediaUrl ||

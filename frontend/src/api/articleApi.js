@@ -1,22 +1,22 @@
 import axiosClient from './axiosClient';
 
 const articleApi = {
-  // ── PUBLIC FEED ─────────────────────
+  // PUBLIC FEED
   getFeed: (params = {}) =>
       axiosClient.get('/articles/public', { params }),
 
   getAll: (params = {}) =>
       axiosClient.get('/articles/public', { params }),
 
-  // ── FOLLOWING FEED ──────────────────  (MỚI)
+  // FOLLOWING FEED
   getFollowingFeed: (params = {}) =>
       axiosClient.get('/articles/following', { params }),
 
-  // ── ARTICLE DETAIL ──────────────────  (MỚI)
+  // ARTICLE DETAIL
   getById: (id) =>
       axiosClient.get(`/articles/${id}`),
 
-  // ── COMMENTS ────────────────────────
+  // COMMENTS
   getComments: (articleId, params = {}) =>
       axiosClient.get(`/articles/${articleId}/comments`, { params }),
 
@@ -32,47 +32,57 @@ const articleApi = {
   deleteComment: (articleId, commentId) =>
       axiosClient.delete(`/articles/${articleId}/comments/${commentId}`),
 
-  // ── PREVIEW (không tăng view) ────────
+  // PREVIEW
   getPreview: (id) =>
       axiosClient.get(`/articles/${id}/preview`),
 
-  // ── MY POSTS ────────────────────────
+  // MY POSTS
   getMyPosts: (params = {}) =>
       axiosClient.get('/articles/my', { params }),
 
-  // ── USER ARTICLES ───────────────────  (MỚI)
+  // USER ARTICLES
   getUserArticles: (userId, params = {}) =>
       axiosClient.get(`/articles/user/${userId}`, { params }),
 
-  // ── CATEGORY ────────────────────────  (MỚI)
+  // CATEGORY
   getByCategory: (category, params = {}) =>
       axiosClient.get(`/articles/category/${category}`, { params }),
 
-  // ── LOCATION ────────────────────────  (MỚI)
+  // LOCATION
   getByLocation: (location, params = {}) =>
-      axiosClient.get('/articles/location', { params: { location, ...params } }),
+      axiosClient.get('/articles/location', {
+        params: {
+          location,
+          ...params,
+        },
+      }),
 
-  // ── TRENDING ────────────────────────  (MỚI)
+  // TRENDING
   getTrending: (params = {}) =>
       axiosClient.get('/articles/trending', { params }),
 
-  // ── FEATURED ────────────────────────  (MỚI)
+  // FEATURED
   getFeatured: (params = {}) =>
       axiosClient.get('/articles/featured', { params }),
 
-  // ── SEARCH ──────────────────────────  (MỚI)
+  // SEARCH
   search: (keyword, params = {}) =>
-      axiosClient.get('/articles/search', { params: { keyword, ...params } }),
+      axiosClient.get('/articles/search', {
+        params: {
+          keyword,
+          ...params,
+        },
+      }),
 
-  // ── HASHTAG ─────────────────────────  (MỚI)
+  // HASHTAG
   getByHashtag: (hashtag, params = {}) =>
       axiosClient.get(`/articles/hashtag/${hashtag}`, { params }),
 
-  // ── RELATED ─────────────────────────  (MỚI)
+  // RELATED
   getRelated: (id, params = {}) =>
       axiosClient.get(`/articles/${id}/related`, { params }),
 
-  // ── CRUD ────────────────────────────
+  // CRUD
   create: (data) =>
       axiosClient.post('/articles', data),
 
@@ -82,7 +92,7 @@ const articleApi = {
   deleteSoft: (id) =>
       axiosClient.delete(`/articles/${id}/soft`),
 
-  // ── LIKE / SAVE ─────────────────────
+  // LIKE / SAVE
   like: (id) =>
       axiosClient.post(`/articles/${id}/like`),
 
@@ -92,11 +102,11 @@ const articleApi = {
   getStatus: (id) =>
       axiosClient.get(`/articles/${id}/status`),
 
-  // ── SAVED LIST ──────────────────────  (MỚI)
+  // SAVED LIST
   getSaved: (params = {}) =>
       axiosClient.get('/articles/saved', { params }),
 
-  // ── STATISTICS ──────────────────────  (MỚI)
+  // STATISTICS
   countApproved: () =>
       axiosClient.get('/articles/statistics/approved-count'),
 

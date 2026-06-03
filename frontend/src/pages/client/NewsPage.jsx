@@ -5,6 +5,7 @@ import {
   useCallback,
   memo,
 } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import Navbar from '../../components/layout/Navbar';
 import articleApi from '../../api/articleApi';
@@ -1793,33 +1794,65 @@ function ArticleEditor({ onSubmit, submitting }) {
   };
 
   const publish = async () => {
-    if (!title.trim()) return alert('Vui lòng nhập tiêu đề');
-    try {
-      const textContent = blocks
+    if (submitting) return;
+
+    if (!title.trim()) {
+      alert('Vui lòng nhập tiêu đề');
+      return;
+    }
+
+    const textContent = blocks
         .filter(b => b.type === 'text')
-        .map(b => b.content)
+        .map(b => b.content?.trim())
+        .filter(Boolean)
         .join('\n\n');
 
-      const mediaItems = blocks.flatMap(b => b.type === 'media' ? b.items : []);
+    if (!textContent.trim()) {
+      alert('Vui lòng nhập nội dung bài viết');
+      return;
+    }
+
+    try {
+      const mediaItems = blocks.flatMap(b =>
+          b.type === 'media' ? b.items : []
+      );
+
       let uploaded = [];
+
       if (mediaItems.length > 0) {
-        uploaded = await mediaApi.uploadMultipleMedia(mediaItems.map(m => m.file));
+        uploaded = await mediaApi.uploadMultipleMedia(
+            mediaItems.map(m => m.file)
+        );
       }
 
-      const media = uploaded.map((u, i) => ({
-        mediaUrl: u.url,
-        mediaType: mediaItems[i].isVideo ? 'VIDEO' : 'IMAGE',
-        fileSize: u.fileSize,
-        mimeType: u.mimeType,
-        caption: mediaItems[i].caption,
-      }));
+      const media = Array.isArray(uploaded)
+          ? uploaded.map((u, i) => ({
+            mediaUrl: u.mediaUrl || u.url || u.data?.url || '',
+            mediaType: mediaItems[i]?.isVideo ? 'VIDEO' : 'IMAGE',
+            fileSize: u.fileSize || u.size || null,
+            mimeType: u.mimeType || u.contentType || null,
+          }))
+          : [];
 
-      await onSubmit({ title, content: textContent, category: category.toUpperCase(), media });
+      const payload = {
+        title: title.trim(),
+        content: textContent.trim(),
+        category: category || 'GENERAL',
+        visibility: 'PUBLIC',
+        status: 'PENDING',
+        location: '',
+        hashtags: [],
+        media: media.filter(m => m.mediaUrl),
+      };
+
+      await onSubmit(payload);
+
       setTitle('');
       setCategory('GENERAL');
       setBlocks([mkText()]);
-    } catch {
-      alert('Đăng bài thất bại');
+    } catch (error) {
+      console.error('Publish article failed:', error.response?.data || error);
+      alert(error.response?.data?.message || 'Đăng bài thất bại');
     }
   };
 
@@ -1869,7 +1902,7 @@ function ArticleEditor({ onSubmit, submitting }) {
         <button className="np-btn" onClick={() => setBlocks(p => [...p, mkText()])}>+ Văn bản</button>
         <button className="np-btn" onClick={() => setBlocks(p => [...p, mkMedia()])}>+ Media</button>
         <button className="np-btn np-publish" disabled={submitting} onClick={publish}>
-          {submitting ? 'Đang đăng...' : '🚀 Đăng bài'}
+          {submitting ? 'Đang upload và đăng...' : '🚀 Đăng bài'}
         </button>
       </div>
       <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={handleFiles} />
@@ -2227,6 +2260,17 @@ export default function NewsPage() {
   // Cache article data sau khi fetch — tránh re-fetch & double view khi mở lại
   const [articleCache, setArticleCache] = useState({});
 
+  // Deep-link: khi navigate từ notification với state.openArticleId
+  const location = useLocation();
+  useEffect(() => {
+    const aid = location.state?.openArticleId;
+    if (aid) {
+      setDetailId(aid);
+      // Clear state để không mở lại khi re-render
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
+
   // Helper: merge patch vào articleStates[id]
   const patchState = useCallback((id, patch) => {
     setArticleStates(prev => ({
@@ -2435,10 +2479,49 @@ export default function NewsPage() {
   };
 
   const handleSubmit = async (payload) => {
+    if (submitting) return;
+
     try {
       setSubmitting(true);
-      await articleApi.create({ ...payload, visibility: 'PUBLIC', status: 'PENDING' });
+
+      const requestBody = {
+        title: payload.title?.trim() || '',
+        content: payload.content?.trim() || '',
+        category: payload.category || 'GENERAL',
+        visibility: payload.visibility || 'PUBLIC',
+        status: payload.status || 'PENDING',
+        location: payload.location || '',
+        hashtags: Array.isArray(payload.hashtags) ? payload.hashtags : [],
+        media: Array.isArray(payload.media) ? payload.media : [],
+      };
+
+      console.log('Create article payload:', requestBody);
+
+      const res = await articleApi.create(requestBody);
+      const createdArticle = res?.data?.data;
+
+      if (createdArticle) {
+        setArticles(prev => [createdArticle, ...prev]);
+
+        setArticleStates(prev => ({
+          ...prev,
+          [createdArticle.id]: {
+            liked: false,
+            saved: false,
+            likeCount: createdArticle.likeCount ?? 0,
+            saveCount: createdArticle.saveCount ?? 0,
+            commentCount: createdArticle.commentCount ?? 0,
+            viewCount: createdArticle.viewCount ?? 0,
+            likeLoading: false,
+            saveLoading: false,
+          },
+        }));
+      }
+
       setTab('my');
+    } catch (error) {
+      console.error('Create article failed:', error.response?.data || error);
+      alert(error.response?.data?.message || 'Đăng bài thất bại');
     } finally {
       setSubmitting(false);
     }
