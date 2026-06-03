@@ -1,35 +1,113 @@
-# Java / Maven
+# =========================
+# Java / Maven / Spring Boot
+# =========================
 backend/target/
 backend/*.jar
+backend/*.war
+backend/*.ear
 *.class
 
-# Node
+# Spring Boot config
+backend/src/main/resources/application.yml
+backend/src/main/resources/application-dev.yml
+backend/src/main/resources/application-prod.yml
+backend/src/main/resources/application-*.yml
+
+# =========================
+# Frontend React / Vite
+# =========================
 frontend/node_modules/
 frontend/dist/
+frontend/build/
+frontend/.vite/
 
-# Python
+# Root node_modules
+node_modules/
+
+# npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Python AI Service
+# =========================
 ai-service/__pycache__/
 ai-service/**/__pycache__/
 ai-service/.venv/
-ai-service/app/models/*.pt
+ai-service/venv/
+*.pyc
+*.pyo
+*.pyd
 
-# Environment (IMPORTANT)
+# AI Models
+ai-service/app/models/*.pt
+ai-service/app/models/*.pth
+ai-service/app/models/*.onnx
+
+# =========================
+# Environment Variables
+# =========================
+.env
+.env.*
 *.env
 *.env.*
 
-# Spring Boot config (IMPORTANT)
-backend/src/main/resources/application.yml
-backend/src/main/resources/application-*.yml
+# =========================
+# Upload Files
+# =========================
+uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
 
+# Nếu muốn giữ thư mục uploads nhưng bỏ file bên trong:
+# uploads/*
+# !uploads/.gitkeep
+
+# =========================
 # IDE
+# =========================
 .idea/
 .vscode/
 *.iml
 
-# OS
+# Eclipse
+.project
+.classpath
+.settings/
+
+# NetBeans
+nbproject/
+
+# =========================
+# OS Files
+# =========================
 .DS_Store
 Thumbs.db
+desktop.ini
 
+# =========================
 # Logs
+# =========================
 *.log
 *.tmp
+logs/
+*.out
+
+# =========================
+# Testing
+# =========================
+coverage/
+.coverage
+.pytest_cache/
+
+# =========================
+# Misc
+# =========================
+*.bak
+*.swp
+*.swo
