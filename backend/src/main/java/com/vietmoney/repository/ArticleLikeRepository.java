@@ -11,59 +11,38 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ArticleLikeRepository
-        extends JpaRepository<ArticleLike, Long> {
+public interface ArticleLikeRepository extends JpaRepository<ArticleLike, Long> {
 
-    // BASIC
+    Optional<ArticleLike> findByUserAndArticle(User user, Article article);
 
-    Optional<ArticleLike> findByUserAndArticle(
-            User user,
-            Article article
-    );
-
-    boolean existsByUserAndArticle(
-            User user,
-            Article article
-    );
-
-    // COUNTS
+    boolean existsByUserAndArticle(User user, Article article);
 
     long countByArticle(Article article);
 
     long countByUser(User user);
 
-    // LIST
-
     List<ArticleLike> findByArticle(Article article);
 
     List<ArticleLike> findByUser(User user);
-
-    // DELETE
 
     @Modifying
     @Query("""
         DELETE FROM ArticleLike al
         WHERE al.article.id = :articleId
     """)
-    void deleteByArticleId(
-            @Param("articleId") Long articleId
-    );
+    void deleteByArticleId(@Param("articleId") Long articleId);
 
     @Modifying
     @Query("""
         DELETE FROM ArticleLike al
         WHERE al.user.id = :userId
     """)
-    void deleteByUserId(
-            @Param("userId") Long userId
-    );
+    void deleteByUserId(@Param("userId") Long userId);
 
     @Modifying
     @Query("""
         DELETE FROM ArticleLike al
         WHERE al.article.author.id = :authorId
     """)
-    void deleteByArticleAuthorId(
-            @Param("authorId") Long authorId
-    );
+    void deleteByArticleAuthorId(@Param("authorId") Long authorId);
 }

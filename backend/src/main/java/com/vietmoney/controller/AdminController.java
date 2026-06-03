@@ -22,7 +22,7 @@ import java.time.LocalDate;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
-    private final UserService            userService;
+    private final UserService userService;
     private final ArticleService         articleService;
     private final UserRepository         userRepository;
     private final ArticleRepository      articleRepository;

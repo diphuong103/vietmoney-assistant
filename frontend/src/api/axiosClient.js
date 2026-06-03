@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 
 const BASE = import.meta.env.VITE_API_BASE_URL
     ? `${import.meta.env.VITE_API_BASE_URL}/api/v1`
-    : 'http://localhost:8080/api/v1';   // fallback rõ ràng cho dev
+    : '/api/v1';   // dùng Vite proxy (vite.config.js đã cấu hình /api → localhost:8080)
 
 const axiosClient = axios.create({
     baseURL: BASE,

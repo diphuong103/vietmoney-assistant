@@ -39,7 +39,7 @@ export default function useCategories() {
       await categoryApi.delete(id);
 
       setCategories((prev) =>
-        prev.filter((cat) => cat.id !== id)
+          prev.filter((cat) => cat.id !== id)
       );
     } catch (error) {
       console.error('Delete category failed', error);

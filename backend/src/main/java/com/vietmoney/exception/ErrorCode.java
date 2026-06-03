@@ -18,12 +18,12 @@ public enum ErrorCode {
     COMMENT_NOT_FOUND(
             404,
             "Bình luận không tồn tại",
-            HttpStatus.NOT_FOUND
-    ),
+            HttpStatus.NOT_FOUND),
 
     BUDGET_NOT_FOUND(404, "Ngân sách không tồn tại", HttpStatus.NOT_FOUND),
     CATEGORY_ALREADY_EXISTS(409, "Danh mục đã tồn tại", HttpStatus.CONFLICT),
     CATEGORY_NOT_FOUND(404, "Danh mục không tồn tại", HttpStatus.NOT_FOUND),
+    CATEGORY_IN_USE(400, "Danh mục đang được sử dụng trong giao dịch, không thể xóa", HttpStatus.BAD_REQUEST),
 
     // NEW - PRICE UNIT
     UNIT_ALREADY_EXISTS(409, "Đơn vị đã tồn tại", HttpStatus.CONFLICT),

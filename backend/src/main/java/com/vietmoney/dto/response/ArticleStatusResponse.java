@@ -2,7 +2,8 @@ package com.vietmoney.dto.response;
 
 import lombok.*;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

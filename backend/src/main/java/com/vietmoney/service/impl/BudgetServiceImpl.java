@@ -114,25 +114,17 @@ public class BudgetServiceImpl implements BudgetService {
                 .findFirstByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
                         user.getId(),
                         today,
-                        today
-                )
+                        today)
                 .orElse(null);
 
-
-        //Nếu user chưa có budget đang hoạt động
-        if(activeBudget == null) {
-            return DailyBudgetResponse.builder()
-                    .dailyLimit(BigDecimal.ZERO)
-                    .spentToday(BigDecimal.ZERO)
-                    .remaining(BigDecimal.ZERO)
-                    .percentUsed(0)
-                    .build();
+        if (activeBudget == null) {
+            return null;
         }
+
         // số ngày budget
         long totalDays = ChronoUnit.DAYS.between(
                 activeBudget.getStartDate(),
-                activeBudget.getEndDate()
-        ) + 1;
+                activeBudget.getEndDate()) + 1;
 
         if (totalDays <= 0) {
             throw new AppException(ErrorCode.INVALID_DATE_RANGE);
@@ -150,8 +142,7 @@ public class BudgetServiceImpl implements BudgetService {
                 user.getId(),
                 CategoryType.EXPENSE,
                 startOfDay,
-                endOfDay
-        );
+                endOfDay);
 
         if (spentToday == null) {
             spentToday = BigDecimal.ZERO;
@@ -211,16 +202,22 @@ public class BudgetServiceImpl implements BudgetService {
 
     // ================= MAPPER + PERCENT =================
     private BudgetResponse mapPercent(Budget budget) {
-        BigDecimal spent = budget.getSpentAmount() == null
-                ? BigDecimal.ZERO
-                : budget.getSpentAmount();
-
         BigDecimal total = budget.getTotalAmount() == null
                 ? BigDecimal.ZERO
                 : budget.getTotalAmount();
 
-        double percent = 0;
+        BigDecimal spent = transactionRepository.sumByUserAndTypeAndDateRange(
+                budget.getUser().getId(),
+                CategoryType.EXPENSE,
+                budget.getStartDate().atStartOfDay(),
+                budget.getEndDate().plusDays(1).atStartOfDay()
+        );
 
+        if (spent == null) {
+            spent = BigDecimal.ZERO;
+        }
+
+        double percent = 0;
         if (total.compareTo(BigDecimal.ZERO) > 0) {
             percent = spent
                     .divide(total, 4, RoundingMode.HALF_UP)
@@ -229,6 +226,7 @@ public class BudgetServiceImpl implements BudgetService {
         }
 
         BudgetResponse response = budgetMapper.toResponse(budget);
+        response.setSpentAmount(spent);
         response.setPercentUsed(percent);
 
         return response;

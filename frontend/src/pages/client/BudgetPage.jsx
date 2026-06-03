@@ -316,7 +316,7 @@ export default function BudgetPage() {
 
   const activeBudget = useMemo(() => {
     const today = toDateKey(new Date());
-    return budgetsEnriched.find(b => b.startDate <= today && b.endDate >= today) || budgetsEnriched[0] || null;
+    return budgetsEnriched.find(b => b.startDate <= today && b.endDate >= today) || null;
   }, [budgetsEnriched]);
 
   const totalBudget = activeBudget ? Number(activeBudget.totalAmount) : 0;
@@ -479,6 +479,7 @@ export default function BudgetPage() {
         subtitle={t('nav_budget', 'Ngân sách')}
         actions={
           <>
+            <button className="icon-btn" onClick={() => setCatOpen(true)} title={t('budget_manage_cat', 'Quản lý danh mục')}>🏷️</button>
             <button className="icon-btn" onClick={openNewBudget} title={t('budget_create', 'Tạo ngân sách mới')}>🎯</button>
             <button
               onClick={() => { resetTxnForm(); setAddOpen(true); }}

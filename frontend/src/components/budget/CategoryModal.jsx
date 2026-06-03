@@ -2,28 +2,28 @@ import { useMemo, useState } from 'react';
 
 const ICON_GROUPS = {
   EXPENSE: [
-    { label: 'Food & Drink',      icon: '🍽️', icons: ['🍜','🍛','🍔','🍕','🌮','🍣','🍱','🍝','🥗','🍲','🥩','🍗','🥪','🧆','🫕','☕','🧋','🍵','🥤','🍺','🧃','🍹'] },
-    { label: 'Transport',         icon: '🚗', icons: ['🚕','🚌','🛵','⛽','🚗','🚙','✈️','🚂','🚲','🛺','🚁','⛴️','🚤'] },
-    { label: 'Shopping',          icon: '🛍️', icons: ['🛍️','👗','👟','💄','💍','⌚','👜','🕶️','🧴','🪮','🧸','🎀','🛒'] },
-    { label: 'Housing',           icon: '🏠', icons: ['🏠','🏨','💡','🔧','🪴','🛋️','🛁','🪟','🧹','🏡','🏢','🪣','🔑'] },
-    { label: 'Entertainment',     icon: '🎮', icons: ['🎮','🎬','🎵','🎭','🎪','🎯','🎲','⚽','🏸','🎸','🎻','🎨','📷'] },
-    { label: 'Health & Beauty',   icon: '💊', icons: ['💊','🏥','🧴','💆','🦷','🩺','💉','🩹','🧘','🏋️','🩻','🫀','🧬'] },
-    { label: 'Education',         icon: '📚', icons: ['📚','🎓','✏️','📖','🔬','🔭','💻','🖥️','📐','📝','🎒','📓','🏫'] },
-    { label: 'Pets',              icon: '🐶', icons: ['🐶','🐱','🐠','🐦','🐹','🐇','🦮','🧶','🪺','🦴','🐾'] },
-    { label: 'Gifts & Others',    icon: '🎁', icons: ['🎁','💐','🎂','🎉','🕯️','🏷️','📦','🎊','🎈','💝','🧧','🪅','✉️'] },
+    { label: 'Food & Drink', icon: '🍽️', icons: ['🍜', '🍛', '🍔', '🍕', '🌮', '🍣', '🍱', '🍝', '🥗', '🍲', '🥩', '🍗', '🥪', '🧆', '🫕', '☕', '🧋', '🍵', '🥤', '🍺', '🧃', '🍹'] },
+    { label: 'Transport', icon: '🚗', icons: ['🚕', '🚌', '🛵', '⛽', '🚗', '🚙', '✈️', '🚂', '🚲', '🛺', '🚁', '⛴️', '🚤'] },
+    { label: 'Shopping', icon: '🛍️', icons: ['🛍️', '👗', '👟', '💄', '💍', '⌚', '👜', '🕶️', '🧴', '🪮', '🧸', '🎀', '🛒'] },
+    { label: 'Housing', icon: '🏠', icons: ['🏠', '🏨', '💡', '🔧', '🪴', '🛋️', '🛁', '🪟', '🧹', '🏡', '🏢', '🪣', '🔑'] },
+    { label: 'Entertainment', icon: '🎮', icons: ['🎮', '🎬', '🎵', '🎭', '🎪', '🎯', '🎲', '⚽', '🏸', '🎸', '🎻', '🎨', '📷'] },
+    { label: 'Health & Beauty', icon: '💊', icons: ['💊', '🏥', '🧴', '💆', '🦷', '🩺', '💉', '🩹', '🧘', '🏋️', '🩻', '🫀', '🧬'] },
+    { label: 'Education', icon: '📚', icons: ['📚', '🎓', '✏️', '📖', '🔬', '🔭', '💻', '🖥️', '📐', '📝', '🎒', '📓', '🏫'] },
+    { label: 'Pets', icon: '🐶', icons: ['🐶', '🐱', '🐠', '🐦', '🐹', '🐇', '🦮', '🧶', '🪺', '🦴', '🐾'] },
+    { label: 'Gifts & Others', icon: '🎁', icons: ['🎁', '💐', '🎂', '🎉', '🕯️', '🏷️', '📦', '🎊', '🎈', '💝', '🧧', '🪅', '✉️'] },
   ],
   INCOME: [
-    { label: 'Salary & Work',     icon: '💼', icons: ['💼','🏢','🧑‍💻','👔','🤝','📋','🗂️','📊','🖥️','🖨️','📠','🗃️','🏗️'] },
-    { label: 'Money & Finance',   icon: '💵', icons: ['💵','💰','🪙','💳','🏦','📈','💹','🤑','💲','🏧','📉','🧾','💸'] },
-    { label: 'Business',          icon: '📦', icons: ['📦','🏪','🛒','🏬','🚚','🏭','📣','🔖','📢','📡','🧮','⚙️'] },
-    { label: 'Investment',        icon: '📈', icons: ['📈','🏠','🏘️','🌐','⛏️','📊','🔐','🏆','🎖️','🥇','💎','🛡️'] },
-    { label: 'Freelance & Gifts', icon: '🎨', icons: ['🎁','🎨','✍️','🎵','📸','🎬','🧑‍🎨','👩‍💻','🧑‍🏫','🔧','⚒️','🪛','🎤'] },
+    { label: 'Salary & Work', icon: '💼', icons: ['💼', '🏢', '🧑‍💻', '👔', '🤝', '📋', '🗂️', '📊', '🖥️', '🖨️', '📠', '🗃️', '🏗️'] },
+    { label: 'Money & Finance', icon: '💵', icons: ['💵', '💰', '🪙', '💳', '🏦', '📈', '💹', '🤑', '💲', '🏧', '📉', '🧾', '💸'] },
+    { label: 'Business', icon: '📦', icons: ['📦', '🏪', '🛒', '🏬', '🚚', '🏭', '📣', '🔖', '📢', '📡', '🧮', '⚙️'] },
+    { label: 'Investment', icon: '📈', icons: ['📈', '🏠', '🏘️', '🌐', '⛏️', '📊', '🔐', '🏆', '🎖️', '🥇', '💎', '🛡️'] },
+    { label: 'Freelance & Gifts', icon: '🎨', icons: ['🎁', '🎨', '✍️', '🎵', '📸', '🎬', '🧑‍🎨', '👩‍💻', '🧑‍🏫', '🔧', '⚒️', '🪛', '🎤'] },
   ],
 };
 
 const DEFAULT_COLORS = [
-  '#F87171','#FB923C','#FBBF24','#34D399',
-  '#60A5FA','#A78BFA','#F472B6','#22D3EE',
+  '#F87171', '#FB923C', '#FBBF24', '#34D399',
+  '#60A5FA', '#A78BFA', '#F472B6', '#22D3EE',
 ];
 
 const styles = `
@@ -171,7 +171,7 @@ export default function CategoryModal({
   addCategory,
   deleteCategory,
 }) {
-  const [tab, setTab]               = useState('EXPENSE');
+  const [tab, setTab] = useState('EXPENSE');
   const [newCatName, setNewCatName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('🍜');
 
@@ -246,7 +246,7 @@ export default function CategoryModal({
                       {cat.icon}
                     </div>
                     <span className="cm-cat-name">{cat.name}</span>
-                    <button className="cm-cat-del" onClick={() => deleteCategory(cat.id)}>✕</button>
+                    <button className="cm-cat-del" onClick={() => deleteCategory(cat.id).catch(() => { })}>✕</button>
                   </div>
                 ))
               )}
@@ -263,11 +263,10 @@ export default function CategoryModal({
                   {group.icons.map((ic, ii) => (
                     <button
                       key={ii}
-                      className={`cm-icon-btn ${
-                        selectedIcon === ic
+                      className={`cm-icon-btn ${selectedIcon === ic
                           ? tab === 'EXPENSE' ? 'sel-expense' : 'sel-income'
                           : ''
-                      }`}
+                        }`}
                       onClick={() => setSelectedIcon(ic)}
                     >
                       {ic}

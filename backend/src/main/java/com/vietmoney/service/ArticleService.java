@@ -55,12 +55,12 @@ public class ArticleService {
 
         private User getUser(String username) {
                 return userRepository.findByUsername(username)
-                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         }
 
         private Article getArticle(Long articleId) {
                 return articleRepository.findById(articleId)
-                        .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
+                                .orElseThrow(() -> new AppException(ErrorCode.ARTICLE_NOT_FOUND));
         }
 
         private void loadRelations(Article article) {
@@ -71,12 +71,12 @@ public class ArticleService {
 
         private Page<ArticleDto> mapToDto(Page<Article> articles) {
                 List<ArticleDto> content = articles.getContent()
-                        .stream()
-                        .map(article -> {
-                                loadRelations(article);
-                                return ArticleDto.from(article);
-                        })
-                        .collect(Collectors.toList());
+                                .stream()
+                                .map(article -> {
+                                        loadRelations(article);
+                                        return ArticleDto.from(article);
+                                })
+                                .collect(Collectors.toList());
                 return new PageImpl<>(content, articles.getPageable(), articles.getTotalElements());
         }
 
@@ -84,14 +84,10 @@ public class ArticleService {
         // PUBLIC FEED
         // =====================================================
 
-        /**
-         * Đọc toàn bộ article + mediaList trong cùng một transaction
-         * rồi map sang DTO trước khi session đóng → tránh LazyInitializationException
-         */
         @Transactional(readOnly = true)
         public Page<ArticleDto> getPublicFeed(int page, int size) {
                 Page<Article> articles = articleRepository.findByStatusAndVisibilityAndDeletedFalse(
-                        ArticleStatus.APPROVED, ArticleVisibility.PUBLIC, pageable(page, size));
+                                ArticleStatus.APPROVED, ArticleVisibility.PUBLIC, pageable(page, size));
                 return mapToDto(articles);
         }
 
@@ -103,12 +99,13 @@ public class ArticleService {
         public Page<ArticleDto> getFollowingFeed(String username, int page, int size) {
                 User user = getUser(username);
                 List<Long> followingIds = userFollowRepository.findByFollower(user)
-                        .stream()
-                        .map(follow -> follow.getFollowing().getId())
-                        .collect(Collectors.toList());
-                if (followingIds.isEmpty()) return Page.empty();
+                                .stream()
+                                .map(follow -> follow.getFollowing().getId())
+                                .collect(Collectors.toList());
+                if (followingIds.isEmpty())
+                        return Page.empty();
                 Page<Article> articles = articleRepository.findFollowingFeed(
-                        followingIds, ArticleStatus.APPROVED, pageable(page, size));
+                                followingIds, ArticleStatus.APPROVED, pageable(page, size));
                 return mapToDto(articles);
         }
 
@@ -139,7 +136,7 @@ public class ArticleService {
                 if (status != null && !status.isBlank()) {
                         ArticleStatus articleStatus = ArticleStatus.valueOf(status.toUpperCase());
                         articles = articleRepository.findByAuthorAndStatusAndDeletedFalse(
-                                user, articleStatus, pageable(page, size));
+                                        user, articleStatus, pageable(page, size));
                 } else {
                         articles = articleRepository.findByAuthorAndDeletedFalse(user, pageable(page, size));
                 }
@@ -153,7 +150,7 @@ public class ArticleService {
         @Transactional(readOnly = true)
         public Page<ArticleDto> getUserArticles(Long userId, int page, int size) {
                 Page<Article> articles = articleRepository.findByAuthorIdAndDeletedFalse(
-                        userId, pageable(page, size));
+                                userId, pageable(page, size));
                 return mapToDto(articles);
         }
 
@@ -165,7 +162,7 @@ public class ArticleService {
         public Page<ArticleDto> getByCategory(String category, int page, int size) {
                 ArticleCategory articleCategory = ArticleCategory.valueOf(category.toUpperCase());
                 Page<Article> articles = articleRepository.findByCategoryAndStatusAndDeletedFalse(
-                        articleCategory, ArticleStatus.APPROVED, pageable(page, size));
+                                articleCategory, ArticleStatus.APPROVED, pageable(page, size));
                 return mapToDto(articles);
         }
 
@@ -176,7 +173,7 @@ public class ArticleService {
         @Transactional(readOnly = true)
         public Page<ArticleDto> getByLocation(String location, int page, int size) {
                 Page<Article> articles = articleRepository
-                        .findByLocationContainingIgnoreCaseAndDeletedFalse(location, pageable(page, size));
+                                .findByLocationContainingIgnoreCaseAndDeletedFalse(location, pageable(page, size));
                 return mapToDto(articles);
         }
 
@@ -197,7 +194,7 @@ public class ArticleService {
         @Transactional(readOnly = true)
         public Page<ArticleDto> getFeatured(int page, int size) {
                 Page<Article> articles = articleRepository
-                        .findByIsFeaturedTrueAndDeletedFalse(pageable(page, size));
+                                .findByIsFeaturedTrueAndDeletedFalse(pageable(page, size));
                 return mapToDto(articles);
         }
 
@@ -207,9 +204,17 @@ public class ArticleService {
 
         @Transactional(readOnly = true)
         public Page<ArticleDto> searchArticles(String keyword, int page, int size) {
-                Page<Article> articles = articleRepository.searchArticles(
-                        keyword, pageableNoSort(page, size));
-                return mapToDto(articles);
+                if (keyword == null || keyword.trim().isEmpty()) {
+                        return Page.empty(pageableNoSort(page, size));
+                }
+                try {
+                        Page<Article> articles = articleRepository.searchArticles(
+                                        keyword, pageableNoSort(page, size));
+                        return mapToDto(articles);
+                } catch (Exception e) {
+                        log.warn("Search failed for keyword '{}': {}", keyword, e.getMessage());
+                        return Page.empty(pageableNoSort(page, size));
+                }
         }
 
         // =====================================================
@@ -230,7 +235,7 @@ public class ArticleService {
         public Page<ArticleDto> getRelatedArticles(Long articleId, int page, int size) {
                 Article article = getArticle(articleId);
                 Page<Article> articles = articleRepository.findRelatedArticles(
-                        article.getCategory(), articleId, pageable(page, size));
+                                article.getCategory(), articleId, pageable(page, size));
                 return mapToDto(articles);
         }
 
@@ -242,48 +247,51 @@ public class ArticleService {
                 User author = getUser(username);
 
                 Article article = Article.builder()
-                        .author(author)
-                        .title(request.getTitle())
-                        .content(request.getContent())
-                        .category(request.getCategory() != null
-                                ? ArticleCategory.valueOf(request.getCategory().toUpperCase())
-                                : ArticleCategory.GENERAL)
-                        .visibility(request.getVisibility() != null
-                                ? ArticleVisibility.valueOf(request.getVisibility().toUpperCase())
-                                : ArticleVisibility.PUBLIC)
-                        .status(request.getStatus() != null
-                                ? ArticleStatus.valueOf(request.getStatus().toUpperCase())
-                                : ArticleStatus.PENDING)
-                        .location(request.getLocation())
-                        .touristSpot(request.getTouristSpotId() != null
-                                ? TouristSpot.builder().id(request.getTouristSpotId()).build() : null)
-                        .travelPlan(request.getTravelPlanId() != null
-                                ? TravelPlan.builder().id(request.getTravelPlanId()).build() : null)
-                        .cityPriceWiki(request.getCityPriceWikiId() != null
-                                ? CityPriceWiki.builder().id(request.getCityPriceWikiId()).build() : null)
-                        .deleted(false)
-                        .isFeatured(false)
-                        .isEdited(false)
-                        .likeCount(0L)
-                        .saveCount(0L)
-                        .commentCount(0L)
-                        .shareCount(0L)
-                        .viewCount(0L)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .build();
+                                .author(author)
+                                .title(request.getTitle())
+                                .content(request.getContent())
+                                .category(request.getCategory() != null
+                                                ? ArticleCategory.valueOf(request.getCategory().toUpperCase())
+                                                : ArticleCategory.GENERAL)
+                                .visibility(request.getVisibility() != null
+                                                ? ArticleVisibility.valueOf(request.getVisibility().toUpperCase())
+                                                : ArticleVisibility.PUBLIC)
+                                .status(request.getStatus() != null
+                                                ? ArticleStatus.valueOf(request.getStatus().toUpperCase())
+                                                : ArticleStatus.PENDING)
+                                .location(request.getLocation())
+                                .touristSpot(request.getTouristSpotId() != null
+                                                ? TouristSpot.builder().id(request.getTouristSpotId()).build()
+                                                : null)
+                                .travelPlan(request.getTravelPlanId() != null
+                                                ? TravelPlan.builder().id(request.getTravelPlanId()).build()
+                                                : null)
+                                .cityPriceWiki(request.getCityPriceWikiId() != null
+                                                ? CityPriceWiki.builder().id(request.getCityPriceWikiId()).build()
+                                                : null)
+                                .deleted(false)
+                                .isFeatured(false)
+                                .isEdited(false)
+                                .likeCount(0L)
+                                .saveCount(0L)
+                                .commentCount(0L)
+                                .shareCount(0L)
+                                .viewCount(0L)
+                                .createdAt(LocalDateTime.now())
+                                .updatedAt(LocalDateTime.now())
+                                .build();
 
                 Article savedArticle = articleRepository.save(article);
 
                 if (request.getMedia() != null) {
                         for (MediaRequest mediaRequest : request.getMedia()) {
                                 ArticleMedia media = ArticleMedia.builder()
-                                        .article(savedArticle)
-                                        .mediaUrl(mediaRequest.getMediaUrl())
-                                        .mediaType(mediaRequest.getMediaType())
-                                        .fileSize(mediaRequest.getFileSize())
-                                        .mimeType(mediaRequest.getMimeType())
-                                        .build();
+                                                .article(savedArticle)
+                                                .mediaUrl(mediaRequest.getMediaUrl())
+                                                .mediaType(mediaRequest.getMediaType())
+                                                .fileSize(mediaRequest.getFileSize())
+                                                .mimeType(mediaRequest.getMimeType())
+                                                .build();
                                 savedArticle.getMediaList().add(media);
                         }
                 }
@@ -291,13 +299,15 @@ public class ArticleService {
                 if (request.getHashtags() != null) {
                         for (String tag : request.getHashtags()) {
                                 String cleanTag = tag.trim().replace("#", "");
-                                if (cleanTag.isBlank()) continue;
+                                if (cleanTag.isBlank())
+                                        continue;
                                 Hashtag hashtag = hashtagRepository.findByName(cleanTag)
-                                        .orElseGet(() -> hashtagRepository.save(
-                                                Hashtag.builder().name(cleanTag).build()));
+                                                .orElseGet(() -> hashtagRepository.save(
+                                                                Hashtag.builder().name(cleanTag).build()));
                                 if (!articleHashtagRepository.existsByArticleAndHashtag(savedArticle, hashtag)) {
                                         articleHashtagRepository.save(
-                                                ArticleHashtag.builder().article(savedArticle).hashtag(hashtag).build());
+                                                        ArticleHashtag.builder().article(savedArticle).hashtag(hashtag)
+                                                                        .build());
                                 }
                         }
                 }
@@ -336,23 +346,25 @@ public class ArticleService {
                 }
 
                 article.setTouristSpot(request.getTouristSpotId() != null
-                        ? TouristSpot.builder().id(request.getTouristSpotId()).build() : null);
+                                ? TouristSpot.builder().id(request.getTouristSpotId()).build()
+                                : null);
                 article.setTravelPlan(request.getTravelPlanId() != null
-                        ? TravelPlan.builder().id(request.getTravelPlanId()).build() : null);
+                                ? TravelPlan.builder().id(request.getTravelPlanId()).build()
+                                : null);
                 article.setCityPriceWiki(request.getCityPriceWikiId() != null
-                        ? CityPriceWiki.builder().id(request.getCityPriceWikiId()).build() : null);
+                                ? CityPriceWiki.builder().id(request.getCityPriceWikiId()).build()
+                                : null);
 
                 article.getMediaList().clear();
-
                 if (request.getMedia() != null) {
                         for (MediaRequest mediaRequest : request.getMedia()) {
                                 ArticleMedia media = ArticleMedia.builder()
-                                        .article(article)
-                                        .mediaUrl(mediaRequest.getMediaUrl())
-                                        .mediaType(mediaRequest.getMediaType())
-                                        .fileSize(mediaRequest.getFileSize())
-                                        .mimeType(mediaRequest.getMimeType())
-                                        .build();
+                                                .article(article)
+                                                .mediaUrl(mediaRequest.getMediaUrl())
+                                                .mediaType(mediaRequest.getMediaType())
+                                                .fileSize(mediaRequest.getFileSize())
+                                                .mimeType(mediaRequest.getMimeType())
+                                                .build();
                                 article.getMediaList().add(media);
                         }
                 }
@@ -361,12 +373,13 @@ public class ArticleService {
                 if (request.getHashtags() != null) {
                         for (String tag : request.getHashtags()) {
                                 String cleanTag = tag.trim().replace("#", "");
-                                if (cleanTag.isBlank()) continue;
+                                if (cleanTag.isBlank())
+                                        continue;
                                 Hashtag hashtag = hashtagRepository.findByName(cleanTag)
-                                        .orElseGet(() -> hashtagRepository.save(
-                                                Hashtag.builder().name(cleanTag).build()));
+                                                .orElseGet(() -> hashtagRepository.save(
+                                                                Hashtag.builder().name(cleanTag).build()));
                                 articleHashtagRepository.save(
-                                        ArticleHashtag.builder().article(article).hashtag(hashtag).build());
+                                                ArticleHashtag.builder().article(article).hashtag(hashtag).build());
                         }
                 }
 
@@ -379,14 +392,12 @@ public class ArticleService {
         // SOFT DELETE
         // =====================================================
 
-        @Transactional
         public void softDeleteArticle(String username, Long articleId) {
                 User user = getUser(username);
                 Article article = getArticle(articleId);
                 if (!article.getAuthor().getId().equals(user.getId())) {
                         throw new AppException(ErrorCode.FORBIDDEN);
                 }
-
                 article.setDeleted(true);
                 articleRepository.save(article);
         }
@@ -409,42 +420,47 @@ public class ArticleService {
 
         @Transactional
         public ArticleStatusResponse toggleLike(String username, Long articleId) {
-                User user = getUser(username);
-                Article article = getArticle(articleId);
-                boolean liked;
+                User user = userRepository.findByUsername(username)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
-                Optional<ArticleLike> existingLike = articleLikeRepository.findByUserAndArticle(user, article);
+                Article article = articleRepository.findById(articleId)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết"));
+
+                Optional<ArticleLike> existingLike =
+                        articleLikeRepository.findByUserAndArticle(user, article);
+
+                boolean liked;
 
                 if (existingLike.isPresent()) {
                         articleLikeRepository.delete(existingLike.get());
-                        article.setLikeCount(Math.max(0, article.getLikeCount() - 1));
-                        articleRepository.save(article);
+
+                        article.setLikeCount(
+                                Math.max(0, article.getLikeCount() - 1)
+                        );
+
                         liked = false;
                 } else {
-                        articleLikeRepository.save(ArticleLike.builder().user(user).article(article).build());
+                        ArticleLike articleLike = ArticleLike.builder()
+                                .user(user)
+                                .article(article)
+                                .build();
+
+                        articleLikeRepository.save(articleLike);
+
                         article.setLikeCount(article.getLikeCount() + 1);
-                        articleRepository.save(article);
+
                         liked = true;
-                        try {
-                                if (!article.getAuthor().getId().equals(user.getId())) {
-                                        notificationService.sendTo(
-                                                article.getAuthor(),
-                                                NotificationType.ARTICLE_LIKED,
-                                                "Bài viết mới được thích",
-                                                user.getFullName() + " đã thích bài viết của bạn",
-                                                "/news/" + article.getId()
-                                        );
-                                }
-                        } catch (Exception e) {
-                                log.warn("Không gửi được notification like cho article {}: {}",
-                                        article.getId(), e.getMessage());
-                        }
                 }
+
+                articleRepository.save(article);
 
                 return ArticleStatusResponse.builder()
                         .liked(liked)
                         .saved(savedArticleRepository.existsByUserAndArticle(user, article))
-                        .likeCount(articleLikeRepository.countByArticle(article))
+                        .likeCount(article.getLikeCount())
+                        .saveCount(article.getSaveCount())
+                        .commentCount(article.getCommentCount())
+                        .viewCount(article.getViewCount())
                         .build();
         }
 
@@ -454,27 +470,48 @@ public class ArticleService {
 
         @Transactional
         public ArticleStatusResponse toggleSave(String username, Long articleId) {
-                User user = getUser(username);
-                Article article = getArticle(articleId);
+                User user = userRepository.findByUsername(username)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+                Article article = articleRepository.findById(articleId)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết"));
+
+                Optional<SavedArticle> existingSave =
+                        savedArticleRepository.findByUserAndArticle(user, article);
+
                 boolean saved;
 
-                Optional<SavedArticle> existing = savedArticleRepository.findByUserAndArticle(user, article);
+                if (existingSave.isPresent()) {
+                        savedArticleRepository.delete(existingSave.get());
 
-                if (existing.isPresent()) {
-                        savedArticleRepository.delete(existing.get());
-                        article.setSaveCount(Math.max(0, article.getSaveCount() - 1));
+                        article.setSaveCount(
+                                Math.max(0, article.getSaveCount() - 1)
+                        );
+
                         saved = false;
                 } else {
-                        savedArticleRepository.save(SavedArticle.builder().user(user).article(article).build());
+                        SavedArticle savedArticle = SavedArticle.builder()
+                                .user(user)
+                                .article(article)
+                                .folder("DEFAULT")
+                                .build();
+
+                        savedArticleRepository.save(savedArticle);
+
                         article.setSaveCount(article.getSaveCount() + 1);
+
                         saved = true;
                 }
+
                 articleRepository.save(article);
 
                 return ArticleStatusResponse.builder()
                         .liked(articleLikeRepository.existsByUserAndArticle(user, article))
                         .saved(saved)
                         .likeCount(article.getLikeCount())
+                        .saveCount(article.getSaveCount())
+                        .commentCount(article.getCommentCount())
+                        .viewCount(article.getViewCount())
                         .build();
         }
 
@@ -484,12 +521,19 @@ public class ArticleService {
 
         @Transactional(readOnly = true)
         public ArticleStatusResponse getArticleStatus(String username, Long articleId) {
-                User user = getUser(username);
-                Article article = getArticle(articleId);
+                User user = userRepository.findByUsername(username)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+                Article article = articleRepository.findById(articleId)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết"));
+
                 return ArticleStatusResponse.builder()
                         .liked(articleLikeRepository.existsByUserAndArticle(user, article))
                         .saved(savedArticleRepository.existsByUserAndArticle(user, article))
-                        .likeCount(articleLikeRepository.countByArticle(article))
+                        .likeCount(article.getLikeCount())
+                        .saveCount(article.getSaveCount())
+                        .commentCount(article.getCommentCount())
+                        .viewCount(article.getViewCount())
                         .build();
         }
 
@@ -502,12 +546,12 @@ public class ArticleService {
                 User user = getUser(username);
                 Page<SavedArticle> saved = savedArticleRepository.findByUser(user, pageable(page, size));
                 List<ArticleDto> content = saved.getContent()
-                        .stream()
-                        .map(s -> {
-                                loadRelations(s.getArticle());
-                                return ArticleDto.from(s.getArticle());
-                        })
-                        .collect(Collectors.toList());
+                                .stream()
+                                .map(s -> {
+                                        loadRelations(s.getArticle());
+                                        return ArticleDto.from(s.getArticle());
+                                })
+                                .collect(Collectors.toList());
                 return new PageImpl<>(content, saved.getPageable(), saved.getTotalElements());
         }
 
@@ -529,15 +573,14 @@ public class ArticleService {
                 Article saved = articleRepository.save(article);
                 try {
                         notificationService.sendTo(
-                                article.getAuthor(),
-                                NotificationType.ARTICLE_APPROVED,
-                                "Bài viết được duyệt",
-                                "Bài viết \"" + article.getTitle() + "\" đã được phê duyệt",
-                                "/news/" + article.getId()
-                        );
+                                        article.getAuthor(),
+                                        NotificationType.ARTICLE_APPROVED,
+                                        "Bài viết được duyệt",
+                                        "Bài viết \"" + article.getTitle() + "\" đã được phê duyệt",
+                                        "/news/" + article.getId());
                 } catch (Exception e) {
                         log.warn("Không gửi được notification approve cho article {}: {}",
-                                article.getId(), e.getMessage());
+                                        article.getId(), e.getMessage());
                 }
                 loadRelations(saved);
                 return ArticleDto.from(saved);
@@ -550,15 +593,14 @@ public class ArticleService {
                 Article saved = articleRepository.save(article);
                 try {
                         notificationService.sendTo(
-                                article.getAuthor(),
-                                NotificationType.ARTICLE_REJECTED,
-                                "Bài viết bị từ chối",
-                                "Lý do: " + reason,
-                                "/news"
-                        );
+                                        article.getAuthor(),
+                                        NotificationType.ARTICLE_REJECTED,
+                                        "Bài viết bị từ chối",
+                                        "Lý do: " + reason,
+                                        "/news");
                 } catch (Exception e) {
                         log.warn("Không gửi được notification reject cho article {}: {}",
-                                article.getId(), e.getMessage());
+                                        article.getId(), e.getMessage());
                 }
                 loadRelations(saved);
                 return ArticleDto.from(saved);
@@ -594,7 +636,7 @@ public class ArticleService {
                 Long authorId = article.getAuthor() != null ? article.getAuthor().getId() : null;
 
                 Page<ArticleComment> comments = articleCommentRepository.findRootComments(
-                        article, pageableNoSort(page, size));
+                                article, pageableNoSort(page, size));
 
                 return comments.map(c -> {
                         ArticleCommentDto dto = ArticleCommentDto.from(c, authorId);
@@ -610,12 +652,12 @@ public class ArticleService {
                 Long authorId = article.getAuthor() != null ? article.getAuthor().getId() : null;
 
                 ArticleComment parent = articleCommentRepository.findById(commentId)
-                        .orElseThrow(() -> new AppException(ErrorCode.COMMENT_NOT_FOUND));
+                                .orElseThrow(() -> new AppException(ErrorCode.COMMENT_NOT_FOUND));
 
                 return articleCommentRepository.findByParentCommentAndDeletedFalse(parent)
-                        .stream()
-                        .map(c -> ArticleCommentDto.from(c, authorId))
-                        .collect(Collectors.toList());
+                                .stream()
+                                .map(c -> ArticleCommentDto.from(c, authorId))
+                                .collect(Collectors.toList());
         }
 
         public ArticleCommentDto createComment(String username, Long articleId, CommentRequest request) {
@@ -626,19 +668,19 @@ public class ArticleService {
                 ArticleComment parent = null;
                 if (request.getParentCommentId() != null) {
                         parent = articleCommentRepository.findById(request.getParentCommentId())
-                                .orElseThrow(() -> new AppException(ErrorCode.COMMENT_NOT_FOUND));
+                                        .orElseThrow(() -> new AppException(ErrorCode.COMMENT_NOT_FOUND));
                 }
 
                 ArticleComment comment = ArticleComment.builder()
-                        .user(user)
-                        .article(article)
-                        .content(request.getContent())
-                        .parentComment(parent)
-                        .likeCount(0L)
-                        .isEdited(false)
-                        .deleted(false)
-                        .createdAt(LocalDateTime.now())
-                        .build();
+                                .user(user)
+                                .article(article)
+                                .content(request.getContent())
+                                .parentComment(parent)
+                                .likeCount(0L)
+                                .isEdited(false)
+                                .deleted(false)
+                                .createdAt(LocalDateTime.now())
+                                .build();
 
                 ArticleComment saved = articleCommentRepository.save(comment);
 
@@ -649,16 +691,15 @@ public class ArticleService {
                 try {
                         if (authorId != null && !authorId.equals(user.getId())) {
                                 notificationService.sendTo(
-                                        article.getAuthor(),
-                                        NotificationType.ARTICLE_LIKED, // dùng tạm; thêm ARTICLE_COMMENTED nếu có trong enum
-                                        "Bình luận mới",
-                                        user.getFullName() + " đã bình luận bài viết của bạn",
-                                        "/news/" + article.getId()
-                                );
+                                                article.getAuthor(),
+                                                NotificationType.ARTICLE_COMMENTED,
+                                                "Bình luận mới",
+                                                user.getFullName() + " đã bình luận bài viết của bạn",
+                                                "/news/" + article.getId());
                         }
                 } catch (Exception e) {
                         log.warn("Không gửi được notification comment cho article {}: {}",
-                                article.getId(), e.getMessage());
+                                        article.getId(), e.getMessage());
                 }
 
                 return ArticleCommentDto.from(saved, authorId);
@@ -667,7 +708,7 @@ public class ArticleService {
         public void deleteComment(String username, Long articleId, Long commentId) {
                 User user = getUser(username);
                 ArticleComment comment = articleCommentRepository.findById(commentId)
-                        .orElseThrow(() -> new AppException(ErrorCode.COMMENT_NOT_FOUND));
+                                .orElseThrow(() -> new AppException(ErrorCode.COMMENT_NOT_FOUND));
                 if (!comment.getUser().getId().equals(user.getId())) {
                         throw new AppException(ErrorCode.FORBIDDEN);
                 }

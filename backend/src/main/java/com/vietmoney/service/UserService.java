@@ -1,6 +1,5 @@
 package com.vietmoney.service;
 
-import com.vietmoney.domain.entity.ArticleMedia;
 import com.vietmoney.domain.entity.User;
 import com.vietmoney.domain.enums.Role;
 import com.vietmoney.repository.*;

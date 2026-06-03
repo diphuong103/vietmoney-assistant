@@ -7,7 +7,7 @@ const budgetApi = {
   },
 
   getDailyBudget: async () => {
-    const res = await axiosClient.get('/budgets/daily');
+    const res = await axiosClient.get('/budgets/daily', { _silent: true });
     return res?.data ?? res;
   },
 
