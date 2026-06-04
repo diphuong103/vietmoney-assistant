@@ -51,10 +51,19 @@ public class BudgetServiceImpl implements BudgetService {
 
         User user = getCurrentUser();
 
+        List<Budget> overlapping = budgetRepository.findOverlappingBudgets(
+                user.getId(),
+                request.getStartDate(),
+                request.getEndDate()
+        );
+
+        if (!overlapping.isEmpty()) {
+            throw new AppException(ErrorCode.BUDGET_OVERLAP);
+        }
+
         Budget budget = budgetMapper.toEntity(request);
         budget.setUser(user);
 
-        // đảm bảo không null
         if (budget.getSpentAmount() == null) {
             budget.setSpentAmount(BigDecimal.ZERO);
         }
@@ -79,9 +88,24 @@ public class BudgetServiceImpl implements BudgetService {
     public BudgetResponse update(Long id, BudgetRequest request) {
         validateBudgetRequest(request);
 
+        User user = getCurrentUser();
+
         Budget budget = budgetRepository
-                .findByIdAndUserId(id, getCurrentUser().getId())
+                .findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.BUDGET_NOT_FOUND));
+
+        List<Budget> overlapping = budgetRepository.findOverlappingBudgets(
+                        user.getId(),
+                        request.getStartDate(),
+                        request.getEndDate()
+                )
+                .stream()
+                .filter(item -> !item.getId().equals(id))
+                .toList();
+
+        if (!overlapping.isEmpty()) {
+            throw new AppException(ErrorCode.BUDGET_OVERLAP);
+        }
 
         budget.setName(request.getName());
         budget.setTotalAmount(request.getTotalAmount());

@@ -7,6 +7,7 @@ import CategoryModal from '../../components/budget/CategoryModal';
 import { useTransactionStore } from '../../store/transactionStore';
 import { useBudgetStore } from '../../store/budgetStore';
 import budgetApi from '../../api/budgetApi';
+import { toast } from 'react-hot-toast';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TXN_PAGE_SIZE = 10;
@@ -438,12 +439,35 @@ export default function BudgetPage() {
   const openEditBudget = useCallback((b) => { setEditingBudget(b); setBudgetForm({ name: b.name, totalAmount: b.totalAmount, currency: b.currency, startDate: b.startDate, endDate: b.endDate }); setBudgetFormOpen(true); }, []);
 
   const saveBudget = useCallback(async () => {
-    const payload = { name: budgetForm.name.trim(), totalAmount: parseFloat(budgetForm.totalAmount), currency: budgetForm.currency, startDate: budgetForm.startDate, endDate: budgetForm.endDate };
+    const payload = {
+      name: budgetForm.name.trim(),
+      totalAmount: parseFloat(budgetForm.totalAmount),
+      currency: budgetForm.currency,
+      startDate: budgetForm.startDate,
+      endDate: budgetForm.endDate
+    };
+
     if (!payload.name || !payload.totalAmount) return;
+
     try {
-      editingBudget ? await budgetApi.updateBudget(editingBudget.id, payload) : await budgetApi.createBudget(payload);
-      await loadBudgets(); fetchDailyBudget().catch(() => { }); setBudgetFormOpen(false);
-    } catch (e) { console.error(e); }
+      if (editingBudget) {
+        await budgetApi.updateBudget(editingBudget.id, payload);
+      } else {
+        await budgetApi.createBudget(payload);
+      }
+
+      await loadBudgets();
+      fetchDailyBudget().catch(() => {});
+      setBudgetFormOpen(false);
+    } catch (e) {
+      const message =
+          e.response?.data?.message ||
+          e.response?.data?.error ||
+          'Không thể lưu kế hoạch ngân sách';
+
+      toast.error(message);
+      console.error(e);
+    }
   }, [budgetForm, editingBudget, loadBudgets, fetchDailyBudget]);
 
   const handleDeleteBudget = useCallback(async (id) => {

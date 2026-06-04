@@ -73,17 +73,8 @@ public class AtmService {
     /** TTL cache — rescan sau bao nhiêu giờ */
     private static final int    CACHE_TTL_HOURS = 72;
 
-    /**
-     * ✦ CORE FIX: Query từng tên ngân hàng cụ thể thay vì chỉ "ATM"/"ngân hàng".
-     *
-     * Vấn đề cũ: Goong Text Search chỉ trả tối đa 10 kết quả/request.
-     * Với keyword chung như "ATM" → chỉ lấy được ~10 địa điểm, bỏ sót hàng chục ngân hàng.
-     *
-     * Giải pháp: Query riêng từng ngân hàng lớn + query chung để bắt phần còn lại.
-     * Mỗi query trả ~10 kết quả × 20 queries = ~200 ATM/ô → coverage tốt hơn nhiều.
-     *
-     * Thứ tự: ngân hàng lớn (nhiều ATM) trước để ưu tiên khi hit rate limit.
-     */
+
+
     private static final String[] SCAN_KEYWORDS = {
             // ── Ngân hàng quốc doanh ──────────────────────────────────────────────
             "Agribank ATM", "Vietcombank ATM", "BIDV ATM", "VietinBank ATM",
@@ -172,7 +163,7 @@ public class AtmService {
             = new ConcurrentHashMap<>();
 
     // ══════════════════════════════════════════════════════════════════════════
-    //  PUBLIC: Lấy ATM gần vị trí
+    //
     //  1. Xác định các ô lưới cần quét
     //  2. Trigger async scan cho ô chưa có / hết TTL
     //  3. Trả ngay dữ liệu từ DB (không chờ scan)

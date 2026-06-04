@@ -11,6 +11,8 @@ import Navbar from '../../components/layout/Navbar';
 import articleApi from '../../api/articleApi';
 import mediaApi from '../../api/mediaApi';
 
+import toast from 'react-hot-toast';
+
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
@@ -1380,17 +1382,7 @@ function CommentsSection({
 }
 
 /* ═══════════════════════════════════════
-   ARTICLE DETAIL MODAL
-
-   FIX DOUBLE VIEW:
-   - Dùng module-level _viewedIds Set (không bị reset bởi StrictMode)
-   - Trước khi gọi getById, kiểm tra Set; nếu đã có → chỉ fetch preview
-   - Khi modal đóng (articleId = null) KHÔNG xóa khỏi Set
-     → cùng bài mở lại không tính view thêm
-
-   FIX INSTANT UPDATE:
-   - Nhận counts trực tiếp từ parent (single source of truth)
-   - onLike / onSave gọi lên parent → parent update state → re-render ngay
+  ArticleDetail
 ═══════════════════════════════════════ */
 
 function ArticleDetailModal({
@@ -1600,8 +1592,6 @@ function ArticleDetailModal({
 /* ═══════════════════════════════════════
    ARTICLE CARD
    - Đọc liked/saved/counts từ parent (single source of truth)
-   - KHÔNG tự quản lý like/save state
-   - statusReady bỏ: button KHÔNG disabled khi chờ fetch
 ═══════════════════════════════════════ */
 
 const ArticleCard = memo(function ArticleCard({
@@ -1797,7 +1787,20 @@ function ArticleEditor({ onSubmit, submitting }) {
     if (submitting) return;
 
     if (!title.trim()) {
-      alert('Vui lòng nhập tiêu đề');
+      toast.error('Vui lòng nhập tiêu đề', {
+        duration: 3000,
+        style: {
+          background: '#1a1a2e',
+          color: '#fff',
+          border: '1px solid rgba(242,61,110,0.3)',
+          borderRadius: '12px',
+          fontSize: '14px',
+        },
+        iconTheme: {
+          primary: '#f23d6e',
+          secondary: '#fff',
+        },
+      });
       return;
     }
 
@@ -1808,7 +1811,20 @@ function ArticleEditor({ onSubmit, submitting }) {
         .join('\n\n');
 
     if (!textContent.trim()) {
-      alert('Vui lòng nhập nội dung bài viết');
+      toast.error('Vui lòng nhập nội dung bài viết', {
+        duration: 3000,
+        style: {
+          background: '#1a1a2e',
+          color: '#fff',
+          border: '1px solid rgba(242,61,110,0.3)',
+          borderRadius: '12px',
+          fontSize: '14px',
+        },
+        iconTheme: {
+          primary: '#f23d6e',
+          secondary: '#fff',
+        },
+      });
       return;
     }
 
@@ -2520,7 +2536,7 @@ export default function NewsPage() {
 
       setTab('my');
     } catch (error) {
-      console.error('Create article failed:', error.response?.data || error);
+      console.warn('Create/update budget rejected:', e.response?.data);
       alert(error.response?.data?.message || 'Đăng bài thất bại');
     } finally {
       setSubmitting(false);

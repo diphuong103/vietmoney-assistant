@@ -55,7 +55,9 @@ public enum ErrorCode {
 
     WIKI_PRICE_NOT_FOUND(404, "Không tìm thấy dữ liệu giá", HttpStatus.NOT_FOUND),
 
-    NOTIFICATION_NOT_FOUND(404, "Thông báo không tồn tại", HttpStatus.NOT_FOUND);
+    NOTIFICATION_NOT_FOUND(404, "Thông báo không tồn tại", HttpStatus.NOT_FOUND),
+
+    BUDGET_OVERLAP(400, "Đã có kế hoạch ngân sách trong khoảng thời gian này", HttpStatus.CONFLICT),;
 
     private final int code;
     private final String message;
